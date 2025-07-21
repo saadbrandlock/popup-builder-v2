@@ -1,0 +1,96 @@
+{
+  "name": "@brandlock/coupon-template-builder",
+  "version": "1.0.0",
+  "description": "A React/TypeScript coupon template builder component library",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./styles": "./dist/style.css"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run clean && rollup -c",
+    "build:watch": "cross-env NODE_ENV=development rollup -c -w",
+    "build:fast": "cross-env NODE_ENV=development rollup -c -w --silent",
+    "build:lib": "rollup -c",
+    "clean": "rimraf dist .tsbuildinfo",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky install",
+    "yalc:publish": "npm run build && yalc publish",
+    "yalc:push": "npm run build && yalc push",
+    "dev:yalc": "npm run build:watch & yalc publish --watch",
+    "dev:fast": "npm run build:fast & yalc publish --watch"
+  },
+  "keywords": [
+    "react",
+    "typescript",
+    "coupon",
+    "template",
+    "builder",
+    "canvas",
+    "design"
+  ],
+  "author": "Brandlock",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@typescript-eslint/eslint-plugin": "^7.2.0",
+    "@typescript-eslint/parser": "^7.2.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.6",
+    "husky": "^8.0.3",
+    "prettier": "^3.2.5",
+    "rimraf": "^6.0.1",
+    "rollup": "^4.45.1",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0",
+    "vite-plugin-dts": "^3.8.3"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.1.0",
+    "@dnd-kit/sortable": "^8.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@monaco-editor/react": "^4.6.0",
+    "antd": "^5.15.0",
+    "axios": "^1.6.8",
+    "date-fns": "^3.6.0",
+    "iframe-resizer": "^4.3.9",
+    "konva": "^9.2.0",
+    "postcss": "^8.4.38",
+    "react-advanced-cropper": "^0.19.0",
+    "react-grid-layout": "^1.4.4",
+    "react-konva": "^18.2.10",
+    "tailwindcss": "^3.4.3",
+    "zod": "^3.22.4",
+    "zustand": "^4.5.2"
+  }
+}
