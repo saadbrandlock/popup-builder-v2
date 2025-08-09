@@ -1,17 +1,7 @@
 // Re-export all common types
 export * from './api';
 export * from './common';
-
-// Legacy types - keeping for backward compatibility
-export interface CouponTemplate {
-  id: string;
-  name: string;
-  elements: TemplateElement[];
-  dimensions: {
-    width: number;
-    height: number;
-  };
-}
+export * from './template';
 
 export interface TemplateElement {
   id: string;

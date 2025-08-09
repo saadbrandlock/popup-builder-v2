@@ -13,10 +13,12 @@ export default {
   input: 'src/index.ts',
   output: [
     {
-      file: 'dist/index.js',
+      dir: 'dist',
       format: 'esm',
       sourcemap: isDev,
       exports: 'named',
+      entryFileNames: 'index.js',
+      chunkFileNames: 'chunks/[name]-[hash].js',
       banner: isDev ? `/* Built at ${new Date().toISOString()} */` : undefined,
     },
   ],
@@ -50,11 +52,13 @@ export default {
       exclude: ['**/*.test.ts', '**/*.test.tsx', '**/demo/**'],
     }),
     postcss({
-      extract: 'style.css',
-      minimize: !isDev, // Skip minification in dev
       config: {
-        path: './postcss.config.js',
+        path: './postcss.config.cjs',
       },
+      extensions: ['.css'],
+      minimize: !isDev,
+      extract: 'style.css',
+      inject: false,
     }),
     // Only use terser in production
     ...(!isDev ? [terser()] : []),

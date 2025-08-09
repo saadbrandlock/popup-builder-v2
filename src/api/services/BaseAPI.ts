@@ -6,12 +6,14 @@ import { AxiosInstance, AxiosResponse } from 'axios';
  */
 export abstract class BaseAPI {
   protected apiClient: AxiosInstance;
+  protected BASE_ENDPOINT: string;
 
   constructor(apiClient: AxiosInstance) {
     if (!apiClient) {
       throw new Error('API client is required');
     }
     this.apiClient = apiClient;
+    this.BASE_ENDPOINT = '/coupon-builder/api';
   }
 
   /**
@@ -72,7 +74,7 @@ export abstract class BaseAPI {
    */
   protected async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
     try {
-      const url = params ? `${endpoint}?${this.buildQueryParams(params)}` : endpoint;
+      const url = params ? `${this.BASE_ENDPOINT}${endpoint}?${this.buildQueryParams(params)}` : `${this.BASE_ENDPOINT}${endpoint}`;
       const response = await this.apiClient.get(url);
       return this.extractResponseData<T>(response);
     } catch (error) {
@@ -85,7 +87,7 @@ export abstract class BaseAPI {
    */
   protected async post<T>(endpoint: string, data?: any): Promise<T> {
     try {
-      const response = await this.apiClient.post(endpoint, data);
+      const response = await this.apiClient.post(`${this.BASE_ENDPOINT}${endpoint}`, data);
       return this.extractResponseData<T>(response);
     } catch (error) {
       this.handleError(error, `POST ${endpoint}`);
@@ -97,7 +99,7 @@ export abstract class BaseAPI {
    */
   protected async put<T>(endpoint: string, data?: any): Promise<T> {
     try {
-      const response = await this.apiClient.put(endpoint, data);
+      const response = await this.apiClient.put(`${this.BASE_ENDPOINT}${endpoint}`, data);
       return this.extractResponseData<T>(response);
     } catch (error) {
       this.handleError(error, `PUT ${endpoint}`);
@@ -109,7 +111,7 @@ export abstract class BaseAPI {
    */
   protected async delete<T>(endpoint: string): Promise<T> {
     try {
-      const response = await this.apiClient.delete(endpoint);
+      const response = await this.apiClient.delete(`${this.BASE_ENDPOINT}${endpoint}`);
       return this.extractResponseData<T>(response);
     } catch (error) {
       this.handleError(error, `DELETE ${endpoint}`);
@@ -121,7 +123,7 @@ export abstract class BaseAPI {
    */
   protected async patch<T>(endpoint: string, data?: any): Promise<T> {
     try {
-      const response = await this.apiClient.patch(endpoint, data);
+      const response = await this.apiClient.patch(`${this.BASE_ENDPOINT}${endpoint}`, data);
       return this.extractResponseData<T>(response);
     } catch (error) {
       this.handleError(error, `PATCH ${endpoint}`);

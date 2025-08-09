@@ -1,18 +1,12 @@
 import { AxiosInstance } from 'axios';
 import { BaseAPI } from './BaseAPI';
-import type {
-  TCBTemplate,
-  PaginatedResponse,
-  ApiResponse,
-} from '../../types/api';
-import type { CouponTemplate } from '../../features/template-builder/types';
+import type { PaginatedResponse, ApiResponse } from '../../types/api';
 import { useTemplateListingStore } from '@/stores/list/templateListing.store';
 import { FetchParams } from '../types/main.types';
 import { TablePaginationConfig } from 'antd';
+import { CleanTemplateResponse, TCBTemplate } from '@/types';
 
 export class TemplatesAPI extends BaseAPI {
-  private readonly BASE_ENDPOINT = '/template-builder/config/templates';
-
   constructor(apiClient: AxiosInstance) {
     super(apiClient);
   }
@@ -32,8 +26,6 @@ export class TemplatesAPI extends BaseAPI {
       sortDirection: currentSorter.sortDirection,
     };
 
-    console.log(queryParams);
-
     Object.keys(queryParams).forEach((key) => {
       const k = key as keyof FetchParams;
       if (queryParams[k] === undefined) {
@@ -42,38 +34,16 @@ export class TemplatesAPI extends BaseAPI {
     });
 
     return this.get<PaginatedResponse<TCBTemplate>>(
-      this.BASE_ENDPOINT,
+      `/admin/templates`,
       queryParams
     );
-  }
-
-  /**
-   * Transform TCBTemplate to CouponTemplate for UI consumption
-   */
-  transformTemplate(template: TCBTemplate): CouponTemplate {
-    return {
-      id: template.id,
-      name: template.name,
-      description: template.description || undefined,
-      status: template.status || 'draft',
-      devices: template.devices?.map((d) => d.device_type) || [],
-      shopper_ids: template.shopper_ids || [],
-      type: template.is_generic ? 'generic' : 'specific',
-      lastUpdated: new Date(template.updated_at || template.created_at),
-      createdAt: new Date(template.created_at),
-      createdBy: template.created_by?.toString() || 'Unknown',
-      builder_state_json: template.builder_state_json,
-      canvas_type: template.canvas_type,
-      is_generic: template.is_generic,
-      is_custom_coded: template.is_custom_coded,
-    };
   }
 
   /**
    * Get templates transformed for UI consumption
    */
   async getTemplatesForUI(): Promise<{
-    templates: CouponTemplate[];
+    templates: CleanTemplateResponse[];
     pagination: {
       page: number;
       limit: number;
@@ -81,11 +51,7 @@ export class TemplatesAPI extends BaseAPI {
     };
   }> {
     const { filters, pagination, sorter } = useTemplateListingStore.getState();
-    const response = await this.getTemplates(
-      pagination,
-      filters,
-      sorter
-    );
+    const response = await this.getTemplates(pagination, filters, sorter);
     return {
       templates: response.results.map((template) =>
         this.transformTemplate(template)
@@ -99,67 +65,162 @@ export class TemplatesAPI extends BaseAPI {
   }
 
   /**
+   * Get popup template by ID
+   * @param templateId - The template ID to fetch
+   * @returns Promise<CleanTemplateResponse>
+   */
+  async getTemplateById(templateId: string): Promise<CleanTemplateResponse> {
+    try {
+      const response = await this.get<TCBTemplate>(
+        `/admin/templates/${templateId}`
+      );
+      return this.transformTemplate(response);
+    } catch (error) {
+      this.handleError(error, `get popup template ${templateId}`);
+    }
+  }
+  
+  /**
    * Publish a template
    */
-  async publishTemplate(
-    templateId: string
-  ): Promise<ApiResponse<{ message: string }>> {
-    return this.post<ApiResponse<{ message: string }>>(
-      `${this.BASE_ENDPOINT}/${templateId}/publish`
+  async publishTemplate(templateId: string, htmlContent?: string): Promise<{ message: string }> {
+    const payload: { action: string; html_content?: string } = {
+      action: 'publish',
+    };
+    
+    // Only include html_content if provided
+    if (htmlContent) {
+      payload.html_content = htmlContent;
+    }
+    
+    return this.post<{ message: string }>(
+      `/admin/templates/${templateId}/actions`,
+      payload
     );
   }
-
+  
   /**
    * Archive a template
-   */
-  async archiveTemplate(
-    templateId: string
-  ): Promise<ApiResponse<{ message: string }>> {
-    return this.post<ApiResponse<{ message: string }>>(
-      `${this.BASE_ENDPOINT}/${templateId}/archive`
+  */
+  async archiveTemplate(templateId: string): Promise<{ message: string }> {
+    return this.post<{ message: string }>(
+      `/admin/templates/${templateId}/actions`,
+      {
+        action: 'archive',
+      }
     );
   }
 
   /**
    * Delete a template
-   */
-  async deleteTemplate(
-    templateId: string
-  ): Promise<ApiResponse<{ message: string }>> {
-    return this.delete<ApiResponse<{ message: string }>>(
-      `${this.BASE_ENDPOINT}/${templateId}`
+  */
+  async deleteTemplate(templateId: string): Promise<{ message: string }> {
+    return this.post<{ message: string }>(
+      `/admin/templates/${templateId}/actions`,
+      {
+        action: 'delete',
+      }
     );
   }
 
+  /**
+   * Unarchive a template
+  */
+  async unarchiveTemplate(templateId: string): Promise<{ message: string }> {
+    return this.post<{ message: string }>(
+      `/admin/templates/${templateId}/actions`,
+      {
+        action: 'unarchive',
+      }
+    );
+  }
+  
   /**
    * Get a single template by ID
-   */
-  async getTemplate(templateId: string): Promise<TCBTemplate> {
-    return this.get<TCBTemplate>(`${this.BASE_ENDPOINT}/${templateId}`);
+  */
+ async getTemplate(templateId: string): Promise<TCBTemplate> {
+   return this.get<TCBTemplate>(`/admin/templates/${templateId}`);
   }
-
+  
   /**
-   * Create a new template
-   */
-  async createTemplate(
-    templateData: any
-  ): Promise<ApiResponse<{ template: TCBTemplate }>> {
-    return this.post<ApiResponse<{ template: TCBTemplate }>>(
-      this.BASE_ENDPOINT,
-      templateData
-    );
-  }
+   * Create new popup template
+   * @param template - The popup template data
+   * @returns Promise<CleanTemplateResponse>
+  */
+ async createTemplate(
+   template: Omit<
+      TCBTemplate,
+      | 'id'
+      | 'created_at'
+      | 'updated_at'
+      | 'created_by'
+      | 'updated_by'
+      | 'deleted_by'
+      | 'deleted_at'
+      >
+    ): Promise<TCBTemplate> {
+      try {
+        const data = await this.post<TCBTemplate>(`/admin/templates`, template);
+        return data;
+      } catch (error) {
+        this.handleError(error, 'create popup template');
+      }
+    }
+    
+    /**
+     * Update a template
+    */
+   async updateTemplate(
+     templateId: string,
+     templateData: Partial<TCBTemplate>
+    ): Promise<TCBTemplate> {
+      try {
+        const response = await this.put<TCBTemplate>(
+          `/admin/templates/${templateId}`,
+          templateData
+        );
+        return response;
+      } catch (error) {
+        this.handleError(error, 'update popup template');
+      }
+    }
+    
+    async assignTemplateToShoppers(templateId: string, shopperId: number[]) {
+      try {
+        const response = await this.post<{ data: { shopper_ids: number[] } }>(
+          `/admin/templates/shopper-assignments`,
+          {
+            template_id: templateId,
+            shopper_ids: shopperId,
+          }
+        );
+        
+        return response;
+      } catch (error) {
+        console.error('Error assigning template:', error);
+        throw error;
+      }
+    }
 
-  /**
-   * Update a template
-   */
-  async updateTemplate(
-    templateId: string,
-    templateData: any
-  ): Promise<ApiResponse<{ template: TCBTemplate }>> {
-    return this.put<ApiResponse<{ template: TCBTemplate }>>(
-      `${this.BASE_ENDPOINT}/${templateId}`,
-      templateData
-    );
+    /**
+     * Transform TCBTemplate to CleanTemplateResponse for UI consumption
+    */
+   private transformTemplate(template: TCBTemplate): CleanTemplateResponse {
+     return {
+       id: template.id,
+       name: template.name,
+      description: template.description || undefined,
+      status: template.status || 'draft',
+      devices: template.devices?.map((d) => d.device_type) || [],
+      shopper_ids: template.shopper_ids || [],
+      type: template.is_generic ? 'generic' : 'specific',
+      lastUpdated: new Date(template.updated_at || template.created_at),
+      createdAt: new Date(template.created_at),
+      createdBy: template.created_by?.toString() || 'Unknown',
+      builder_state_json: template.builder_state_json,
+      canvas_type: template.canvas_type,
+      is_generic: template.is_generic,
+      is_custom_coded: template.is_custom_coded,
+    };
   }
 }

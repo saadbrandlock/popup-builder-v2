@@ -35,35 +35,6 @@ export interface AuthProvider {
   accountId: number;
 }
 
-export interface TCBTemplate {
-  id: string; // uuid-string
-  name: string;
-  description: string | null;
-  device_type_id: number; // Legacy field for backward compatibility
-  device_ids: number[]; // NEW: Multi-device support
-  devices: Array<{
-    id: number;
-    device_type: string;
-  }>; // NEW: Device details array
-  builder_state_json: any | null;
-  is_custom_coded: boolean;
-  is_generic: boolean; // NEW: Generic template flag
-  account_ids: number[];
-  canvas_type: string;
-  latest_published_version_id: string | null; // uuid-string
-  ip_address: string | null;
-  user_agent: string | null;
-  remarks: string | null;
-  created_at: string; // ISO date string
-  updated_at: string | null; // ISO date string
-  created_by: number | null;
-  updated_by: number | null;
-  deleted_by: number | null;
-  deleted_at: string | null; // ISO date string
-  status: string | null;
-  shopper_ids: number[]
-}
-
 export interface Device {
   id: number;
   ip_address: string | null;
@@ -109,7 +80,7 @@ export interface TemplateListParams {
   status?: string;
 }
 
-export interface TemplateConfigForm {
+export interface TemplateConfig {
   name: string;
   device_type_id: number;
   device_ids: number[];
@@ -119,3 +90,143 @@ export interface TemplateConfigForm {
   is_generic?: boolean;
   account_ids?: number[];
 }
+
+// Component Category Types
+export interface ComponentCategory {
+  id: number;
+  category_code: string;
+  category_name: string;
+  display_name: string;
+  description?: string;
+  icon_name?: string;
+  display_order: number;
+  is_active: boolean;
+  parent_category_id?: number;
+  metadata: Record<string, any>;
+  ip_address?: string;
+  user_agent?: string;
+  remarks?: string;
+  created_at: string;
+  updated_at?: string;
+  created_by?: number;
+  updated_by?: number;
+  deleted_by?: number;
+  deleted_at?: string;
+  status: string;
+}
+
+// Component Definition Types - Updated to match API response exactly
+export interface ComponentDefinition {
+  id: number;
+  type: string;
+  name: string;
+  icon_name: string;
+  default_config_json: Record<string, any>;
+  allowed_in_zones: string[];
+  client_customizable_props: Record<string, any>; // Can be nested object structure
+  can_contain_children: boolean;
+  allowed_children_types: string[] | null; // Can be null
+  min_instances: number;
+  max_instances: number | null; // Can be null for unlimited
+  properties: Record<string, any>;
+  preview_thumbnail: string | null; // Can be null
+  category_code: string;
+  category_name: string;
+  category_display_name: string;
+  category_icon: string;
+  category_color: string;
+  component_order: number;
+  category_order: number;
+}
+
+// Components API Response
+export interface ComponentsApiResponse {
+  code: number;
+  message: string;
+  data: ComponentDefinition[];
+}
+
+// Client Customization Types
+export interface ComponentClientCustomization {
+  id: number;
+  type: string;
+  name: string;
+  client_customizable_props: Record<string, boolean>;
+}
+
+// Query Parameters
+export interface ComponentsQueryParams {
+  search?: string;
+  categoryCode?: string;
+  componentType?: string;
+}
+
+// Asset Types
+export interface Asset {
+  id: number;
+  image_component_id: number;
+  template_id: string;
+  account_id: number;
+  s3_bucket: string;
+  s3_key: string;
+  s3_url: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  deleted_by: number | null;
+  deleted_at: string | null;
+  status: string;
+  template_name?: string; // Only available in account assets endpoint
+}
+
+export interface AssetUploadRequest {
+  file: File;
+  image_component_id: string;
+  template_id: string;
+  account_id: string;
+  remarks?: string;
+}
+
+export interface AssetsByAccountQueryParams {
+  limit?: number;
+  page?: number;
+  sortColumn?:
+    | 'id'
+    | 'template_id'
+    | 'account_id'
+    | 'image_component_id'
+    | 'created_at'
+    | 'updated_at';
+  sortDirection?: 'asc' | 'desc';
+}
+
+export interface AssetsByAccountResponse extends PaginatedResponse<Asset> {
+  // Inherits page, limit, count, results from PaginatedResponse
+  // results will be Asset[] with template_name included
+}
+
+export interface TCBCannedContent {
+  industry: string | null;
+  field: string | null;
+  id: number;
+  content: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  remarks: string | null;
+  created_at: string;
+  created_by: number | null;
+  updated_at: string | null;
+  deleted_by: number | null;
+  deleted_at: string | null;
+  status: string;
+}
+
+
+
+export type TCBCannedContentWithShoppers = TCBCannedContent & {
+  shopper_ids: number[];
+};

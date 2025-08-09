@@ -1,9 +1,9 @@
-import { CouponTemplate } from '@/features';
+import { CleanTemplateResponse } from '@/types';
 import { TablePaginationConfig } from 'antd';
 import { create } from 'zustand';
 
 type TemplateListingState = {
-  templates: CouponTemplate[];
+  templates: CleanTemplateResponse[];
   pagination: TablePaginationConfig;
   filters: {
     deviceId?: number;
@@ -19,7 +19,7 @@ type TemplateListingState = {
 
 type TemplateListingActions = {
   actions: {
-    setTemplates: (templates: CouponTemplate[]) => void;
+    setTemplates: (templates: CleanTemplateResponse[]) => void;
     setPagination: (pagination: TablePaginationConfig) => void;
     setFilters: (value: number | string | null, filterType: 'deviceId' | 'status' | 'nameSearch') => void;
     resetFilters: () => void;
@@ -50,7 +50,7 @@ export const useTemplateListingStore = create<
   },
   error: undefined,
   actions: {
-    setTemplates: (templates: CouponTemplate[]) => set({ templates }),
+    setTemplates: (templates: CleanTemplateResponse[]) => set({ templates }),
     setPagination: (pagination: TablePaginationConfig) => set({ pagination }),
     setFilters: (value: number | string | null, filterType: 'deviceId' | 'status' | 'nameSearch') =>
       set((prev) => ({

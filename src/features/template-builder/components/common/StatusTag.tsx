@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tag } from 'antd';
-import { TCBTemplate } from '@/types/api';
+import { TCBTemplate } from '@/types';
 
 interface StatusTagProps {
   status: TCBTemplate['status'];
@@ -11,7 +11,7 @@ export const StatusTag: React.FC<StatusTagProps> = ({ status }) => {
   const statusConfig = {
     draft: { color: 'default', text: 'Draft' },
     published: { color: 'success', text: 'Published' },
-    archived: { color: 'warning', text: 'Archived' },
+    archive: { color: 'warning', text: 'Archived' },
   };
 
   const config = statusConfig[status as keyof typeof statusConfig];

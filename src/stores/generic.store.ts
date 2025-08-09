@@ -4,14 +4,16 @@ import { ShopperType, AccountDetails } from '@/types/common';
 type GenericState = {
   shoppers: ShopperType[];
   accountDetails: AccountDetails | null;
+  accounts: AccountDetails[];
   authProvider: { userId: string; accountId: string; role: string };
-  navigate: (path: string) => void;
+  navigate: any;
 };
 
 type GenericActions = {
   actions: {
     setShoppers: (shoppers: ShopperType[]) => void;
-    setAccount: (accounts: AccountDetails) => void;
+    setAccount: (accountDetails: AccountDetails) => void;
+    setAccounts: (accounts: AccountDetails[]) => void;
     setAuthProvider: (authProvider: {
       userId: string;
       accountId: string;
@@ -24,11 +26,13 @@ type GenericActions = {
 export const useGenericStore = create<GenericState & GenericActions>((set) => ({
   shoppers: [],
   accountDetails: null,
+  accounts: [],
   authProvider: { userId: '', accountId: '', role: '' },
-  navigate: () => {},
+  navigate: null,
   actions: {
     setShoppers: (shoppers: ShopperType[]) => set({ shoppers }),
     setAccount: (accountDetails: AccountDetails) => set({ accountDetails }),
+    setAccounts: (accounts: AccountDetails[]) => set({ accounts }),
     setAuthProvider: (authProvider: {
       userId: string;
       accountId: string;

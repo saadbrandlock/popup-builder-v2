@@ -9,7 +9,7 @@ export type TemplateStatus = 'draft' | 'active' | 'inactive';
 
 export type TemplateType = 'generic' | 'specific';
 
-export type TemplateAction = 'edit' | 'preview' | 'publish' | 'unpublish' | 'archive' | 'delete' | 'duplicate';
+export type TemplateAction = 'edit' | 'preview' | 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'delete' | 'duplicate';
 
 // Canvas types - only single row now
 export const CANVAS_TYPES = {

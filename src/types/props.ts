@@ -6,5 +6,6 @@ export interface BaseProps {
   navigate: (path: string) => void;
   shoppers: ShopperType[];
   accountDetails: AccountDetails | null;
+  accounts: AccountDetails[] | [];
   authProvider: { userId: string; accountId: string; role: string };
 }

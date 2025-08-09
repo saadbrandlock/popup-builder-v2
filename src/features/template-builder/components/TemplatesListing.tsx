@@ -22,8 +22,8 @@ import {
   CheckOutlined,
   InboxOutlined,
   DeleteOutlined,
+  SelectOutlined,
 } from '@ant-design/icons';
-import { CouponTemplate } from '../types';
 import StatusTag from './common/StatusTag';
 import DeviceTags from './common/DeviceTags';
 import {
@@ -36,13 +36,12 @@ import { useTemplateListingStore } from '@/stores/list/templateListing.store';
 import { useDevicesStore } from '@/stores/common/devices.store';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import { SorterResult } from 'antd/es/table/interface';
-import { AccountDetails, ShopperType } from '@/types';
 import { BaseProps } from '@/types/props';
 import { useGenericStore } from '@/stores/generic.store';
 import { shopperLookup } from '@/lib/utils/helper';
 import { useDebouncedCallback } from '@/lib/hooks/use-debounce';
-import { FetchParams } from '@/api/types/main.types';
 import { useTemplateListing } from '../hooks/use-template-listing';
+import { CleanTemplateResponse } from '@/types';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -56,11 +55,12 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
   accountDetails,
   authProvider,
 }) => {
-  const { handleAction, getTemplates, getDevices } =
-    useTemplateListing({apiClient});
+  const { handleAction, getTemplates, getDevices } = useTemplateListing({
+    apiClient,
+  });
 
   const { devices } = useDevicesStore();
-  const { devicesLoading, templateListingLoading } = useLoadingStore();
+  const { devicesLoading, templateListingLoading, templateListActionLoading } = useLoadingStore();
   const {
     actions: genericActions,
     accountDetails: genericAccountDetails,
@@ -71,7 +71,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
   const { templates, pagination, filters, sorter, error, actions } =
     useTemplateListingStore();
 
-  const getActionMenuItems = (template: CouponTemplate) => {
+  const getActionMenuItems = (template: CleanTemplateResponse) => {
     const items = [
       {
         key: 'edit',
@@ -96,12 +96,21 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
       });
     }
 
-    if (template.status !== 'archived') {
+    if (template.status !== 'archive') {
       items.push({
         key: 'archive',
         icon: <InboxOutlined />,
         label: 'Archive',
         onClick: () => handleAction('archive', template.id),
+      });
+    }
+
+    if(template.status === 'archive') {
+      items.push({
+        key: 'unarchive',
+        icon: <SelectOutlined />,
+        label: 'Unarchive',
+        onClick: () => handleAction('unarchive', template.id),
       });
     }
 
@@ -181,7 +190,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
       title: 'Actions',
       key: 'actions',
       width: 60,
-      render: (_: any, template: CouponTemplate) => (
+      render: (_: any, template: CleanTemplateResponse) => (
         <Dropdown
           menu={{ items: getActionMenuItems(template) }}
           trigger={['click']}
@@ -248,12 +257,12 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
     actions.setPagination({ ...pagination, current: 1 });
   };
 
-  const handleTableChange: TableProps<CouponTemplate>['onChange'] = (
+  const handleTableChange: TableProps<CleanTemplateResponse>['onChange'] = (
     newPagination,
     tableFilters, // Antd table filters, not used directly here as we have separate state
     newSorter
   ) => {
-    const sorterResult = newSorter as SorterResult<CouponTemplate>;
+    const sorterResult = newSorter as SorterResult<CleanTemplateResponse>;
     const newSortColumn = sorterResult.field
       ? `t.${sorterResult.field}`
       : 't.name';
@@ -288,18 +297,20 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
   }, []);
 
   useEffect(() => {
+    console.log('Navigating to template', navigate, genericNavigate);
     if (!genericAccountDetails && accountDetails) {
       genericActions.setAccount(accountDetails);
     }
-    if (!genericAuthProvider && authProvider) {
+    if ((!genericAuthProvider.userId || !genericAuthProvider.accountId || !genericAuthProvider.role) && authProvider) {
       genericActions.setAuthProvider(authProvider);
     }
-    if (!genericShoppers && shoppers) {
+    if (!genericShoppers.length && shoppers) {
       genericActions.setShoppers(shoppers);
     }
     if (!genericNavigate && navigate) {
       genericActions.setNavigate(navigate);
     }
+    console.log(authProvider, accountDetails, shoppers, navigate);
   }, [authProvider, accountDetails, shoppers, navigate]);
 
   const renderError = () => (
@@ -340,7 +351,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => navigate('/coupon-builder-v2/template/new')}
+            onClick={() => navigate('/coupon-builder-v2/popup-builder')}
           >
             Create Template
           </Button>
@@ -355,13 +366,13 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
           style={{ marginBottom: 16 }}
         />
       )}
-      <SharedTemplateTable<CouponTemplate>
+      <SharedTemplateTable<CleanTemplateResponse>
         title=""
         columns={columns}
         rowKey="id"
         dataSource={templates}
         pagination={pagination}
-        loading={templateListingLoading}
+        loading={templateListingLoading || templateListActionLoading}
         onChange={handleTableChange}
         filters={filterComponents}
         onResetFilters={handleResetFilters}

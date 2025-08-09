@@ -9,10 +9,10 @@ import {
   DeleteOutlined,
   CopyOutlined
 } from '@ant-design/icons';
-import { CouponTemplate, TemplateAction } from '../types';
+import { CleanTemplateResponse, TemplateAction } from '@/types';
 
 interface TemplateActionMenuProps {
-  template: CouponTemplate;
+  template: CleanTemplateResponse;
   onAction: (action: TemplateAction, templateId: string) => void;
 }
 
