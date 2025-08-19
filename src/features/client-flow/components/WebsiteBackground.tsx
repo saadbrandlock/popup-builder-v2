@@ -1,7 +1,6 @@
 import React from 'react';
 import { Spin } from 'antd';
 import type { WebsiteBackgroundProps } from '../types/clientFlow';
-import { generateBrandColorCSS } from '../hooks/useClientData';
 
 /**
  * WebsiteBackground - Renders client website background
@@ -15,9 +14,6 @@ export const WebsiteBackground: React.FC<WebsiteBackgroundProps> = ({
   className = '',
 }) => {
   const isMobile = viewport === 'mobile';
-  
-  // Generate CSS custom properties for brand colors
-  const brandColorCSS = generateBrandColorCSS(websiteData.brandColors);
 
   if (loading) {
     return (
@@ -31,12 +27,7 @@ export const WebsiteBackground: React.FC<WebsiteBackgroundProps> = ({
   }
 
   return (
-    <div 
-      className={`relative w-full h-full overflow-hidden ${className}`}
-      style={{ 
-        ...({ [brandColorCSS]: '' } as any), // Apply brand colors as CSS variables
-      }}
-    >
+    <div className={`relative w-full h-full overflow-hidden ${className}`}>
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -63,7 +54,9 @@ export const WebsiteBackground: React.FC<WebsiteBackgroundProps> = ({
 /**
  * Desktop website content mockup
  */
-const DesktopWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) => {
+const DesktopWebsiteContent: React.FC<{ websiteData: any }> = ({
+  websiteData,
+}) => {
   return (
     <div className="h-full bg-white bg-opacity-95">
       {/* Header */}
@@ -71,8 +64,8 @@ const DesktopWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) 
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center space-x-4">
             {websiteData.logo && (
-              <img 
-                src={websiteData.logo} 
+              <img
+                src={websiteData.logo}
                 alt={websiteData.companyName}
                 className="h-8 w-auto"
                 onError={(e) => {
@@ -81,19 +74,27 @@ const DesktopWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) 
                 }}
               />
             )}
-            <h1 
+            <h1
               className="text-xl font-bold"
               style={{ color: websiteData.brandColors.primary }}
             >
               {websiteData.companyName}
             </h1>
           </div>
-          
+
           <nav className="hidden md:flex space-x-6">
-            <a href="#" className="text-gray-700 hover:text-gray-900">Home</a>
-            <a href="#" className="text-gray-700 hover:text-gray-900">Products</a>
-            <a href="#" className="text-gray-700 hover:text-gray-900">About</a>
-            <a href="#" className="text-gray-700 hover:text-gray-900">Contact</a>
+            <a href="#" className="text-gray-700 hover:text-gray-900">
+              Home
+            </a>
+            <a href="#" className="text-gray-700 hover:text-gray-900">
+              Products
+            </a>
+            <a href="#" className="text-gray-700 hover:text-gray-900">
+              About
+            </a>
+            <a href="#" className="text-gray-700 hover:text-gray-900">
+              Contact
+            </a>
           </nav>
         </div>
       </header>
@@ -109,7 +110,7 @@ const DesktopWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) 
             <p className="text-xl text-gray-600 mb-8">
               {getIndustryDescription(websiteData.category)}
             </p>
-            <button 
+            <button
               className="px-8 py-3 rounded-lg text-white font-semibold"
               style={{ backgroundColor: websiteData.brandColors.primary }}
             >
@@ -121,7 +122,7 @@ const DesktopWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[1, 2, 3].map((item) => (
               <div key={item} className="bg-white rounded-lg shadow-md p-6">
-                <div 
+                <div
                   className="w-full h-32 rounded-lg mb-4"
                   style={{ backgroundColor: websiteData.brandColors.secondary }}
                 ></div>
@@ -143,7 +144,9 @@ const DesktopWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) 
 /**
  * Mobile website content mockup
  */
-const MobileWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) => {
+const MobileWebsiteContent: React.FC<{ websiteData: any }> = ({
+  websiteData,
+}) => {
   return (
     <div className="h-full bg-white bg-opacity-95">
       {/* Mobile Header */}
@@ -151,8 +154,8 @@ const MobileWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) =
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             {websiteData.logo && (
-              <img 
-                src={websiteData.logo} 
+              <img
+                src={websiteData.logo}
                 alt={websiteData.companyName}
                 className="h-6 w-auto"
                 onError={(e) => {
@@ -160,14 +163,14 @@ const MobileWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) =
                 }}
               />
             )}
-            <h1 
+            <h1
               className="text-lg font-bold"
               style={{ color: websiteData.brandColors.primary }}
             >
               {websiteData.companyName}
             </h1>
           </div>
-          
+
           <div className="flex flex-col space-y-1">
             <div className="w-5 h-0.5 bg-gray-600"></div>
             <div className="w-5 h-0.5 bg-gray-600"></div>
@@ -186,7 +189,7 @@ const MobileWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) =
           <p className="text-gray-600 mb-6">
             {getIndustryDescription(websiteData.category)}
           </p>
-          <button 
+          <button
             className="w-full px-6 py-3 rounded-lg text-white font-semibold"
             style={{ backgroundColor: websiteData.brandColors.primary }}
           >
@@ -198,7 +201,7 @@ const MobileWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) =
         <div className="space-y-4">
           {[1, 2, 3].map((item) => (
             <div key={item} className="bg-white rounded-lg shadow-md p-4">
-              <div 
+              <div
                 className="w-full h-24 rounded-lg mb-3"
                 style={{ backgroundColor: websiteData.brandColors.secondary }}
               ></div>
@@ -222,11 +225,13 @@ const MobileWebsiteContent: React.FC<{ websiteData: any }> = ({ websiteData }) =
 const getIndustryDescription = (category: string): string => {
   const descriptions = {
     'E-commerce': 'Discover amazing products and exclusive deals',
-    'SaaS': 'Powerful tools to boost your productivity',
-    'Blog': 'Latest insights and expert knowledge',
-    'Corporate': 'Professional solutions for your business',
-    'Other': 'Quality services tailored for you',
+    SaaS: 'Powerful tools to boost your productivity',
+    Blog: 'Latest insights and expert knowledge',
+    Corporate: 'Professional solutions for your business',
+    Other: 'Quality services tailored for you',
   };
-  
-  return descriptions[category as keyof typeof descriptions] || descriptions.Other;
+
+  return (
+    descriptions[category as keyof typeof descriptions] || descriptions.Other
+  );
 };

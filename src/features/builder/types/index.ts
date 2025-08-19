@@ -1,5 +1,6 @@
 /**
- * Unlayer Types - Index
+ * Builder Types - Index
  */
 
 export * from './unlayer';
+export * from './reminderTab';

@@ -1,9 +1,13 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { Button, Space, Typography, Card, Row, Col, Alert, Badge } from 'antd';
+import { ArrowLeftOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import EmailEditor, { UnlayerOptions } from 'react-email-editor';
 import { useUnlayerEditor } from '../hooks/useUnlayerEditor';
 import { useBuilderStore } from '@/stores/builder.store';
 import { useGenericStore } from '@/stores/generic.store';
+import { useLoadingStore } from '@/stores/common/loading.store';
+import { sanitizeHtml } from '@/lib';
+import { manageEditorMode, manageMergeTags } from '../utils';
 
 const { Title, Text } = Typography;
 
@@ -17,6 +21,7 @@ interface UnlayerMainProps {
   enableCustomImageUpload?: boolean;
 }
 
+
 export const UnlayerMain = ({
   unlayerConfig,
   initialDesign,
@@ -26,11 +31,14 @@ export const UnlayerMain = ({
   enableCustomImageUpload = true,
 }: UnlayerMainProps) => {
   // State for UI controls
-  const [autoSaveInterval] = useState(30)
+  const [autoSaveInterval] = useState(30);
 
   // Store values for image upload
-  const { currentTemplateId } = useBuilderStore();
+  const { currentTemplateId, actions: builderActions } = useBuilderStore();
   const { authProvider } = useGenericStore();
+  
+  // Loading states for showing combined loading status
+  const { builderAutosaving } = useLoadingStore();
 
   // Main editor hook with all functionality
   const {
@@ -92,6 +100,7 @@ export const UnlayerMain = ({
     try {
       const html = await exportHtml();
       console.log('📄 Exported HTML:', html);
+      return await sanitizeHtml(html)
       // You can show a modal or copy to clipboard here
     } catch (error) {
       console.error('Export HTML failed:', error);
@@ -126,8 +135,7 @@ export const UnlayerMain = ({
       console.error('Manual save failed:', error);
     }
   };
-
-
+  
   return (
     <div style={{ padding: '16px' }}>
       {/* Header Controls */}
@@ -168,10 +176,10 @@ export const UnlayerMain = ({
               <Button
                 type="primary"
                 onClick={handleManualSave}
-                loading={isSaving}
+                loading={isSaving || builderAutosaving}
                 disabled={!isReady || !hasUnsavedChanges}
               >
-                Save Design
+                {(isSaving || builderAutosaving) ? 'Saving...' : 'Save Design'}
               </Button>
               <Button
                 onClick={handleExportHtml}
@@ -262,7 +270,11 @@ export const UnlayerMain = ({
               editorId="bl-popup-builder"
               ref={editorRef}
               onReady={onEditorReady}
-              options={unlayerConfig}
+              options={{
+                ...unlayerConfig,
+                tools: manageEditorMode(false),
+                mergeTags: manageMergeTags()
+              }}
               style={{
                 height: '700px',
                 width: '100%',
@@ -290,6 +302,24 @@ export const UnlayerMain = ({
           )}
         </Card>
       )}
+
+      {/* Navigation Buttons */}
+      <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between' }}>
+        <Button 
+          icon={<ArrowLeftOutlined />}
+          onClick={() => builderActions.setAdminBuilderStep(0)}
+        >
+          Previous: Config
+        </Button>
+        
+        <Button 
+          type="primary"
+          icon={<ArrowRightOutlined />}
+          onClick={() => builderActions.setAdminBuilderStep(2)}
+        >
+          Next: Reminder Tab
+        </Button>
+      </div>
     </div>
   );
 };

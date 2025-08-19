@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Select } from 'antd';
-import { TCBCannedContent } from '@/types';
+import { CBCannedContent } from '@/types';
 import { useGenericStore } from '@/stores/generic.store';
 import { splitByAndCapitalize } from '@/lib/utils/helper';
 
 export interface CannedContentFormProps {
   visible: boolean;
   onCancel: () => void;
-  onSubmit: (values: Partial<TCBCannedContent>) => void;
-  initialValues: TCBCannedContent | null;
+  onSubmit: (values: Partial<CBCannedContent>) => void;
+  initialValues: CBCannedContent | null;
   industries: string[];
   fields: string[];
 }

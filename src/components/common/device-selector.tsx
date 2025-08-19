@@ -55,7 +55,7 @@ const DeviceSelector: React.FC<DeviceSelectorProps> = ({
   const selectedDevices = devices.filter((device) => value.includes(device.id));
 
   const customTagRender = (props: any) => {
-    const { label, value: deviceId, closable, onClose } = props;
+    const { value: deviceId, closable, onClose } = props;
     const device = devices.find((d) => d.id === deviceId);
     if (!device) return null;
 

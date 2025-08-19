@@ -4,6 +4,7 @@ import { ComponentsAPI } from './services/ComponentsAPI';
 import { AssetsAPI } from './services/AssetsAPI';
 import { DevicesAPI } from './services/DevicesAPI';
 import { ContentAPI } from './services/ContentAPI';
+import { TemplateFieldsAPI } from './services/TemplateFieldsAPI';
 
 /**
  * API Factory - Creates API service instances with the provided apiClient
@@ -16,6 +17,7 @@ export class APIFactory {
   private ComponentsAPI: ComponentsAPI | null = null;
   private assetsAPI: AssetsAPI | null = null;
   private contentAPI: ContentAPI | null = null;
+  private templateFieldsAPI: TemplateFieldsAPI | null = null;
 
   constructor(apiClient: AxiosInstance) {
     this.apiClient = apiClient;
@@ -62,6 +64,13 @@ export class APIFactory {
     return this.contentAPI;
   }
 
+  get templateFields(): TemplateFieldsAPI {
+    if (!this.templateFieldsAPI) {
+      this.templateFieldsAPI = new TemplateFieldsAPI(this.apiClient);
+    }
+    return this.templateFieldsAPI;
+  }
+
   // Add more API services here as needed
   // get users(): UsersAPI { ... }
   // get content(): ContentAPI { ... }
@@ -81,15 +90,15 @@ export { ComponentsAPI } from './services/ComponentsAPI';
 export { AssetsAPI } from './services/AssetsAPI';
 export { DevicesAPI } from './services/DevicesAPI';
 export { ContentAPI } from './services/ContentAPI';
+export { TemplateFieldsAPI } from './services/TemplateFieldsAPI';
 
 // Re-export types for convenience
 export type {
   PaginatedResponse, 
-  ApiResponse, 
   TemplateListParams,
   Asset,
   AssetUploadRequest,
   AssetsByAccountQueryParams,
   AssetsByAccountResponse,
-  TCBCannedContentWithShoppers
+  CBCannedContentWithShoppers
 } from '../types/api';

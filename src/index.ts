@@ -1,3 +1,6 @@
+// Import Tailwind CSS
+import './styles/index.css';
+
 // Main library entry point
 export * from './components';
 export * from './features';

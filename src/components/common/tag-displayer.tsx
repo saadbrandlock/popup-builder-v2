@@ -14,7 +14,6 @@ import {
   ClockCircleOutlined,
   StopOutlined,
   ExclamationCircleOutlined,
-  CalendarOutlined,
   HistoryOutlined
 } from '@ant-design/icons';
 

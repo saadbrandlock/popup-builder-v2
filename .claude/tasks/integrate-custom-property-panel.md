@@ -17,7 +17,7 @@ Convert the provided inline styles to Tailwind equivalents:
 - `position: absolute` → `absolute`
 - `top: 16px` → `top-4`
 - `right: 16px` → `right-4`
-- `zIndex: 1000` → `z-[1000]`
+- `zIndex: 1000` → `z-1000`
 - `maxWidth: 320px` → `max-w-80`
 - `minWidth: 280px` → `min-w-70`
 - `boxShadow: 0 4px 12px rgba(0,0,0,0.15)` → `shadow-lg`
@@ -56,7 +56,7 @@ Convert the provided inline styles to Tailwind equivalents:
 
 ### Tailwind Classes to Use
 ```css
-absolute top-4 right-4 z-[1000] 
+absolute top-4 right-4 z-1000 
 max-w-80 min-w-70 
 shadow-lg
 xl:absolute xl:top-4 xl:right-4 xl:shadow-lg

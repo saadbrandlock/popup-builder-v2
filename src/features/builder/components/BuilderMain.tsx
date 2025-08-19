@@ -1,16 +1,18 @@
 import { useGenericStore } from '@/stores/generic.store';
 import { BaseProps } from '@/types/props';
 import { message, Steps } from 'antd';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import ConfigStep from './ConfigStep';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import { useBuilderStore } from '@/stores/builder.store';
 import { UnlayerMain } from './UnlayerMain';
+import ReminderTabStep from './ReminderTabStep';
 import { TemplateConfig } from '@/types';
 import { checkObjectDiff } from '@/lib/utils/helper';
 import { useBuilderMain } from '../hooks/useBuilderMain';
 import { useTemplateListing } from '@/features/template-builder/hooks/use-template-listing';
 import { UnlayerOptions } from 'react-email-editor';
+import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
 
 interface BuilderMainProps extends BaseProps {
   unlayerConfig: UnlayerOptions;
@@ -25,16 +27,28 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
   accounts,
   authProvider,
   templateId,
-  unlayerConfig
+  unlayerConfig,
 }) => {
-  const { createTemplate, updateTemplate, assignTemplateToShoppers } =
-    useBuilderMain({ apiClient });
+  const {
+    createTemplate,
+    updateTemplate,
+    assignTemplateToShoppers,
+    getTemplateFields,
+    loadTemplate,
+  } = useBuilderMain({ apiClient });
   const { getDevices } = useTemplateListing({ apiClient });
 
-  const { adminBuilderStep, templateState, currentTemplateId, actions } =
-    useBuilderStore();
+  const { adminBuilderStep, templateState, actions } = useBuilderStore();
   const { actions: loadingActions } = useLoadingStore();
-  const { actions: genericActions } = useGenericStore();
+
+  // Sync generic context (account, auth, shoppers, navigate) into global store once
+  useSyncGenericContext({
+    accountDetails,
+    authProvider,
+    shoppers,
+    navigate,
+    accounts,
+  });
 
   const handleConfigSubmit = async (data: TemplateConfig) => {
     loadingActions.setConfigSaving(true);
@@ -107,36 +121,23 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
   };
 
   useEffect(() => {
-    if (templateId) {
-      actions.setCurrentTemplateId(templateId);
-    }
-
-    if (accountDetails) {
-      genericActions.setAccount(accountDetails);
-    }
-
-    if (accounts) {
-      genericActions.setAccounts(accounts);
-    }
-
-    if (shoppers) {
-      genericActions.setShoppers(shoppers);
-    }
-
-    if (authProvider) {
-      genericActions.setAuthProvider(authProvider);
-    }
-  }, [templateId, accountDetails, accounts, shoppers, authProvider]);
-
-  useEffect(() => {
     getDevices();
+    getTemplateFields();
   }, []);
 
   useEffect(() => {
-    if (!!currentTemplateId && adminBuilderStep === 0) {
+    console.log('currentTemplateId', templateId, adminBuilderStep);
+    if (!!templateId && adminBuilderStep === 0) {
       actions.setAdminBuilderStep(1);
     }
-  }, [currentTemplateId]);
+    if (templateId) {
+      actions.setCurrentTemplateId(templateId);
+      // Load template data including reminder tab config
+      loadTemplate(templateId).catch(error => {
+        console.error('Failed to load template:', error);
+      });
+    }
+  }, [templateId]);
 
   return (
     <>
@@ -144,6 +145,7 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
         <Steps current={adminBuilderStep} style={{ margin: 0 }}>
           <Steps.Step title="Config" />
           <Steps.Step title="Builder" />
+          <Steps.Step title="Reminder Tab" />
         </Steps>
       </div>
 
@@ -152,10 +154,30 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
           handleFinalSave={handleConfigSubmit}
           isEditMode={!!templateId}
           templateEditState={templateState}
-
         />
       )}
-      {adminBuilderStep === 1 && <UnlayerMain unlayerConfig={unlayerConfig} apiClient={apiClient} enableCustomImageUpload={true}  />}
+      {adminBuilderStep === 1 && (
+        <UnlayerMain
+          unlayerConfig={unlayerConfig}
+          apiClient={apiClient}
+          enableCustomImageUpload={true}
+        />
+      )}
+      {adminBuilderStep === 2 && (
+        <ReminderTabStep
+          onNext={() => {
+            message.success('Reminder tab setup completed!');
+            // Could navigate to a different page or show completion message
+          }}
+          onBack={() => actions.setAdminBuilderStep(1)}
+          onSave={async (config) => {
+            // Save reminder tab config to template
+            console.log('Saving reminder tab config:', config);
+            // TODO: Add API call to save config to template
+          }}
+          apiClient={apiClient}
+        />
+      )}
     </>
   );
 };

@@ -1,7 +1,8 @@
 // Re-export all common types
 export * from './api';
-export * from './common';
+export * from './common'
 export * from './template';
+export * from './props';
 
 export interface TemplateElement {
   id: string;

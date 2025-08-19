@@ -14,10 +14,10 @@ import {
   Col,
 } from 'antd';
 
-import { Device, TemplateConfig } from '@/types';
+import { Device, TCBTemplate, TemplateConfig } from '@/types';
 import { useDevicesStore } from '@/stores/common/devices.store';
 import { useGenericStore } from '@/stores/generic.store';
-import { DeviceSelector } from '@/components/common';
+import { DeviceSelector, ShopperSelector } from '@/components/common';
 import { useLoadingStore } from '@/stores/common/loading.store';
 // MIGRATED: Use Zustand stores instead of contexts
 // TODO: accounts and shoppers should come from API data, not builder context
@@ -29,16 +29,7 @@ interface ConfigStepProps {
   handleFinalSave: (data: TemplateConfig) => Promise<void>;
   onNext?: () => void;
   isEditMode: boolean;
-  templateEditState?: {
-    id: string;
-    name: string;
-    description: string | null;
-    device_ids: number[];
-    status: string | null;
-    shopper_ids: number[];
-    is_generic?: boolean;
-    account_ids: number[];
-  };
+  templateEditState?: TCBTemplate | null
 }
 
 const ConfigStep: React.FC<ConfigStepProps> = ({
@@ -169,19 +160,13 @@ const ConfigStep: React.FC<ConfigStepProps> = ({
                 },
               ]}
             >
-              <Select
+              <ShopperSelector
                 mode="multiple"
                 showSearch
                 placeholder={
                   isGeneric
                     ? 'Not required for generic templates'
                     : 'Select shoppers'
-                }
-                options={shoppers.map((s) => ({ label: s.name, value: s.id }))}
-                filterOption={(input, option) =>
-                  (option?.label ?? '')
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
                 }
                 disabled={isGeneric || disabled || configSaving}
               />

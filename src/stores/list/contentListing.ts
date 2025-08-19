@@ -1,10 +1,10 @@
-import { CleanTemplateResponse, TCBCannedContentWithShoppers } from '@/types';
+import { CleanTemplateResponse, CBCannedContentWithShoppers } from '@/types';
 import { TablePaginationConfig } from 'antd';
 import { create } from 'zustand';
 
 type ContentListingState = {
-  contents: TCBCannedContentWithShoppers[];
-  content: TCBCannedContentWithShoppers | null;
+  contents: CBCannedContentWithShoppers[];
+  content: CBCannedContentWithShoppers | null;
   pagination: TablePaginationConfig;
   filters: {
     industry?: string;
@@ -23,8 +23,8 @@ type ContentListingState = {
 
 type ContentListingActions = {
   actions: {
-    setContents: (content: TCBCannedContentWithShoppers[]) => void;
-    setContent: (content: TCBCannedContentWithShoppers | null) => void;
+    setContents: (content: CBCannedContentWithShoppers[]) => void;
+    setContent: (content: CBCannedContentWithShoppers | null) => void;
     setPagination: (pagination: TablePaginationConfig) => void;
     setFilters: (
       value: number[] | string | null,
@@ -64,9 +64,9 @@ export const useContentListingStore = create<
   fields: [],
   error: undefined,
   actions: {
-    setContents: (contents: TCBCannedContentWithShoppers[]) =>
+    setContents: (contents: CBCannedContentWithShoppers[]) =>
       set({ contents }),
-    setContent: (content: TCBCannedContentWithShoppers | null) =>
+    setContent: (content: CBCannedContentWithShoppers | null) =>
       set({ content }),
     setPagination: (pagination: TablePaginationConfig) => set({ pagination }),
     setFilters: (

@@ -33,9 +33,6 @@ export default defineConfig(({ mode }) => {
     } : {
       outDir: 'demo-dist'
     },
-    css: {
-      postcss: './postcss.config.js'
-    },
     resolve: {
       alias: {
         '@': resolve(__dirname, 'src')

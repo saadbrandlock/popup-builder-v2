@@ -1,6 +1,6 @@
 /**
- * Unlayer Feature - Main Export
- * Complete Unlayer popup builder integration
+ * Builder Feature - Main Export
+ * Complete builder integration including Unlayer and Reminder Tab
  */
 
 // Components
@@ -24,7 +24,6 @@ export {
   useUnlayerActions,
   useUnlayerStatus,
 } from './stores';
-
 
 // Types
 export type {

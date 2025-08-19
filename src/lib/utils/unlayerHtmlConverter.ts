@@ -1,9 +1,9 @@
 /**
  * Utility service for converting Unlayer JSON designs to HTML
- * Uses the existing react-email-editor package instead of dynamic script loading
+ * Dynamically loads Unlayer script if not available
  */
 
-import { sanitizeHtml } from '@/lib';
+import { sanitizeHtml } from './helper';
 
 export interface UnlayerHtmlConverterOptions {
   projectId?: number;
@@ -11,8 +11,51 @@ export interface UnlayerHtmlConverterOptions {
 }
 
 /**
+ * Load Unlayer script dynamically if not already loaded
+ */
+const loadUnlayerScript = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    // Check if Unlayer is already loaded
+    if ((window as any).unlayer) {
+      resolve();
+      return;
+    }
+
+    // Check if script is already being loaded
+    const existingScript = document.querySelector('script[src*="unlayer.com"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve());
+      existingScript.addEventListener('error', reject);
+      return;
+    }
+
+    // Create and load the script
+    const script = document.createElement('script');
+    script.src = 'https://editor.unlayer.com/embed.js';
+    script.async = true;
+    
+    script.onload = () => {
+      // Wait a bit for Unlayer to initialize
+      setTimeout(() => {
+        if ((window as any).unlayer) {
+          resolve();
+        } else {
+          reject(new Error('Unlayer failed to initialize'));
+        }
+      }, 100);
+    };
+    
+    script.onerror = () => {
+      reject(new Error('Failed to load Unlayer script'));
+    };
+    
+    document.head.appendChild(script);
+  });
+};
+
+/**
  * Convert Unlayer JSON design to HTML using temporary editor instance
- * This leverages the existing Unlayer integration from react-email-editor
+ * Dynamically loads Unlayer if not available
  */
 export const convertUnlayerJsonToHtml = async (
   designJson: any,
@@ -24,9 +67,11 @@ export const convertUnlayerJsonToHtml = async (
     throw new Error('Design JSON is required');
   }
 
-  // Validate design format
-  if (!validateUnlayerDesign(designJson)) {
-    throw new Error('Invalid Unlayer design format');
+  // First, ensure Unlayer is loaded
+  try {
+    await loadUnlayerScript();
+  } catch (error) {
+    throw new Error(`Failed to load Unlayer: ${error}`);
   }
 
   return new Promise<string>((resolve, reject) => {
@@ -54,12 +99,12 @@ export const convertUnlayerJsonToHtml = async (
     };
 
     try {
-      // Use the global unlayer object (loaded by react-email-editor)
+      // Use the global unlayer object (now guaranteed to be loaded)
       const unlayer = (window as any).unlayer;
       
       if (!unlayer) {
         cleanup();
-        reject(new Error('Unlayer is not available. Make sure react-email-editor is properly loaded.'));
+        reject(new Error('Unlayer is not available after loading script.'));
         return;
       }
 
@@ -138,3 +183,4 @@ export const validateUnlayerDesign = (designJson: any): boolean => {
     (designJson.values && typeof designJson.values === 'object')
   );
 };
+
