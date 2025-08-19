@@ -9,7 +9,7 @@ export type TemplateStatus = 'draft' | 'active' | 'inactive';
 
 export type TemplateType = 'generic' | 'specific';
 
-export type TemplateAction = 'edit' | 'preview' | 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'delete' | 'duplicate';
+export type TemplateAction = 'edit' | 'preview' | 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'delete' | 'duplicate' | 'client-review';
 
 // Canvas types - only single row now
 export const CANVAS_TYPES = {
@@ -39,14 +39,14 @@ export const API_STATUS_CODES = {
 } as const;
 
 // Template config from legacy codebase - single row only
-export interface TemplateConfig {
-  templateId?: string;
-  device?: number; // Legacy field for backward compatibility
-  device_ids: number[]; // Multi-device support
-  shopperId: number;
-  canvas_type: 'single_row'; // Only single row canvas
-  templateBuilderState?: any; // Builder state for template rendering
-}
+// export interface TemplateConfig {
+//   templateId?: string;
+//   device?: number; // Legacy field for backward compatibility
+//   device_ids: number[]; // Multi-device support
+//   shopperId: number;
+//   canvas_type: 'single_row'; // Only single row canvas
+//   templateBuilderState?: any; // Builder state for template rendering
+// }
 
 // Generic filter interface that can be extended
 export interface BaseFilters {
@@ -104,4 +104,18 @@ export interface AccountDetails {
   cloudfront_distribution_domain: string | null;
   industry: string;
   id: number;
+}
+
+// Audit base fields used across API entities (without status)
+export interface AuditMetadata {
+  ip_address: string | null;
+  user_agent: string | null;
+  remarks: string | null;
+  created_at: string | Date;
+  updated_at: string | null | Date;
+  created_by: number | null;
+  updated_by: number | null;
+  deleted_by: number | null;
+  deleted_at: string | null | Date;
+  status: string | null
 }

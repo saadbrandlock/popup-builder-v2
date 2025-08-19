@@ -1,19 +1,33 @@
 import { SVGProps } from "react";
 
 export interface AndroidProps extends SVGProps<SVGSVGElement> {
+  url?: string;
+  imageSrc?: string;
+  videoSrc?: string;
   width?: number;
   height?: number;
-  src?: string;
-  videoSrc?: string;
+  children?: React.ReactNode;
+  fit?: 'cover' | 'contain';
+  align?: 'top' | 'center' | 'bottom';
 }
 
 export default function Android({
+  imageSrc,
+  videoSrc,
+  url,
   width = 433,
   height = 882,
-  src,
-  videoSrc,
+  children,
+  fit = 'cover',
+  align = 'center',
   ...props
 }: AndroidProps) {
+  const alignMap = {
+    top: 'xMidYMin',
+    center: 'xMidYMid',
+    bottom: 'xMidYMax',
+  } as const;
+  const preserve = `${alignMap[align]} ${fit === 'cover' ? 'slice' : 'meet'}`;
   return (
     <svg
       width={width}
@@ -40,7 +54,7 @@ export default function Android({
         className="fill-white dark:fill-[#262626]"
       />
 
-      <g clip-path="url(#clip0_514_20855)">
+      <g clipPath="url(#clip0_514_20855)">
         <path
           d="M9.25 48C9.25 29.3604 24.3604 14.25 43 14.25H335C353.64 14.25 368.75 29.3604 368.75 48V780C368.75 798.64 353.64 813.75 335 813.75H43C24.3604 813.75 9.25 798.64 9.25 780V48Z"
           className="fill-[#E5E5E5] stroke-[#E5E5E5] stroke-[0.5] dark:fill-[#404040] dark:stroke-[#404040]"
@@ -58,20 +72,35 @@ export default function Android({
         r="4"
         className="fill-[#E5E5E5] dark:fill-[#404040]"
       />
-      {src && (
-        <image
-          href={src}
-          width="360"
-          height="800"
-          className="size-full object-cover"
-          preserveAspectRatio="xMidYMid slice"
-          clipPath="url(#clip0_514_20855)"
-        />
+      {imageSrc && (
+        <>
+          <image
+            href={imageSrc}
+            x="9"
+            y="14"
+            width="360"
+            height="800"
+            preserveAspectRatio={preserve}
+            clipPath="url(#clip0_514_20855)"
+            filter="url(#blur)"
+          />
+          {/* Black transparent overlay */}
+          <rect
+            x="9"
+            y="14"
+            width="360"
+            height="800"
+            fill="rgba(0, 0, 0, 0.3)"
+            clipPath="url(#clip0_514_20855)"
+          />
+        </>
       )}
       {videoSrc && (
         <foreignObject
-          width="380"
-          height="820"
+          x="9"
+          y="14"
+          width="360"
+          height="800"
           clipPath="url(#clip0_514_20855)"
           preserveAspectRatio="xMidYMid slice"
         >
@@ -85,7 +114,15 @@ export default function Android({
           />
         </foreignObject>
       )}
+      {children && (
+        <foreignObject x="9" y="14" width="360" height="800" clipPath="url(#clip0_514_20855)">
+          <div className="w-full h-full">{children}</div>
+        </foreignObject>
+      )}
       <defs>
+        <filter id="blur">
+          <feGaussianBlur stdDeviation="4" />
+        </filter>
         <clipPath id="clip0_514_20855">
           <rect
             width="360"

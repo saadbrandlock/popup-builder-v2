@@ -11,7 +11,7 @@ import {
 } from 'antd';
 import type { TableProps } from 'antd';
 import type { SorterResult } from 'antd/es/table/interface';
-import { TCBCannedContent } from '@/types';
+import { CBCannedContent } from '@/types';
 import { useContentListingStore } from '@/stores/list/contentListing';
 import { useContent } from '../hooks/use-content';
 import { BaseProps } from '@/types/props';
@@ -37,7 +37,7 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
   authProvider,
 }) => {
   const [isFormVisible, setIsFormVisible] = useState(false);
-  const [editingContent, setEditingContent] = useState<TCBCannedContent | null>(
+  const [editingContent, setEditingContent] = useState<CBCannedContent | null>(
     null
   );
 
@@ -63,12 +63,12 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
     getIndustries,
   } = useContent({ apiClient });
 
-  const handleTableChange: TableProps<TCBCannedContent>['onChange'] = (
+  const handleTableChange: TableProps<CBCannedContent>['onChange'] = (
     newPagination,
     _,
     newSorter
   ) => {
-    const sorterResult = newSorter as SorterResult<TCBCannedContent>;
+    const sorterResult = newSorter as SorterResult<CBCannedContent>;
     const newSortColumn = sorterResult.field as string;
     const newSortDirection = sorterResult.order as 'ascend' | 'descend';
 
@@ -94,7 +94,7 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
     actions.setPagination({ ...pagination, current: 1 });
   };
 
-  const handleEdit = (content: TCBCannedContent) => {
+  const handleEdit = (content: CBCannedContent) => {
     setEditingContent(content);
     setIsFormVisible(true);
   };
@@ -143,7 +143,7 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
     }
   }, [pagination.current, pagination.pageSize, filters, sorter]);
 
-  const columns: TableProps<TCBCannedContent>['columns'] = [
+  const columns: TableProps<CBCannedContent>['columns'] = [
     {
       title: 'Industry',
       dataIndex: 'industry',
@@ -285,7 +285,7 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
         />
       )} */}
       <Card>
-        <SharedTemplateTable<TCBCannedContent>
+        <SharedTemplateTable<CBCannedContent>
           columns={columns}
           rowKey="id"
           dataSource={contents}

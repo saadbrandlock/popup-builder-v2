@@ -6,10 +6,12 @@
 import { useCallback, useRef, useState } from 'react';
 import { EditorRef } from 'react-email-editor';
 import { useUnlayerStore } from '../stores/unlayerStore';
+import { useTemplateFieldsStore } from '@/stores/common/template-fields.store';
 import { useAutosave } from './useAutosave';
 import { useUnlayerImageUpload } from './useUnlayerImageUpload';
 import { createAPI } from '@/api';
 import { sanitizeHtml } from '@/lib';
+import { processTemplateFields } from '@/lib/utils/templateFieldProcessor';
 
 export interface UseUnlayerEditorOptions {
   projectId: number;
@@ -141,7 +143,6 @@ export const useUnlayerEditor = (
     onTemplateLoad,
     onTemplateLoadError,
   } = options;
-  const [lastClickedElement, setLastClickedElement] = useState(null);
 
   // Editor ref
   const editorRef = useRef<EditorRef>(null);
@@ -149,6 +150,8 @@ export const useUnlayerEditor = (
   // Store
   const store = useUnlayerStore();
   const { actions } = store;
+  const templateFieldsStore = useTemplateFieldsStore();
+  const { templateFields } = templateFieldsStore;
 
   // Image upload hook (only if apiClient is provided)
   const imageUploadHook = apiClient
@@ -353,13 +356,19 @@ export const useUnlayerEditor = (
 
       unlayer?.saveDesign((design: any) => {
         try {
-          // Update store
-          actions.exportJson(design);
-          actions.setCurrentDesign(design);
+          // Process template fields before exporting
+          const processedDesign = templateFields.length > 0 
+            ? processTemplateFields(design, templateFields)
+            : design;
+          
+          // Update store with processed design
+          actions.exportJson(processedDesign);
+          actions.setCurrentDesign(processedDesign);
           actions.setExporting(false);
 
-          console.log('✅ JSON exported successfully');
-          resolve(design);
+          console.log('✅ JSON exported successfully with template fields processed');
+          console.log('📋 Exported JSON:', processedDesign);
+          resolve(processedDesign);
         } catch (error) {
           const err =
             error instanceof Error ? error : new Error('JSON export failed');
@@ -405,7 +414,9 @@ export const useUnlayerEditor = (
       actions.exportBoth(design, html);
       actions.setExporting(false);
 
-      console.log('✅ Both HTML and JSON exported successfully');
+      console.log('✅ Both HTML and JSON exported successfully with template fields processed');
+      console.log('📋 Exported JSON:', design);
+      console.log('🌐 Exported HTML:', html);
       return { design, html };
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Export failed');
@@ -427,17 +438,6 @@ export const useUnlayerEditor = (
       actions.setProjectId(projectId);
       actions.setReady(true);
 
-      // Setup custom image upload if enabled and required options are provided
-      console.log(
-        'enableCustomImageUpload',
-        enableCustomImageUpload,
-        'apiClient',
-        apiClient,
-        'templateId',
-        templateId,
-        'accountId',
-        accountId
-      );
       if (enableCustomImageUpload && apiClient && templateId && accountId) {
         console.log('🚀 Configuring custom image upload with:', {
           templateId,

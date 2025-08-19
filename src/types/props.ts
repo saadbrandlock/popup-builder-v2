@@ -8,4 +8,5 @@ export interface BaseProps {
   accountDetails: AccountDetails | null;
   accounts: AccountDetails[] | [];
   authProvider: { userId: string; accountId: string; role: string };
+  company_id?: number;
 }

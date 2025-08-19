@@ -2,7 +2,6 @@ import { ShopperType } from '@/types';
 import DOMPurify from 'dompurify';
 
 export const shopperLookup = (shoppers: ShopperType[]) => {
-  console.log(shoppers);
   return new Map<number, string>(
     shoppers.map((shopper: { id: number; name: string }) => [
       shopper.id,
@@ -162,4 +161,79 @@ export const sanitizeHtml = async (dirtyHTML: string) => {
   });
 
   return clean;
+}
+
+/**
+ * Decode HTML entities in a string
+ * Converts &lt; &gt; &amp; &quot; etc. back to < > & " etc.
+ */
+export const decodeHtmlEntities = (str: string): string => {
+  if (typeof str !== 'string') return str;
+  
+  // Create a temporary DOM element to decode HTML entities
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = str;
+  return textarea.value;
+};
+
+/**
+ * Safely decode HTML entities and sanitize HTML content for preview
+ * This function combines HTML entity decoding with DOMPurify sanitization
+ * for secure HTML injection in preview components
+ */
+export const safeDecodeAndSanitizeHtml = async (encodedHtml: string): Promise<string> => {
+  if (!encodedHtml || typeof encodedHtml !== 'string') {
+    return '';
+  }
+
+  try {
+    // Step 1: Decode HTML entities
+    const decodedHtml = decodeHtmlEntities(encodedHtml);
+    
+    // Step 2: Sanitize the decoded HTML with more permissive settings for popup templates
+    const sanitizedHtml = DOMPurify.sanitize(decodedHtml, {
+      USE_PROFILES: { html: true },
+      ALLOWED_TAGS: [
+        // Basic HTML tags
+        'div', 'span', 'p', 'a', 'img', 'br', 'hr',
+        // Headings
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        // Lists
+        'ul', 'ol', 'li',
+        // Text formatting
+        'strong', 'b', 'em', 'i', 'u', 'small', 'sub', 'sup',
+        // Tables (common in email templates)
+        'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th',
+        // Forms (for popup interactions)
+        'form', 'input', 'button', 'label', 'select', 'option', 'textarea',
+        // Semantic elements
+        'header', 'footer', 'section', 'article', 'aside', 'nav', 'main',
+        // Media
+        'video', 'audio', 'source',
+      ],
+      ALLOWED_ATTR: [
+        // Standard attributes
+        'href', 'src', 'alt', 'class', 'id', 'style', 'title',
+        // Layout attributes
+        'width', 'height', 'align', 'valign',
+        // Form attributes
+        'type', 'name', 'value', 'placeholder', 'required', 'disabled',
+        // Table attributes
+        'colspan', 'rowspan', 'cellpadding', 'cellspacing',
+        // Event handlers (limited for popup functionality)
+        'onclick', 'onsubmit', 'onchange',
+        // Data attributes for popup behavior
+        'data-*',
+      ],
+      ALLOW_DATA_ATTR: true,
+      // Allow inline styles for template formatting
+      ALLOW_UNKNOWN_PROTOCOLS: false,
+      SANITIZE_DOM: true,
+    });
+
+    return sanitizedHtml;
+  } catch (error) {
+    console.error('Error decoding and sanitizing HTML:', error);
+    return '';
+  }
 };

@@ -6,8 +6,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { EditorRef } from 'react-email-editor';
 import { useUnlayerStore } from '../stores/unlayerStore';
+import { useTemplateFieldsStore } from '@/stores/common/template-fields.store';
 import { createAPI } from '@/api';
 import type { AxiosInstance } from 'axios';
+import { useUnlayerEditor } from './useUnlayerEditor';
+import { processTemplateFields } from '@/lib/utils/templateFieldProcessor';
 
 export interface UseAutosaveOptions {
   enabled?: boolean;
@@ -54,11 +57,14 @@ export const useAutosave = (
   // Store state
   const store = useUnlayerStore();
   const { actions } = store;
+  const templateFieldsStore = useTemplateFieldsStore();
+  const { templateFields } = templateFieldsStore;
   
   // Local state for autosave timing
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastChangeRef = useRef<Date | null>(null);
   const nextAutoSaveRef = useRef<number | null>(null);
+
 
   // Get current autosave settings from store
   const autoSaveEnabled = store.autoSaveEnabled && propEnabled;
@@ -82,27 +88,32 @@ export const useAutosave = (
       // Get current design from editor
       unlayer.saveDesign(async (design: any) => {
         try {
+          // Process template fields before saving
+          const processedDesign = templateFields.length > 0 
+            ? processTemplateFields(design, templateFields)
+            : design;
+          
           // Only save to our custom API when enabled
           if (saveToAPI && apiClient && templateId) {
             const api = createAPI(apiClient);
-            await api.templates.updateTemplate(templateId, {
-              builder_state_json: design,
-              updated_at: new Date().toISOString()
+            await api.templates.upsertTemplate(templateId, {
+              builder_state_json: processedDesign,
+              is_builder_state: true
             });
             
             // Update local store state without calling saveDesign
-            actions.setCurrentDesign(design);
+            actions.setCurrentDesign(processedDesign);
             actions.markUnsavedChanges(false);
             actions.setLastAutoSave(new Date());
             
-            console.log('✅ Auto-saved to custom API only');
+            console.log('✅ Auto-saved to custom API with template fields processed');
           } else {
             console.log('⚠️ Auto-save skipped - API integration not enabled');
           }
           
           // Call external save handler if provided
           if (onSave) {
-            await onSave(design);
+            await onSave(processedDesign);
           }
           
           console.log('✅ Autosave completed');
@@ -139,26 +150,31 @@ export const useAutosave = (
       
       unlayer.saveDesign(async (design: any) => {
         try {
+          // Process template fields before saving
+          const processedDesign = templateFields.length > 0 
+            ? processTemplateFields(design, templateFields)
+            : design;
+          
           // Only save to our custom API when enabled
           if (saveToAPI && apiClient && templateId) {
             const api = createAPI(apiClient);
-            await api.templates.updateTemplate(templateId, {
-              builder_state_json: design,
-              updated_at: new Date().toISOString()
+            await api.templates.upsertTemplate(templateId, {
+              builder_state_json: processedDesign,
+              is_builder_state: true
             });
             
             // Update local store state without calling saveDesign
-            actions.setCurrentDesign(design);
+            actions.setCurrentDesign(processedDesign);
             actions.markUnsavedChanges(false);
             actions.setLastAutoSave(new Date());
             
-            console.log('✅ Manual save to custom API completed');
+            console.log('✅ Manual save to custom API completed with template fields processed');
           } else {
             console.log('⚠️ Manual save skipped - API integration not enabled');
           }
           
           if (onSave) {
-            await onSave(design);
+            await onSave(processedDesign);
           }
           
           console.log('✅ Manual save completed');

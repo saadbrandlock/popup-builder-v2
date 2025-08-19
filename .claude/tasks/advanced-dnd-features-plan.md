@@ -169,7 +169,7 @@ interface DropZone {
   visual: {
     highlight: boolean;
     showIndicator: boolean;
-    indicatorType: 'line' | 'box' | 'outline' | 'cell-highlight';
+    indicatorType: 'line' | 'box' | 'outline-solid' | 'cell-highlight';
   };
   constraints: {
     maxChildren?: number;

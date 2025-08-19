@@ -2,44 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Component library specific styles */
-.coupon-template-builder {
-  @apply font-sans;
+@layer utilities {
+  /* Component library specific styles */
+  .coupon-template-builder {
+    @apply font-sans;
+  }
+
+  .coupon-canvas {
+    @apply border border-gray-200 rounded-lg shadow-sm;
+  }
 }
-
-.coupon-canvas {
-  @apply border border-gray-200 rounded-lg shadow-sm;
-}
-
-
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem
+    --primary: hsl(214, 58%, 42%);
+    --primary-dark: #222854;
+    --primary-light: #93c1fc;
+    --secondary: #17191c;
+    --secondary-dark: #000000;
+    --secondary-light: #f3f4f6;
+    --neutral: #e5e7eb;
+    --neutral-dark: #5a5a5a;
+    --neutral-light: #fefefe;
+    --success: #22af46;
+    --danger: #de4848;
+    --warning: #ffbf46;
+    --info: #a8d0db;
+    --gray-50: #f9fafb;
+    --gray-100: #d1d3d8;
+    --gray-200: #bbbec5;
+    --gray-300: #9ca1aa;
+    --gray-400: #898e99;
+    --gray-500: #6b7280;
+    --gray-600: #616874;
+    --gray-700: #4c515b;
+    --gray-800: #212529;
+    --gray-900: #17191c;
+    --light-blue: #f2f8ff;
+    --smoke-white-light: #fbfbfb;
+    --text-blue-active: #3d91ff;
+    --neutral-dark-2: #1d2429;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -69,14 +71,6 @@
   }
 }
 
-
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+.browser__template-desktop-preview img {
+  display: initial !important;
 }
-

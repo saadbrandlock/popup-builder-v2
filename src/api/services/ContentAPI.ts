@@ -1,6 +1,6 @@
 import { AxiosInstance } from 'axios';
 import { BaseAPI } from './BaseAPI';
-import { PaginatedResponse, TCBCannedContentWithShoppers } from '@/types';
+import { PaginatedResponse, CBCannedContentWithShoppers, ShopperDetails, GetShopperDetailsPayload } from '@/types';
 import { useContentListingStore } from '@/stores/list/contentListing';
 
 export class ContentAPI extends BaseAPI {
@@ -26,7 +26,7 @@ export class ContentAPI extends BaseAPI {
     }
   }
 
-  async getContent(): Promise<PaginatedResponse<TCBCannedContentWithShoppers>> {
+  async getContent(): Promise<PaginatedResponse<CBCannedContentWithShoppers>> {
     const { pagination, filters, sorter } = useContentListingStore.getState();
     try {
       const params = {
@@ -40,7 +40,7 @@ export class ContentAPI extends BaseAPI {
         sortDirection: sorter.sortDirection,
       };
 
-      const response = await this.get<PaginatedResponse<TCBCannedContentWithShoppers>>(
+      const response = await this.get<PaginatedResponse<CBCannedContentWithShoppers>>(
         `/content`,
         params
       );
@@ -50,9 +50,9 @@ export class ContentAPI extends BaseAPI {
     }
   }
 
-  async getContentById(id: number): Promise<TCBCannedContentWithShoppers> {
+  async getContentById(id: number): Promise<CBCannedContentWithShoppers> {
     try {
-      const response = await this.get<TCBCannedContentWithShoppers>(
+      const response = await this.get<CBCannedContentWithShoppers>(
         `/content/${id}`
       );
       return response;
@@ -67,9 +67,9 @@ export class ContentAPI extends BaseAPI {
     field: string;
     content: string;
     remarks?: string;
-  }): Promise<TCBCannedContentWithShoppers> {
+  }): Promise<CBCannedContentWithShoppers> {
     try {
-      const response = await this.post<TCBCannedContentWithShoppers>(
+      const response = await this.post<CBCannedContentWithShoppers>(
         `/content`,
         data
       );
@@ -87,9 +87,9 @@ export class ContentAPI extends BaseAPI {
       content?: string;
       remarks?: string;
     }
-  ): Promise<TCBCannedContentWithShoppers> {
+  ): Promise<CBCannedContentWithShoppers> {
     try {
-      const response = await this.put<TCBCannedContentWithShoppers>(
+      const response = await this.put<CBCannedContentWithShoppers>(
         `/content/${id}`,
         data
       );
@@ -102,6 +102,15 @@ export class ContentAPI extends BaseAPI {
   async deleteContent(id: number): Promise<void> {
     try {
       const response = await this.delete<void>(`/content/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getShopperDetails(payload: GetShopperDetailsPayload): Promise<ShopperDetails> {
+    try {
+      const response = await this.post<ShopperDetails>(`/shopper-group-details/description`, payload, true);
       return response;
     } catch (error) {
       throw error;

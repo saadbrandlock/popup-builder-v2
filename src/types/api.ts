@@ -1,12 +1,4 @@
-// API types extracted from legacy codebase C:\brandlock\codebase\coupon-builder
-
-export interface ApiResponse<T> {
-  statuscode?: number;
-  data: T;
-  code?: string;
-  name?: string;
-  Details?: string;
-}
+import type { AuditMetadata } from './common';
 
 export interface ErrorResponse {
   statuscode?: number;
@@ -35,17 +27,8 @@ export interface AuthProvider {
   accountId: number;
 }
 
-export interface Device {
+export interface Device extends AuditMetadata {
   id: number;
-  ip_address: string | null;
-  user_agent: string | null;
-  remarks: string | null;
-  created_at: string;
-  updated_at: string | null;
-  created_by: number | null;
-  updated_by: number | null;
-  deleted_by: number | null;
-  deleted_at: string | null;
   device_type: string;
 }
 
@@ -92,7 +75,7 @@ export interface TemplateConfig {
 }
 
 // Component Category Types
-export interface ComponentCategory {
+export interface ComponentCategory extends Partial<AuditMetadata> {
   id: number;
   category_code: string;
   category_name: string;
@@ -103,16 +86,8 @@ export interface ComponentCategory {
   is_active: boolean;
   parent_category_id?: number;
   metadata: Record<string, any>;
-  ip_address?: string;
-  user_agent?: string;
-  remarks?: string;
-  created_at: string;
-  updated_at?: string;
-  created_by?: number;
-  updated_by?: number;
-  deleted_by?: number;
-  deleted_at?: string;
   status: string;
+  created_at: string;
 }
 
 // Component Definition Types - Updated to match API response exactly
@@ -170,17 +145,8 @@ export interface Asset {
   s3_bucket: string;
   s3_key: string;
   s3_url: string;
-  ip_address: string | null;
-  user_agent: string | null;
-  remarks: string | null;
-  created_at: string;
-  updated_at: string | null;
-  created_by: number | null;
-  updated_by: number | null;
-  deleted_by: number | null;
-  deleted_at: string | null;
-  status: string;
   template_name?: string; // Only available in account assets endpoint
+  status: string;
 }
 
 export interface AssetUploadRequest {
@@ -209,24 +175,159 @@ export interface AssetsByAccountResponse extends PaginatedResponse<Asset> {
   // results will be Asset[] with template_name included
 }
 
-export interface TCBCannedContent {
+export interface CBCannedContent {
   industry: string | null;
   field: string | null;
   id: number;
   content: string | null;
-  ip_address: string | null;
-  user_agent: string | null;
-  remarks: string | null;
   created_at: string;
   created_by: number | null;
-  updated_at: string | null;
-  deleted_by: number | null;
-  deleted_at: string | null;
   status: string;
 }
 
-
-
-export type TCBCannedContentWithShoppers = TCBCannedContent & {
+export type CBCannedContentWithShoppers = CBCannedContent & {
   shopper_ids: number[];
 };
+
+export interface TCBTemplateStaging extends AuditMetadata {
+  id: string;
+  template_id: string;
+  builder_state_json: Record<string, any>;
+  review_status: string;
+  reviewed_by: number;
+  review_notes: string;
+  template_html: string;
+  template_html_client: string;
+  builder_state_json_client: Record<string, any>;
+  reminder_tab_state_json: Record<string, any>;
+  reminder_tab_html: string;
+  reminder_tab_state_json_client: Record<string, any>;
+  reminder_tab_html_client: string;
+}
+
+export interface CBTemplateFieldContentIdMapping extends AuditMetadata {
+  id: string;
+  field: string;
+  field_id: string;
+  default_field_value: string;
+}
+
+// =====================
+// = Shopper Details =
+// =====================
+export interface ShopperDetails {
+  data_id: string;
+  ui_template: UiTemplate;
+  comp_id: string;
+  parent: string;
+  layout_config: LayoutConfig;
+}
+
+export interface UiTemplate {
+  id: string;
+  grid: Grid;
+  props: Props;
+  style: Style;
+  gutter: any;
+}
+
+export interface Grid {
+  xs: number;
+}
+
+export interface Props {
+  data: Data;
+  primaryBtnText: string;
+  outlinedBtnText: string;
+}
+
+export interface Data {
+  overview: Overview[];
+  problemSS: ProblemSs[];
+  solutionSS: SolutionSs[];
+  shopper_icon: string;
+}
+
+export interface Overview {
+  header: string;
+  description: string;
+}
+
+export interface ProblemSs {
+  url: string;
+  title: string;
+}
+
+export interface SolutionSs {
+  url: string;
+  title: any;
+}
+
+export interface Style {}
+
+export interface LayoutConfig {
+  order: number;
+  visible: boolean;
+}
+
+export interface GetShopperDetailsPayload {
+  end_date: string;
+  start_date: string;
+  shopper_id: number;
+  account_id: number;
+  currency: string;
+  company_id: number;
+  phase: string;
+  split: number;
+  layout_type: string;
+  mf_id: string;
+  shopper_mode: any;
+  shopper_mode_date_range: any[];
+  data_incomplete_flag: boolean;
+  shopper_name: string;
+}
+// =====================
+// = Shopper Details =
+// =====================
+
+// =====================
+// = client flow data =
+// =====================
+export interface ClientFlowData {
+  template_id: string;
+  template_name: string;
+  template_description: string;
+  canvas_type: string;
+  is_custom_coded: boolean;
+  is_generic: boolean;
+  template_status: string;
+  template_created_at: string;
+  template_updated_at: string;
+  template_created_by: number;
+  template_updated_by: number;
+  template_remarks: any;
+  staging_id: string;
+  builder_state_json: Record<string, any>;
+  template_html: string;
+  builder_state_json_client: Record<string, any>;
+  template_html_client: string;
+  reminder_tab_html: string;
+  reminder_tab_state_json: Record<string, any>;
+  reminder_tab_html_client: string;
+  reminder_tab_state_json_client: Record<string, any>;
+  review_status: string;
+  reviewed_by: any;
+  review_notes: any;
+  staging_status: string;
+  staging_created_at: string;
+  staging_updated_at: string;
+  account_mapping_id: number;
+  account_id: number;
+  account_mapping_created_at: string;
+  shoppers: { id: number; name: string }[];
+  device_type_ids: number[];
+  devices: { id: number; device_type: string }[];
+}
+// =====================
+// = client flow data =
+// =====================

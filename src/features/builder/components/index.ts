@@ -1,5 +1,5 @@
 /**
- * Unlayer Components - Index
+ * Builder Components - Index
  */
 
 export { UnlayerMain } from './UnlayerMain';

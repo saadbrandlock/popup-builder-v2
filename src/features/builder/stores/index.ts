@@ -1,5 +1,5 @@
 /**
- * Unlayer Stores - Index
+ * Builder Stores - Index
  */
 
 export {

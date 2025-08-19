@@ -1,10 +1,10 @@
-import React from 'react';
-import { PopupPreview } from '../../popup-builder/components/PopupPreview';
+import React, { useEffect, useState } from 'react';
 import { WebsiteBackground } from './WebsiteBackground';
 import type { BrowserPreviewProps } from '../types/clientFlow';
-import type { DeviceType } from '../../popup-builder/types';
 import { Safari } from '@/components/magicui/safari';
 import Android from '@/components/magicui/android';
+import { safeDecodeAndSanitizeHtml } from '@/lib/utils/helper';
+import type { ClientFlowData } from '@/types/api';
 
 /**
  * BrowserPreview - Enhanced wrapper that combines existing PopupPreview with website background
@@ -14,153 +14,99 @@ export const BrowserPreview: React.FC<BrowserPreviewProps> = ({
   viewport,
   websiteBackground,
   popupTemplate,
-  showBrowserChrome = true,
   interactive = false,
   scale = 1,
   onPopupInteraction,
   className = '',
 }) => {
-  // Map viewport to DeviceType for existing PopupPreview
-  const deviceType: DeviceType = viewport;
+  const [sanitizedHtml, setSanitizedHtml] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Calculate dimensions based on viewport
-  const dimensions = {
-    desktop: { width: 1200, height: 800 },
-    mobile: { width: 375, height: 667 },
+  // Process popup template HTML when it changes
+  useEffect(() => {
+    const processPopupHtml = async () => {
+      if (
+        !popupTemplate ||
+        !Array.isArray(popupTemplate) ||
+        popupTemplate.length === 0
+      ) {
+        setSanitizedHtml('');
+        return;
+      }
+
+      setIsProcessing(true);
+      try {
+        // Get the first template that matches the current viewport
+        const template =
+          popupTemplate.find((t: ClientFlowData) =>
+            t.devices.some((device) => device.device_type === viewport)
+          ) || popupTemplate[0]; // Fallback to first template
+
+        if (template && template.template_html) {
+          const processedHtml = await safeDecodeAndSanitizeHtml(
+            template.template_html
+          );
+          setSanitizedHtml(processedHtml);
+        } else {
+          setSanitizedHtml('');
+        }
+      } catch (error) {
+        console.error('Error processing popup template HTML:', error);
+        setSanitizedHtml('');
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
+    processPopupHtml();
+  }, [popupTemplate, viewport]);
+
+  // Render popup overlay component
+  const PopupOverlay = () => {
+    if (!sanitizedHtml || isProcessing) {
+      return null;
+    }
+
+    console.log('sanitizedHtml', sanitizedHtml);
+
+    return (
+      <div
+        // className="popup-template-container max-w-md mx-4 bg-white rounded-lg shadow-xl overflow-hidden"
+        onClick={(e) => {
+          if (interactive) {
+            e.stopPropagation();
+            onPopupInteraction?.('popup-click');
+          }
+        }}
+        dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+      />
+    );
   };
 
-  const { width, height } = dimensions[viewport];
-
   return (
-    <>
+    <div className="w-full flex justify-center">
       {viewport === 'desktop' ? (
-        showBrowserChrome ? (
-          <Safari url={websiteBackground.websiteUrl}>
-            <div
-              className="browser-viewport relative overflow-hidden"
-              style={{ width: `${width}px`, height: `${height}px` }}
-            >
-              {/* Website Background Layer */}
-              <WebsiteBackground
-                websiteData={websiteBackground}
-                viewport={viewport}
-                className="absolute inset-0"
-              />
-
-              {/* Popup Overlay Layer */}
-              {popupTemplate && (
-                <div className="popup-overlay-wrapper absolute inset-0 z-20">
-                  <PopupPreview
-                    template={popupTemplate}
-                    device={deviceType}
-                    className="w-full h-full"
-                  />
-                </div>
-              )}
-
-              {/* Interactive Overlay */}
-              {interactive && onPopupInteraction && (
-                <div
-                  className="interactive-overlay absolute inset-0 z-30 cursor-pointer"
-                  onClick={() => onPopupInteraction('click')}
-                  onMouseEnter={() => onPopupInteraction('hover')}
-                  style={{ pointerEvents: interactive ? 'auto' : 'none' }}
-                />
-              )}
-            </div>
-          </Safari>
-        ) : (
-          <div
-            className="browser-viewport relative overflow-hidden bg-gray-100 rounded-lg shadow-lg"
-            style={{ width: `${width}px`, height: `${height}px` }}
-          >
-            <WebsiteBackground
-              websiteData={websiteBackground}
-              viewport={viewport}
-              className="absolute inset-0"
-            />
-            {popupTemplate && (
-              <div className="popup-overlay-wrapper absolute inset-0 z-20">
-                <PopupPreview
-                  template={popupTemplate}
-                  device={deviceType}
-                  className="w-full h-full"
-                />
-              </div>
-            )}
-            {interactive && onPopupInteraction && (
-              <div
-                className="interactive-overlay absolute inset-0 z-30 cursor-pointer"
-                onClick={() => onPopupInteraction('click')}
-                onMouseEnter={() => onPopupInteraction('hover')}
-                style={{ pointerEvents: interactive ? 'auto' : 'none' }}
-              />
-            )}
-          </div>
-        )
-      ) : showBrowserChrome ? (
-        <Android className="inline-block">
-          <div className="relative h-full w-full">
-            <WebsiteBackground
-              websiteData={websiteBackground}
-              viewport={viewport}
-              className="absolute inset-0"
-            />
-            {popupTemplate && (
-              <div className="popup-overlay-wrapper absolute inset-0 z-20">
-                <PopupPreview
-                  template={popupTemplate}
-                  device={deviceType}
-                  className="w-full h-full"
-                />
-              </div>
-            )}
-            {interactive && onPopupInteraction && (
-              <div
-                className="interactive-overlay absolute inset-0 z-30 cursor-pointer"
-                onClick={() => onPopupInteraction('click')}
-                onMouseEnter={() => onPopupInteraction('hover')}
-                style={{ pointerEvents: interactive ? 'auto' : 'none' }}
-              />
-            )}
-          </div>
-        </Android>
-      ) : (
-        <div
-          className="browser-viewport relative overflow-hidden bg-gray-100 rounded-lg shadow-lg"
-          style={{ width: `${width}px`, height: `${height}px` }}
+        <Safari
+          url={websiteBackground.websiteUrl}
+          imageSrc={websiteBackground.backgroundImage.desktop}
+          fit="contain"
+          align="top"
+          className="w-full"
         >
-          <WebsiteBackground
-            websiteData={websiteBackground}
-            viewport={viewport}
-            className="absolute inset-0"
-          />
-          {popupTemplate && (
-            <div className="popup-overlay-wrapper absolute inset-0 z-20">
-              <PopupPreview
-                template={popupTemplate}
-                device={deviceType}
-                className="w-full h-full"
-              />
-            </div>
-          )}
-          {interactive && onPopupInteraction && (
-            <div
-              className="interactive-overlay absolute inset-0 z-30 cursor-pointer"
-              onClick={() => onPopupInteraction('click')}
-              onMouseEnter={() => onPopupInteraction('hover')}
-              style={{ pointerEvents: interactive ? 'auto' : 'none' }}
-            />
-          )}
-        </div>
+          <PopupOverlay />
+        </Safari>
+      ) : (
+        <Android
+          className="inline-block"
+          url={websiteBackground.websiteUrl}
+          imageSrc={websiteBackground.backgroundImage.mobile}
+          fit="contain"
+          align="top"
+        >
+          <PopupOverlay />
+        </Android>
       )}
-
-      {/* Device Info */}
-      <div className="device-info absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-        {viewport.charAt(0).toUpperCase() + viewport.slice(1)} - {width} ×{' '}
-        {height}
-      </div>
-    </>
+    </div>
   );
 };
 
@@ -170,20 +116,13 @@ export const BrowserPreview: React.FC<BrowserPreviewProps> = ({
 export const BrowserPreviewSkeleton: React.FC<{
   viewport: 'desktop' | 'mobile';
 }> = ({ viewport }) => {
-  const dimensions = {
-    desktop: { width: 1200, height: 800 },
-    mobile: { width: 375, height: 667 },
-  };
-
-  const { width, height } = dimensions[viewport];
-
   return (
     <div
       className="browser-preview-skeleton bg-gray-200 rounded-lg shadow-lg overflow-hidden animate-pulse"
-      style={{
-        width: `${width}px`,
-        height: `${height + (viewport === 'desktop' ? 80 : 50)}px`,
-      }}
+      // style={{
+      //   width: `${width}px`,
+      //   height: `${height + (viewport === 'desktop' ? 80 : 50)}px`,
+      // }}
     >
       {/* Chrome Skeleton */}
       <div

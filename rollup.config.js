@@ -57,8 +57,8 @@ export default {
       },
       extensions: ['.css'],
       minimize: !isDev,
-      extract: 'style.css',
-      inject: false,
+      extract: false,
+      inject: true,
     }),
     // Only use terser in production
     ...(!isDev ? [terser()] : []),
@@ -71,7 +71,7 @@ export default {
     })] : []),
   ],
   external: (id) => {
-    return ['react', 'react-dom', 'antd', 'zustand', '@tanstack/react-query', 'dayjs'].includes(id) ||
+    return ['react', 'react-dom', 'antd', 'zustand', 'dayjs'].includes(id) ||
            id.startsWith('@dnd-kit/') ||
            id.includes('node_modules');
   },

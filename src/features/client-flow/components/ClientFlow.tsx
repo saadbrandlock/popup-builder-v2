@@ -12,6 +12,10 @@ import { DesktopReview } from '../screens/DesktopReview';
 import { MobileReview } from '../screens/MobileReview';
 import { CopyReview } from '../screens/CopyReview';
 import { ReviewScreen } from '../screens/ReviewScreen';
+import { NavigationStepper } from './NavigationStepper';
+import { StepConfig } from '../types/clientFlow';
+import { clientReviewSteps } from '../utils/helpers';
+import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
 
 /**
  * Unified ClientFlow component - Combines all client flow screens into a single stepper-based interface
@@ -44,12 +48,8 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
     error,
   } = useClientFlowStore();
 
-  // Initialize step if provided
-  useEffect(() => {
-    if (initialStep !== currentStep) {
-      actions.setCurrentStep(initialStep);
-    }
-  }, [initialStep, currentStep, actions]);
+  // Sync generic context (account, auth, shoppers, navigate) into global store once
+  useSyncGenericContext({ accountDetails, authProvider, shoppers, navigate, accounts });
 
   // Handle completion callback
   useEffect(() => {
@@ -73,7 +73,7 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
   // Step configuration with status indicators
   const steps = [
     {
-      title: 'Desktop Review',
+      title: clientReviewSteps.stepOne.title,
       icon: <DesktopOutlined />,
       status: (desktopReview.status === 'approved'
         ? 'finish'
@@ -84,10 +84,10 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
             : currentStep > 0
               ? 'finish'
               : 'wait') as 'finish' | 'process' | 'wait' | 'error',
-      description: 'Review desktop version',
+      description: clientReviewSteps.stepOne.description,
     },
     {
-      title: 'Mobile Review',
+      title: clientReviewSteps.stepTwo.title,
       icon: <MobileOutlined />,
       status: (mobileReview.status === 'approved'
         ? 'finish'
@@ -98,17 +98,17 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
             : currentStep > 1
               ? 'finish'
               : 'wait') as 'finish' | 'process' | 'wait' | 'error',
-      description: 'Review mobile version',
+      description: clientReviewSteps.stepTwo.description,
     },
     {
-      title: 'Copy Review',
+      title: clientReviewSteps.stepThree.title,
       icon: <EditOutlined />,
       status: (currentStep === 2
         ? 'process'
         : currentStep > 2
           ? 'finish'
           : 'wait') as 'finish' | 'process' | 'wait' | 'error',
-      description: 'Review coupon copy',
+      description: clientReviewSteps.stepThree.description,
     },
     {
       title: 'Final Review',
@@ -135,6 +135,7 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
       accounts,
     };
 
+    console.log('currentStep', currentStep);
     switch (currentStep) {
       case 0:
         return <DesktopReview {...stepProps} />;
@@ -160,33 +161,21 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
 
   return (
     <Row className={`client-flow-container ${className}`} gutter={[16, 16]}>
-      <Col xs={24} md={6}>
+      <Col xs={24} md={4}>
         {/* Header with Steps */}
-        <Card className="mb-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Client Review Flow
-            </h1>
-            <p className="text-gray-600">
-              Review and approve your popup template across different devices
-            </p>
-          </div>
-
-          <Steps
-            current={currentStep}
-            items={steps}
-            className="mb-4"
-            responsive={true}
-            direction="vertical"
+        <div className="mb-6">
+          <NavigationStepper
+            currentStep={currentStep}
+            totalSteps={4}
+            //@ts-ignore
+            steps={steps}
+            onStepClick={(step) => {
+              actions.setCurrentStep(step);
+            }}
           />
-
-          {/* Progress indicator */}
-          <div className="text-center text-sm text-gray-500">
-            Step {currentStep + 1} of {steps.length}
-          </div>
-        </Card>
+        </div>
       </Col>
-      <Col xs={24} md={18}>
+      <Col xs={24} md={20}>
         {/* Global Error Display */}
         {error && (
           <Alert
@@ -201,31 +190,6 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
 
         {/* Step Content */}
         <div className="step-content">{renderStepContent()}</div>
-
-        {/* Debug Info (Development Only) */}
-        {process.env.NODE_ENV === 'development' && (
-          <Card
-            title="Debug Info"
-            size="small"
-            className="mt-6 bg-gray-50"
-            style={{ fontSize: '12px' }}
-          >
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div>
-                <strong>Current Step:</strong> {currentStep}
-              </div>
-              <div>
-                <strong>Desktop Status:</strong> {desktopReview.status}
-              </div>
-              <div>
-                <strong>Mobile Status:</strong> {mobileReview.status}
-              </div>
-              <div>
-                <strong>Final Status:</strong> {finalReview.status}
-              </div>
-            </div>
-          </Card>
-        )}
       </Col>
     </Row>
   );

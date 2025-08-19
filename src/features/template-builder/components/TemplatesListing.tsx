@@ -37,11 +37,11 @@ import { useDevicesStore } from '@/stores/common/devices.store';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import { SorterResult } from 'antd/es/table/interface';
 import { BaseProps } from '@/types/props';
-import { useGenericStore } from '@/stores/generic.store';
 import { shopperLookup } from '@/lib/utils/helper';
 import { useDebouncedCallback } from '@/lib/hooks/use-debounce';
 import { useTemplateListing } from '../hooks/use-template-listing';
 import { CleanTemplateResponse } from '@/types';
+import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -54,6 +54,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
   shoppers,
   accountDetails,
   authProvider,
+  accounts,
 }) => {
   const { handleAction, getTemplates, getDevices } = useTemplateListing({
     apiClient,
@@ -61,15 +62,11 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
 
   const { devices } = useDevicesStore();
   const { devicesLoading, templateListingLoading, templateListActionLoading } = useLoadingStore();
-  const {
-    actions: genericActions,
-    accountDetails: genericAccountDetails,
-    shoppers: genericShoppers,
-    authProvider: genericAuthProvider,
-    navigate: genericNavigate,
-  } = useGenericStore();
   const { templates, pagination, filters, sorter, error, actions } =
     useTemplateListingStore();
+
+  // Sync generic context (account, auth, shoppers, navigate) into global store once
+  useSyncGenericContext({ accountDetails, authProvider, shoppers, navigate, accounts });
 
   const getActionMenuItems = (template: CleanTemplateResponse) => {
     const items = [
@@ -77,22 +74,22 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
         key: 'edit',
         icon: <EditOutlined />,
         label: 'Edit',
-        onClick: () => handleAction('edit', template.id),
+        onClick: () => handleAction('edit', template),
       },
       {
         key: 'preview',
         icon: <EyeOutlined />,
         label: 'Preview',
-        onClick: () => handleAction('preview', template.id),
+        onClick: () => handleAction('preview', template),
       },
     ];
 
     if (template.status === 'draft') {
       items.push({
-        key: 'publish',
+        key: 'client-review',
         icon: <CheckOutlined />,
-        label: 'Publish',
-        onClick: () => handleAction('publish', template.id),
+        label: 'Push To Client Review',
+        onClick: () => handleAction('client-review', template),
       });
     }
 
@@ -101,7 +98,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
         key: 'archive',
         icon: <InboxOutlined />,
         label: 'Archive',
-        onClick: () => handleAction('archive', template.id),
+        onClick: () => handleAction('archive', template),
       });
     }
 
@@ -110,7 +107,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
         key: 'unarchive',
         icon: <SelectOutlined />,
         label: 'Unarchive',
-        onClick: () => handleAction('unarchive', template.id),
+        onClick: () => handleAction('unarchive', template),
       });
     }
 
@@ -119,7 +116,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
         key: 'delete',
         icon: <DeleteOutlined />,
         label: 'Delete',
-        onClick: () => handleAction('delete', template.id),
+        onClick: () => handleAction('delete', template),
       });
     }
 
@@ -296,22 +293,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
     getDevices();
   }, []);
 
-  useEffect(() => {
-    console.log('Navigating to template', navigate, genericNavigate);
-    if (!genericAccountDetails && accountDetails) {
-      genericActions.setAccount(accountDetails);
-    }
-    if ((!genericAuthProvider.userId || !genericAuthProvider.accountId || !genericAuthProvider.role) && authProvider) {
-      genericActions.setAuthProvider(authProvider);
-    }
-    if (!genericShoppers.length && shoppers) {
-      genericActions.setShoppers(shoppers);
-    }
-    if (!genericNavigate && navigate) {
-      genericActions.setNavigate(navigate);
-    }
-    console.log(authProvider, accountDetails, shoppers, navigate);
-  }, [authProvider, accountDetails, shoppers, navigate]);
+  
 
   const renderError = () => (
     <div className="text-center py-12">
@@ -339,7 +321,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
       {/* Header */}
       <div className="flex sm:items-center justify-between gap-4">
         <div>
-          <Title level={2} className="!mb-1">
+          <Title level={2} className="mb-1!">
             Coupon Templates Listing
           </Title>
           <Text type="secondary">

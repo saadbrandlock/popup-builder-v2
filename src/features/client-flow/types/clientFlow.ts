@@ -1,36 +1,22 @@
 // Client Flow Types - API-Ready Architecture
-import type { PopupTemplate } from '../../popup-builder/types';
+
+import { ClientFlowData, ShopperDetails } from '@/types';
 
 // Note: DeviceType is re-exported from popup-builder in index.ts
 // ============================================================================
 // CLIENT DATA TYPES - API READY
 // ============================================================================
 
-export interface ClientData {
-  id: string;
-  companyName: string;
-  contactEmail: string;
-  industry: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface WebsiteData {
   id: string;
   clientId: string;
-  backgroundImage: string;
-  brandColors: {
-    primary: string;
-    secondary: string;
-    accent?: string;
+  backgroundImage: {
+    desktop: string;
+    mobile: string;
   };
-  logo?: string;
   companyName: string;
   websiteUrl: string;
-  category: 'E-commerce' | 'SaaS' | 'Blog' | 'Corporate' | 'Other';
-  // Future API fields
-  actualContent?: HTMLContent;
-  screenshots?: ScreenshotData[];
+  category: string;
 }
 
 export interface HTMLContent {
@@ -89,7 +75,7 @@ export interface PreviewSettings {
 export interface BrowserPreviewProps {
   viewport: 'desktop' | 'mobile';
   websiteBackground: WebsiteData;
-  popupTemplate: PopupTemplate | null;
+  popupTemplate: any | null;
   showBrowserChrome?: boolean;
   interactive?: boolean;
   scale?: number;
@@ -134,6 +120,7 @@ export interface StepConfig {
   title: string;
   description?: string;
   status: 'pending' | 'current' | 'completed' | 'error';
+  icon?: React.ReactNode;
 }
 
 // ============================================================================
@@ -144,24 +131,24 @@ export interface ClientFlowState {
   // Review Flow State
   currentStep: number;
   reviewProgress: ReviewProgress;
-  
+
   // Client Data (API-ready)
-  clientData: ClientData | null;
+  clientData: ClientFlowData[] | null;
   websiteData: WebsiteData | null;
-  
+
   // Template Data (API-ready)
-  selectedTemplate: PopupTemplate | null;
-  availableTemplates: PopupTemplate[];
-  
+  selectedTemplate: any | null;
+  availableTemplates: any[];
+
   // Review Data
   desktopReview: ReviewStatus;
   mobileReview: ReviewStatus;
   finalReview: ReviewStatus;
   comments: Comment[];
-  
+
   // Preview Settings
   previewSettings: PreviewSettings;
-  
+
   // Loading States (following existing pattern)
   loading: {
     clientData: boolean;
@@ -169,9 +156,15 @@ export interface ClientFlowState {
     templates: boolean;
     reviewSubmission: boolean;
   };
-  
+
   // Error States
   error: string | null;
+
+  shopperDetails: ShopperDetails | null;
+  activeShopper: {
+    template: { name: string | null; id: string | null };
+    content: { name: string | null; id: string | null };
+  };
 }
 
 export interface ClientFlowActions {
@@ -180,34 +173,44 @@ export interface ClientFlowActions {
     setCurrentStep: (step: number) => void;
     nextStep: () => void;
     previousStep: () => void;
-    
+
     // Client Data Management (API-ready)
-    setClientData: (data: ClientData) => void;
+    setClientData: (data: ClientFlowData[]) => void;
     setWebsiteData: (data: WebsiteData) => void;
-    fetchClientData: (clientId: string) => Promise<void>;
-    
+
     // Template Management (API-ready)
-    setSelectedTemplate: (template: PopupTemplate) => void;
-    setAvailableTemplates: (templates: PopupTemplate[]) => void;
-    fetchTemplates: (clientId: string) => Promise<void>;
-    
+    setSelectedTemplate: (template: any) => void;
+    setAvailableTemplates: (templates: any[]) => void;
+
     // Review Management
-    updateReview: (step: 'desktop' | 'mobile' | 'final', status: ReviewStatus) => void;
+    updateReview: (
+      step: 'desktop' | 'mobile' | 'final',
+      status: ReviewStatus
+    ) => void;
     addComment: (comment: Omit<Comment, 'id' | 'createdAt'>) => void;
-    submitReview: () => Promise<void>;
-    
+
     // Preview Settings
     updatePreviewSettings: (settings: Partial<PreviewSettings>) => void;
-    
+
     // Loading States (following existing pattern)
     setLoading: (key: keyof ClientFlowState['loading'], value: boolean) => void;
-    
+
     // Error Management
     setError: (error: string | null) => void;
     clearError: () => void;
-    
+
     // Reset
     resetFlow: () => void;
+
+    // Shopper Details
+    setShopperDetails: (details: ShopperDetails) => void;
+    setActiveShopper: ({
+      template,
+      content,
+    }: {
+      template?: { name: string; id: string };
+      content?: { name: string; id: string };
+    }) => void;
   };
 }
 
