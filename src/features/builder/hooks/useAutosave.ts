@@ -11,6 +11,7 @@ import { createAPI } from '@/api';
 import type { AxiosInstance } from 'axios';
 import { useUnlayerEditor } from './useUnlayerEditor';
 import { processTemplateFields } from '@/lib/utils/templateFieldProcessor';
+import { useClientFlowStore } from '@/stores/clientFlowStore';
 
 export interface UseAutosaveOptions {
   enabled?: boolean;
@@ -96,17 +97,40 @@ export const useAutosave = (
           // Only save to our custom API when enabled
           if (saveToAPI && apiClient && templateId) {
             const api = createAPI(apiClient);
-            await api.templates.upsertTemplate(templateId, {
-              builder_state_json: processedDesign,
-              is_builder_state: true
-            });
+            const selectedTemplate = useClientFlowStore.getState().selectedTemplate;
+            
+            // Check if we're editing a template from client review
+            if (selectedTemplate && selectedTemplate.template_id === templateId) {
+              console.log('💾 Auto-saving client review template via different API');
+              
+              // Use the client review template update API
+              await api.templates.updateClientReviewTemplate(templateId, {
+                builder_state_json: processedDesign
+              });
+              
+              // Update the selectedTemplate in the store as well
+              useClientFlowStore.getState().actions.setSelectedTemplate({
+                ...selectedTemplate,
+                builder_state_json: processedDesign
+              });
+              
+              console.log('✅ Auto-saved client review template successfully');
+            } else {
+              console.log('💾 Auto-saving regular template via staging API');
+              
+              // Use regular staging template API
+              await api.templates.upsertTemplate(templateId, {
+                builder_state_json: processedDesign,
+                is_builder_state: true
+              });
+              
+              console.log('✅ Auto-saved regular template successfully');
+            }
             
             // Update local store state without calling saveDesign
             actions.setCurrentDesign(processedDesign);
             actions.markUnsavedChanges(false);
             actions.setLastAutoSave(new Date());
-            
-            console.log('✅ Auto-saved to custom API with template fields processed');
           } else {
             console.log('⚠️ Auto-save skipped - API integration not enabled');
           }
@@ -130,7 +154,7 @@ export const useAutosave = (
       actions.setError(`Autosave failed: ${err.message}`);
       onError?.(err);
     }
-  }, [editorRef, hasUnsavedChanges, actions, onSave, onError, saveToAPI, apiClient, templateId]);
+  }, [editorRef, hasUnsavedChanges, actions, onSave, onError, saveToAPI, apiClient, templateId, templateFields]);
 
   /**
    * Manual save operation
@@ -158,17 +182,40 @@ export const useAutosave = (
           // Only save to our custom API when enabled
           if (saveToAPI && apiClient && templateId) {
             const api = createAPI(apiClient);
-            await api.templates.upsertTemplate(templateId, {
-              builder_state_json: processedDesign,
-              is_builder_state: true
-            });
+            const selectedTemplate = useClientFlowStore.getState().selectedTemplate;
+            
+            // Check if we're editing a template from client review
+            if (selectedTemplate && selectedTemplate.template_id === templateId) {
+              console.log('💾 Manual saving client review template via different API');
+              
+              // Use the client review template update API
+              await api.templates.updateClientReviewTemplate(templateId, {
+                builder_state_json: processedDesign
+              });
+              
+              // Update the selectedTemplate in the store as well
+              useClientFlowStore.getState().actions.setSelectedTemplate({
+                ...selectedTemplate,
+                builder_state_json: processedDesign
+              });
+              
+              console.log('✅ Manual save client review template completed');
+            } else {
+              console.log('💾 Manual saving regular template via staging API');
+              
+              // Use regular staging template API
+              await api.templates.upsertTemplate(templateId, {
+                builder_state_json: processedDesign,
+                is_builder_state: true
+              });
+              
+              console.log('✅ Manual save regular template completed');
+            }
             
             // Update local store state without calling saveDesign
             actions.setCurrentDesign(processedDesign);
             actions.markUnsavedChanges(false);
             actions.setLastAutoSave(new Date());
-            
-            console.log('✅ Manual save to custom API completed with template fields processed');
           } else {
             console.log('⚠️ Manual save skipped - API integration not enabled');
           }
@@ -188,7 +235,7 @@ export const useAutosave = (
         }
       });
     });
-  }, [editorRef, actions, onSave, onError, saveToAPI, apiClient, templateId]);
+  }, [editorRef, actions, onSave, onError, saveToAPI, apiClient, templateId, templateFields]);
 
   /**
    * Enable autosave with optional interval

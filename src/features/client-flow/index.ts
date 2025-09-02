@@ -10,7 +10,7 @@ export * from './types/clientFlow';
 export { useClientFlowStore } from '../../stores/clientFlowStore';
 
 // Main Unified Component
-export { ClientFlow } from './components/ClientFlow';
+export { ClientFlow } from './screens/ClientFlow';
 
 // Individual Screen Components (for advanced usage)
 export { LandingPreview } from './screens/LandingPreview';

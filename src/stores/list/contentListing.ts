@@ -17,7 +17,7 @@ type ContentListingState = {
     sortDirection?: 'ascend' | 'descend';
   };
   industries: string[];
-  fields: string[];
+  fields: {key: string, value: number}[];
   error?: string;
 };
 
@@ -34,7 +34,7 @@ type ContentListingActions = {
     setSorter: (sorter: ContentListingState['sorter']) => void;
     setError: (error: string) => void;
     setIndustries: (industries: string[]) => void;
-    setFields: (fields: string[]) => void;
+    setFields: (fields: {key: string, value: number}[]) => void;
   };
 };
 
@@ -98,6 +98,6 @@ export const useContentListingStore = create<
     setError: (error: string) => set({ error }),
     setIndustries: (industries: string[]) =>
       set({ industries }),
-    setFields: (fields: string[]) => set({ fields }),
+    setFields: (fields: { key: string; value: number; }[]) => set({ fields }),
   },
 }));

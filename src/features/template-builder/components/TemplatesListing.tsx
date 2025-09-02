@@ -1,18 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AxiosInstance } from 'axios';
 import {
   Typography,
-  Button,
-  Table,
-  Empty,
-  Spin,
-  Space,
-  Tag,
-  Dropdown,
-  Alert,
-  Select,
   Input,
+  Select,
+  DatePicker,
+  Button,
+  Empty,
+  Alert,
+  message,
+  Dropdown,
+  Tag,
   TableProps,
+  Space,
 } from 'antd';
 import {
   PlusOutlined,
@@ -40,8 +40,13 @@ import { BaseProps } from '@/types/props';
 import { shopperLookup } from '@/lib/utils/helper';
 import { useDebouncedCallback } from '@/lib/hooks/use-debounce';
 import { useTemplateListing } from '../hooks/use-template-listing';
-import { CleanTemplateResponse } from '@/types';
+import { CleanTemplateResponse, TCBTemplate } from '@/types';
 import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
+import { Link } from 'lucide-react';
+import LinkTemplateModal from './common/link-template-modal';
+import { ChildTemplatesTable } from './index';
+import { createAPI } from '@/api';
+import { useActionConfirm } from '@/lib/hooks/use-action-confirm';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -60,13 +65,59 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
     apiClient,
   });
 
+  const { showConfirm, ConfirmModal } = useActionConfirm();
+
+  const handleChildTemplateAction = async (
+    action: 'edit' | 'delete' | 'archive',
+    templateId: string
+  ) => {
+    try {
+      const api = createAPI(apiClient);
+      if (action === 'edit') {
+        navigate(`/coupon-builder-v2/popup-builder/${templateId}/edit`);
+      } else if (action === 'delete') {
+        await api.templates.deleteTemplate(templateId);
+        message.success('Child template deleted successfully');
+        getTemplates(); // Refresh the main templates list
+      } else if (action === 'archive') {
+        await api.templates.archiveTemplate(templateId);
+        message.success('Child template archived successfully');
+        getTemplates(); // Refresh the main templates list
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing child template:`, error);
+      message.error(`Failed to ${action} child template`);
+    }
+  };
+
   const { devices } = useDevicesStore();
-  const { devicesLoading, templateListingLoading, templateListActionLoading } = useLoadingStore();
+  const { devicesLoading, templateListingLoading, templateListActionLoading } =
+    useLoadingStore();
   const { templates, pagination, filters, sorter, error, actions } =
     useTemplateListingStore();
 
+  const [linkTemplateModalVisible, setLinkTemplateModalVisible] =
+    useState(false);
+  const [selectedTemplateDetails, setSelectedTemplateDetails] = useState<{
+    name: string;
+    id: string;
+    description: string;
+    account_id: number;
+  }>({
+    description: '',
+    id: '',
+    name: '',
+    account_id: -1,
+  });
+
   // Sync generic context (account, auth, shoppers, navigate) into global store once
-  useSyncGenericContext({ accountDetails, authProvider, shoppers, navigate, accounts });
+  useSyncGenericContext({
+    accountDetails,
+    authProvider,
+    shoppers,
+    navigate,
+    accounts,
+  });
 
   const getActionMenuItems = (template: CleanTemplateResponse) => {
     const items = [
@@ -89,7 +140,49 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
         key: 'client-review',
         icon: <CheckOutlined />,
         label: 'Push To Client Review',
-        onClick: () => handleAction('client-review', template),
+        onClick: async () => {
+          const childCount = template.child_templates?.length || 0;
+          const templateText =
+            childCount > 0
+              ? `this template and ${childCount} linked child template(s)`
+              : 'this template';
+
+          showConfirm({
+            title: 'Push to Client Review',
+            content: (
+              <div className="space-y-3">
+                <p>
+                  You are about to push <strong>{templateText}</strong> to client review. Once pushed,
+                  clients will be able to see and review the template(s).
+                </p>
+                <p className="text-amber-600 font-medium">
+                  ⚠️ Have you completed designing all the template(s)? This
+                  action will make them visible to clients.
+                </p>
+              </div>
+            ),
+            onConfirm: async () =>
+              await handleAction('client-review', template),
+          });
+        },
+      });
+    }
+
+    if (template.devices.some((device) => device.device_type === 'desktop')) {
+      items.push({
+        key: 'link',
+        icon: <Link size={16} />,
+        label: 'Link Templates',
+        onClick: async () => {
+          console.log(template);
+          setLinkTemplateModalVisible(true);
+          setSelectedTemplateDetails({
+            description: template.description || '',
+            id: template.id,
+            name: template.name,
+            account_id: template.account_ids![0],
+          });
+        },
       });
     }
 
@@ -102,7 +195,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
       });
     }
 
-    if(template.status === 'archive') {
+    if (template.status === 'archive') {
       items.push({
         key: 'unarchive',
         icon: <SelectOutlined />,
@@ -136,7 +229,11 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
       dataIndex: 'devices',
       key: 'devices',
       sorter: true,
-      render: (devices: string[]) => <DeviceTags devices={devices} />,
+      render: (devices: { device_type: string; id: number }[]) => (
+        <DeviceTags
+          devices={devices.map((device) => device.device_type.toLowerCase())}
+        />
+      ),
     },
     {
       title: 'Shopper Segments',
@@ -293,8 +390,6 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
     getDevices();
   }, []);
 
-  
-
   const renderError = () => (
     <div className="text-center py-12">
       <Empty
@@ -322,7 +417,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
       <div className="flex sm:items-center justify-between gap-4">
         <div>
           <Title level={2} className="mb-1!">
-            Coupon Templates Listing
+            Coupon Templates Listinggg
           </Title>
           <Text type="secondary">
             Manage and organize your coupon templates
@@ -372,7 +467,39 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
             style={{ width: '400px' }}
           />
         }
+        expandable={{
+          expandedRowRender: (record: CleanTemplateResponse | TCBTemplate) => (
+            <ChildTemplatesTable
+              childTemplates={(record.child_templates || []) as TCBTemplate[]}
+              onChildAction={handleChildTemplateAction}
+            />
+          ),
+          rowExpandable: (record: CleanTemplateResponse | TCBTemplate) =>
+            !!(record.child_templates && record.child_templates.length > 0),
+        }}
       />
+
+      <LinkTemplateModal
+        visible={!!selectedTemplateDetails.name}
+        onCancel={() =>
+          setSelectedTemplateDetails({
+            description: '',
+            id: '',
+            name: '',
+            account_id: -1,
+          })
+        }
+        parentTemplateId={selectedTemplateDetails.id}
+        parentTemplateName={selectedTemplateDetails.name}
+        accountId={selectedTemplateDetails.account_id}
+        apiClient={apiClient}
+        onSuccess={() => {
+          getTemplates();
+          setLinkTemplateModalVisible(false);
+        }}
+      />
+
+      <ConfirmModal />
     </div>
   );
 };

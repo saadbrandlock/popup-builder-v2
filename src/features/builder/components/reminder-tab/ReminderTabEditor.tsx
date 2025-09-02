@@ -1,21 +1,22 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card, Tabs, Radio, Typography, Alert, Button, Space } from 'antd';
 import {
-  SettingOutlined,
   EyeOutlined,
   MobileOutlined,
   DesktopOutlined,
   CodeOutlined,
 } from '@ant-design/icons';
-import { ReminderTabHTMLConverter } from '@/features/builder/utils/reminderTabHtmlEngine';
+import { useBuilderStore } from '@/stores/builder.store';
 import ReminderTabPreview from './ReminderTabPreview';
-import BasicSettingsTab from './BasicSettingsTab';
-import StylingTab from './StylingTab';
 import AnimationsTab from './AnimationsTab';
-import AdvancedTab from './AdvancedTab';
-import type { ReminderTabEditorProps } from '@/features/builder/types';
+import MobileFloatingButtonTab from './MobileFloatingButtonTab';
+import DesktopTabConfig from './DesktopTabConfig';
+import type {
+  ReminderTabConfig,
+  ReminderTabEditorProps,
+} from '@/features/builder/types';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { TabPane } = Tabs;
 
 const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
@@ -23,12 +24,74 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
   onConfigChange,
   saveStatus,
 }) => {
-  const [activeTab, setActiveTab] = useState('basic');
+  const { templateState } = useBuilderStore();
+  const [activeTab, setActiveTab] = useState('desktop');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>(
     'desktop'
   );
 
-  // Optimized config update function
+  console.log('Template State:', templateState);
+  console.log('Template Devices:', templateState?.devices);
+
+  // Determine supported devices from template
+  const supportedDevices = useMemo(() => {
+    if (!templateState?.devices) {
+      console.log('No devices found, defaulting to desktop');
+      return ['desktop'];
+    }
+    const devices = templateState.devices.map((device) =>
+      device.device_type.toLowerCase()
+    );
+    console.log('Supported devices:', devices);
+    return devices;
+  }, [templateState?.devices]);
+
+  const hasDesktop = supportedDevices.includes('desktop');
+  const hasMobile = supportedDevices.includes('mobile');
+
+  console.log('Has Desktop:', hasDesktop, 'Has Mobile:', hasMobile);
+
+  // Set initial preview device and active tab based on supported devices
+  React.useEffect(() => {
+    if (!hasDesktop && hasMobile) {
+      setPreviewDevice('mobile');
+      setActiveTab('mobile');
+    } else if (hasDesktop && !hasMobile) {
+      setPreviewDevice('desktop');
+      setActiveTab('desktop');
+    } else if (hasDesktop && hasMobile) {
+      // Both available, default to desktop
+      setPreviewDevice('desktop');
+      setActiveTab('desktop');
+    } else {
+      // Fallback to animations tab if no devices detected
+      setActiveTab('animations');
+    }
+  }, [hasDesktop, hasMobile]);
+
+  // Initialize config with proper device enablement on mount/device change
+  React.useEffect(() => {
+    if (!hasDesktop && hasMobile) {
+      // Mobile-only template: ensure desktop is disabled, mobile is enabled
+      const newConfig = { 
+        ...config, 
+        desktop: { ...config.desktop, enabled: false },
+        mobile: { ...config.mobile, enabled: true }
+      };
+      onConfigChange(newConfig);
+    } else if (hasDesktop && !hasMobile) {
+      // Desktop-only template: ensure mobile is disabled, desktop is enabled  
+      const newConfig = { 
+        ...config, 
+        desktop: { ...config.desktop, enabled: true },
+        mobile: { ...config.mobile, enabled: false }
+      };
+      onConfigChange(newConfig);
+    }
+    // For both devices supported, let user control both
+  }, [hasDesktop, hasMobile]); // Only run when device support changes
+
+  // Optimized config update function with device-based auto-disable
   const updateConfig = useCallback(
     (path: string, value: any) => {
       const newConfig = { ...config };
@@ -41,19 +104,42 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
       }
 
       current[keys[keys.length - 1]] = value;
+
+      // Auto-disable opposite device based on template support
+      if (!hasDesktop && hasMobile) {
+        // Mobile-only template: disable desktop
+        newConfig.desktop = { ...newConfig.desktop, enabled: false };
+      } else if (hasDesktop && !hasMobile) {
+        // Desktop-only template: disable mobile
+        newConfig.mobile = { ...newConfig.mobile, enabled: false };
+      }
+      
       onConfigChange(newConfig);
     },
-    [config, onConfigChange]
+    [config, onConfigChange, hasDesktop, hasMobile]
   );
+
+  // Convert new config to legacy format for HTML generation
+  const convertToLegacyConfig = useCallback((newConfig: ReminderTabConfig) => {
+    return {
+      enabled: newConfig.enabled,
+      display: newConfig.desktop.display,
+      styling: newConfig.desktop.styling,
+      animations: newConfig.animations,
+      interactions: newConfig.desktop.interactions,
+      responsive: {
+        mobile: {
+          fontSize: 12,
+          hide: false,
+        },
+      },
+    };
+  }, []);
 
   // Memoized button handlers
   const handleGeneratePreview = useCallback(() => {
     console.log('Generated config:', config);
-    const converter = new ReminderTabHTMLConverter();
-    const htmlOutput = converter.convertToHTML(config);
-    console.log('Generated HTML:', htmlOutput);
-    alert('Preview generated! Check console for output.');
-  }, [config]);
+  }, [config, convertToLegacyConfig]);
 
   const handleViewCode = useCallback(() => {
     console.log('Generated HTML code', config);
@@ -78,36 +164,41 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
       <div className="lg:col-span-2">
         <Card>
           <Tabs activeKey={activeTab} onChange={setActiveTab}>
-            <TabPane
-              tab={
-                <span>
-                  <SettingOutlined />
-                  Basic Settings
-                </span>
-              }
-              key="basic"
-            >
-              <BasicSettingsTab config={config} updateConfig={updateConfig} />
-            </TabPane>
+            {/* Desktop Configuration */}
+            {hasDesktop && (
+              <TabPane
+                tab={
+                  <span>
+                    <DesktopOutlined />
+                    Desktop Tab
+                  </span>
+                }
+                key="desktop"
+              >
+                <DesktopTabConfig config={config} updateConfig={updateConfig} />
+              </TabPane>
+            )}
 
-            <TabPane tab={<span>Styling</span>} key="styling">
-              <StylingTab config={config} updateConfig={updateConfig} />
-            </TabPane>
+            {/* Mobile Configuration */}
+            {hasMobile && (
+              <TabPane
+                tab={
+                  <span>
+                    <MobileOutlined />
+                    Mobile Button
+                  </span>
+                }
+                key="mobile"
+              >
+                <MobileFloatingButtonTab
+                  config={config}
+                  updateConfig={updateConfig}
+                />
+              </TabPane>
+            )}
 
             <TabPane tab={<span>Animations</span>} key="animations">
               <AnimationsTab config={config} updateConfig={updateConfig} />
-            </TabPane>
-
-            <TabPane
-              tab={
-                <span>
-                  <CodeOutlined />
-                  Advanced
-                </span>
-              }
-              key="advanced"
-            >
-              <AdvancedTab config={config} updateConfig={updateConfig} />
             </TabPane>
           </Tabs>
         </Card>
@@ -125,12 +216,16 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
               onChange={handlePreviewDeviceChange}
               size="small"
             >
-              <Radio.Button value="desktop">
-                <DesktopOutlined />
-              </Radio.Button>
-              <Radio.Button value="mobile">
-                <MobileOutlined />
-              </Radio.Button>
+              {hasDesktop && (
+                <Radio.Button value="desktop">
+                  <DesktopOutlined />
+                </Radio.Button>
+              )}
+              {hasMobile && (
+                <Radio.Button value="mobile">
+                  <MobileOutlined />
+                </Radio.Button>
+              )}
             </Radio.Group>
           </div>
 

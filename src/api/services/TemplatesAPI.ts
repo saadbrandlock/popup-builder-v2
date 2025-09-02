@@ -120,13 +120,15 @@ export class TemplatesAPI extends BaseAPI {
   }
 
   async pushTemplateToClientReview(
-    templateId: string,
-    htmlContent: string
+    templatesData: {
+      template_id: string;
+      html_content: string;
+    }[]
   ): Promise<TCBTemplateStaging> {
     return this.patch<TCBTemplateStaging>(
-      `/staging-template/${templateId}/push-client-review`,
+      `/staging-template/push-client-review`,
       {
-        template_html: htmlContent,
+        templatesData,
       }
     );
   }
@@ -237,6 +239,37 @@ export class TemplatesAPI extends BaseAPI {
     }
   }
 
+  async getPotentitalChildTemplateDetails(account_id: number) {
+    try {
+      const response = await this.get<
+        {
+          id: string;
+          name: string;
+          description: string;
+          shoppers: { id: number; name: string }[];
+          devices: { id: number; device_type: string }[];
+        }[]
+      >(`/admin/potential-child-templates/account/${account_id}`);
+      return response;
+    } catch (error) {
+      this.handleError(error, 'get potential child template details');
+    }
+  }
+
+  async linkChildTemplates(parent_id: string, child_ids: string[]) {
+    try {
+      const response = await this.put<{ data: TCBTemplate }>(
+        `/admin/templates/${parent_id}/link-child-templates`,
+        {
+          child_template_ids: child_ids,
+        }
+      );
+      return response;
+    } catch (error) {
+      this.handleError(error, 'link child templates');
+    }
+  }
+
   getCleintTemplatesData(accountId: number) {
     try {
       const response = this.get<ClientFlowData[]>(
@@ -249,15 +282,36 @@ export class TemplatesAPI extends BaseAPI {
   }
 
   /**
+   * Update client review template with new design data
+   * Used when editing templates from client review flow
+   */
+  async updateClientReviewTemplate(
+    templateId: string,
+    templateData: Partial<ClientFlowData>
+  ): Promise<ClientFlowData> {
+    try {
+      const response = await this.put<ClientFlowData>(
+        `/client-review/template/${templateId}`,
+        templateData
+      );
+      console.log('✅ Client review template updated successfully');
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to update client review template:', error);
+      this.handleError(error, 'update client review template');
+    }
+  }
+
+  /**
    * Transform TCBTemplate to CleanTemplateResponse for UI consumption
    */
-  private transformTemplate(template: TCBTemplate): CleanTemplateResponse {
+  transformTemplate(template: TCBTemplate): CleanTemplateResponse {
     return {
       id: template.id,
       name: template.name,
       description: template.description || undefined,
       status: template.status || 'draft',
-      devices: template.devices?.map((d) => d.device_type) || [],
+      devices: template.devices,
       shopper_ids: template.shopper_ids || [],
       type: template.is_generic ? 'generic' : 'specific',
       lastUpdated: new Date(template.updated_at || template.created_at),
@@ -268,6 +322,9 @@ export class TemplatesAPI extends BaseAPI {
       is_generic: template.is_generic,
       is_custom_coded: template.is_custom_coded,
       reminder_tab_state_json: template.reminder_tab_state_json || {},
+      device_ids: template.device_ids,
+      account_ids: template.account_ids,
+      child_templates: template.child_templates,
     };
   }
 }

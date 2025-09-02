@@ -8,14 +8,15 @@ import {
 } from '@ant-design/icons';
 import { BaseProps } from '../../../types/props';
 import { useClientFlowStore } from '../../../stores/clientFlowStore';
-import { DesktopReview } from '../screens/DesktopReview';
-import { MobileReview } from '../screens/MobileReview';
-import { CopyReview } from '../screens/CopyReview';
-import { ReviewScreen } from '../screens/ReviewScreen';
-import { NavigationStepper } from './NavigationStepper';
+import { DesktopReview } from './DesktopReview';
+import { MobileReview } from './MobileReview';
+import { CopyReview } from './CopyReview';
+import { ReviewScreen } from './ReviewScreen';
+import { NavigationStepper } from '../components/NavigationStepper';
 import { StepConfig } from '../types/clientFlow';
 import { clientReviewSteps } from '../utils/helpers';
 import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
+import { useClientFlow } from '../hooks/use-client-flow';
 
 /**
  * Unified ClientFlow component - Combines all client flow screens into a single stepper-based interface
@@ -46,10 +47,20 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
     finalReview,
     actions,
     error,
+    clientData,
   } = useClientFlowStore();
+  const { getCleintTemplatesData } = useClientFlow({ apiClient });
 
   // Sync generic context (account, auth, shoppers, navigate) into global store once
   useSyncGenericContext({ accountDetails, authProvider, shoppers, navigate, accounts });
+
+
+  useEffect(() => {
+    if (accountDetails && !clientData) {
+      getCleintTemplatesData(accountDetails.id);
+    }
+  }, [accountDetails]);
+
 
   // Handle completion callback
   useEffect(() => {

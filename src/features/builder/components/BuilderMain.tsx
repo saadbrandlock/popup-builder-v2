@@ -13,6 +13,7 @@ import { useBuilderMain } from '../hooks/useBuilderMain';
 import { useTemplateListing } from '@/features/template-builder/hooks/use-template-listing';
 import { UnlayerOptions } from 'react-email-editor';
 import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
+import { useDevicesStore } from '@/stores/common/devices.store';
 
 interface BuilderMainProps extends BaseProps {
   unlayerConfig: UnlayerOptions;
@@ -40,6 +41,23 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
 
   const { adminBuilderStep, templateState, actions } = useBuilderStore();
   const { actions: loadingActions } = useLoadingStore();
+  const { devices } = useDevicesStore();
+
+  // Check if template has mobile devices
+  const hasMobileDevice = () => {
+    if (!templateState?.device_ids || !devices.length) return false;
+    
+    const mobileDevices = devices.filter(device => 
+      device.device_type.toLowerCase() === 'mobile'
+    );
+    
+    return templateState.device_ids.some(deviceId => 
+      mobileDevices.some(mobileDevice => mobileDevice.id === deviceId)
+    );
+  };
+
+  const shouldShowReminderTab = hasMobileDevice();
+  const maxStep = shouldShowReminderTab ? 2 : 1;
 
   // Sync generic context (account, auth, shoppers, navigate) into global store once
   useSyncGenericContext({
@@ -58,6 +76,7 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
         actions.setTemplateConfig(data);
 
         if (checkObjectDiff(templateState, data, true, ['device_type_id'])) {
+          loadingActions.setTemplateByIdLoading(true);
           await updateTemplate(templateId, data);
           actions.setTemplateState((prevState: any) => ({
             ...prevState,
@@ -70,7 +89,8 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
             is_generic: data.is_generic,
           }));
         }
-
+        
+        loadingActions.setTemplateByIdLoading(false);
         actions.setAdminBuilderStep(1);
       } else {
         // Create mode - create new template
@@ -115,6 +135,7 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
     } catch (error) {
       message.error('Failed to create template.');
       console.error('Config submit error:', error);
+      loadingActions.setTemplateByIdLoading(false);
     } finally {
       loadingActions.setConfigSaving(false);
     }
@@ -129,6 +150,8 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
     console.log('currentTemplateId', templateId, adminBuilderStep);
     if (!!templateId && adminBuilderStep === 0) {
       actions.setAdminBuilderStep(1);
+    } else if (!templateId && adminBuilderStep > 0) {
+      actions.setAdminBuilderStep(0);
     }
     if (templateId) {
       actions.setCurrentTemplateId(templateId);
@@ -139,13 +162,20 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
     }
   }, [templateId]);
 
+  // Clear persisted store data when component unmounts
+  useEffect(() => {
+    return () => {
+      actions.clearPersistedStore();
+    };
+  }, []);
+
   return (
     <>
       <div className="mb-6">
         <Steps current={adminBuilderStep} style={{ margin: 0 }}>
           <Steps.Step title="Config" />
           <Steps.Step title="Builder" />
-          <Steps.Step title="Reminder Tab" />
+          {shouldShowReminderTab && <Steps.Step title="Reminder Tab" />}
         </Steps>
       </div>
 
@@ -163,7 +193,7 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
           enableCustomImageUpload={true}
         />
       )}
-      {adminBuilderStep === 2 && (
+      {adminBuilderStep === 2 && shouldShowReminderTab && (
         <ReminderTabStep
           onNext={() => {
             message.success('Reminder tab setup completed!');

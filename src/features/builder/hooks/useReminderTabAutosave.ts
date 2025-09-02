@@ -13,7 +13,7 @@ import type { ReminderTabConfig } from '@/features/builder/types';
 export interface UseReminderTabAutosaveOptions {
   enabled?: boolean;
   interval?: number; // milliseconds - default 10 seconds
-  debounceDelay?: number; // milliseconds - default 2 seconds
+  debounceDelay?: number; // milliseconds - default 5 seconds
   apiClient?: AxiosInstance;
   templateId?: string;
   onSave?: (config: ReminderTabConfig) => Promise<void>;
@@ -40,7 +40,7 @@ export const useReminderTabAutosave = (
   const {
     enabled: propEnabled = true,
     interval: propInterval = 10000, // 10 seconds default
-    debounceDelay = 2000, // 2 seconds debounce
+    debounceDelay = 5000, // 5 seconds debounce
     apiClient,
     templateId,
     onSave,

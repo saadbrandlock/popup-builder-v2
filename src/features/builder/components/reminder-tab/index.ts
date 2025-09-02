@@ -8,3 +8,6 @@ export { default as BasicSettingsTab } from './BasicSettingsTab';
 export { default as StylingTab } from './StylingTab';
 export { default as AnimationsTab } from './AnimationsTab';
 export { default as AdvancedTab } from './AdvancedTab';
+export { default as MobileFloatingButtonTab } from './MobileFloatingButtonTab';
+export { default as DesktopTabConfig } from './DesktopTabConfig';
+export { default as AnimationPreview } from './AnimationPreview';

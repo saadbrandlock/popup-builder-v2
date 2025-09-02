@@ -14,7 +14,7 @@ import {
   Col,
 } from 'antd';
 
-import { Device, TCBTemplate, TemplateConfig } from '@/types';
+import { CleanTemplateResponse, Device, TCBTemplate, TemplateConfig } from '@/types';
 import { useDevicesStore } from '@/stores/common/devices.store';
 import { useGenericStore } from '@/stores/generic.store';
 import { DeviceSelector, ShopperSelector } from '@/components/common';
@@ -29,7 +29,7 @@ interface ConfigStepProps {
   handleFinalSave: (data: TemplateConfig) => Promise<void>;
   onNext?: () => void;
   isEditMode: boolean;
-  templateEditState?: TCBTemplate | null
+  templateEditState?: CleanTemplateResponse | null
 }
 
 const ConfigStep: React.FC<ConfigStepProps> = ({

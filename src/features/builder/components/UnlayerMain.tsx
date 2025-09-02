@@ -6,6 +6,7 @@ import { useUnlayerEditor } from '../hooks/useUnlayerEditor';
 import { useBuilderStore } from '@/stores/builder.store';
 import { useGenericStore } from '@/stores/generic.store';
 import { useLoadingStore } from '@/stores/common/loading.store';
+import { useDevicesStore } from '@/stores/common/devices.store';
 import { sanitizeHtml } from '@/lib';
 import { manageEditorMode, manageMergeTags } from '../utils';
 
@@ -19,6 +20,7 @@ interface UnlayerMainProps {
   // Image upload configuration
   apiClient?: any; // AxiosInstance
   enableCustomImageUpload?: boolean;
+  clientTemplateId?: string;
 }
 
 
@@ -29,13 +31,31 @@ export const UnlayerMain = ({
   onError,
   apiClient,
   enableCustomImageUpload = true,
+  clientTemplateId = '',
 }: UnlayerMainProps) => {
   // State for UI controls
   const [autoSaveInterval] = useState(30);
+  const [designMode, setDesignMode] = useState(false);
 
   // Store values for image upload
-  const { currentTemplateId, actions: builderActions } = useBuilderStore();
+  const { currentTemplateId, templateState, actions: builderActions } = useBuilderStore();
   const { authProvider } = useGenericStore();
+  const { devices } = useDevicesStore();
+
+  // Check if template has mobile devices
+  const hasMobileDevice = () => {
+    if (!templateState?.device_ids || !devices.length) return false;
+    
+    const mobileDevices = devices.filter(device => 
+      device.device_type.toLowerCase() === 'mobile'
+    );
+    
+    return templateState.device_ids.some(deviceId => 
+      mobileDevices.some(mobileDevice => mobileDevice.id === deviceId)
+    );
+  };
+
+  const shouldShowReminderTab = hasMobileDevice();
   
   // Loading states for showing combined loading status
   const { builderAutosaving } = useLoadingStore();
@@ -65,7 +85,7 @@ export const UnlayerMain = ({
     onSave,
     onError,
     apiClient,
-    templateId: currentTemplateId || undefined,
+    templateId: clientTemplateId || currentTemplateId || undefined,
     accountId: authProvider.accountId,
     enableCustomImageUpload,
   });
@@ -94,6 +114,10 @@ export const UnlayerMain = ({
       return () => clearInterval(interval);
     }
   }, [isReady]);
+
+  useEffect(() => {
+    setDesignMode(window.location.href.includes('user-template-editor'));
+  }, [])
 
   // Handle export actions
   const handleExportHtml = async () => {
@@ -272,7 +296,7 @@ export const UnlayerMain = ({
               onReady={onEditorReady}
               options={{
                 ...unlayerConfig,
-                tools: manageEditorMode(false),
+                tools: manageEditorMode(designMode),
                 mergeTags: manageMergeTags()
               }}
               style={{
@@ -315,9 +339,17 @@ export const UnlayerMain = ({
         <Button 
           type="primary"
           icon={<ArrowRightOutlined />}
-          onClick={() => builderActions.setAdminBuilderStep(2)}
+          onClick={() => {
+            if (shouldShowReminderTab) {
+              builderActions.setAdminBuilderStep(2);
+            } else {
+              // Complete the flow for non-mobile templates
+              // Could navigate to templates list or show completion message
+              window.history.back();
+            }
+          }}
         >
-          Next: Reminder Tab
+          {shouldShowReminderTab ? 'Next: Reminder Tab' : 'Complete Setup'}
         </Button>
       </div>
     </div>

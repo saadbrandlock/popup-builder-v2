@@ -4,12 +4,13 @@ import React from 'react';
 
 interface ReviewActionsProps {
   type: 'desktop' | 'mobile';
+  goToEditTemplate: () => void
 }
 
-const ReviewActions: React.FC<ReviewActionsProps> = ({ type }) => {
+const ReviewActions: React.FC<ReviewActionsProps> = ({ type, goToEditTemplate }) => {
   return (
     <div className="flex items-center justify-end gap-4 mt-6">
-      <Button size="large" iconPosition="start" icon={<Edit size={16} />}>
+      <Button size="large" iconPosition="start" icon={<Edit size={16} />} onClick={goToEditTemplate}>
         Edit Design
       </Button>
 

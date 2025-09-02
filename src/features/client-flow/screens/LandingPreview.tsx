@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Card, Button, Alert, Row, Col, Steps } from 'antd';
+import { Card, Button, Alert, Row, Col, Steps, Spin } from 'antd';
 import { BaseProps } from '../../../types/props';
 import {
   BrowserPreview,
@@ -25,7 +25,9 @@ import { ReminderTabConfig } from '@/features/builder/types';
  * Shows hero section with preview area and template selection
  * Now extends BaseProps for consistency with project patterns
  */
-interface LandingPreviewProps extends BaseProps {}
+interface LandingPreviewProps extends BaseProps {
+  goToReview: () => void;
+}
 
 export const LandingPreview: React.FC<LandingPreviewProps> = ({
   apiClient,
@@ -34,6 +36,7 @@ export const LandingPreview: React.FC<LandingPreviewProps> = ({
   authProvider,
   accounts,
   accountDetails,
+  goToReview
 }) => {
   // TODO: Integrate BaseProps with API calls and navigation
   // For now, these props are available for future API integration
@@ -49,8 +52,6 @@ export const LandingPreview: React.FC<LandingPreviewProps> = ({
     accounts,
   });
 
-  const { mergedHtml, mergeFromRecord } = useOptimizedHTMLMerger();
-
   // Fixed desktop preview for landing page
   const viewport: ViewportType = 'desktop';
 
@@ -65,32 +66,11 @@ export const LandingPreview: React.FC<LandingPreviewProps> = ({
   };
 
   useEffect(() => {
-    if (accountDetails) {
+    if (accountDetails && !clientData) {
       getCleintTemplatesData(accountDetails.id);
     }
   }, [accountDetails]);
 
-  useEffect(() => {
-    if (clientData && clientData.length) {
-      safeDecodeAndSanitizeHtml(clientData[0].template_html).then(
-        (processedHtml) => {
-          const html = mergeFromRecord(
-            {
-              reminder_tab_state_json: clientData[0]
-                .reminder_tab_state_json as ReminderTabConfig,
-              template_html: processedHtml,
-            },
-            {
-              enableAnimations: true,
-              animationDuration: '0.4s',
-            }
-          );
-
-          console.log('merged html:::::::::::::: ', html);
-        }
-      );
-    }
-  }, [clientData]);
 
   // Show "not ready" component when no client data is available
   if (!clientData || clientData.length === 0) {
@@ -201,7 +181,7 @@ export const LandingPreview: React.FC<LandingPreviewProps> = ({
 
                 {/* CTA */}
                 <div className="mt-4 flex justify-center">
-                  <InteractiveHoverButton>
+                  <InteractiveHoverButton onClick={() => goToReview()}>
                     Let's Get Started
                   </InteractiveHoverButton>
                 </div>
@@ -214,7 +194,7 @@ export const LandingPreview: React.FC<LandingPreviewProps> = ({
             <div>
               <div className="mb-3">
                 <div className="text-xl font-medium text-gray-900">
-                  Live Preview
+                  Live Previewww
                 </div>
                 <div className="text-md text-gray-500">
                   See how your coupon popup looks on your website

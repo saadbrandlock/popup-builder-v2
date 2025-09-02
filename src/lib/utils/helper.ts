@@ -236,4 +236,43 @@ export const safeDecodeAndSanitizeHtml = async (encodedHtml: string): Promise<st
     console.error('Error decoding and sanitizing HTML:', error);
     return '';
   }
+
+
 };
+
+
+export const disableEditorForCleint = () => {
+  return {
+    rows: {
+      enabled: false,
+    },
+    button: {
+      enabled: false,
+    },
+    header: {
+      enabled: false,
+    },
+    text: {
+      enabled: false,
+    },
+    image: {
+      enabled: false,
+    },
+    divider: {
+      enabled: false,
+    },
+    menu: {
+      enabled: false,
+    },
+    html: {
+      enabled: false,
+    },
+    social: {
+      enabled: false,
+    },
+    carousel: {
+      enabled: false,
+    },
+    
+  }
+} 
