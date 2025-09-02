@@ -1,11 +1,14 @@
 {
-  "name": "@brandlock/coupon-template-builder",
+  "name": "@kishor.purbhe/coupon-template-builder",
   "version": "1.0.0",
   "description": "A React/TypeScript coupon template builder component library",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "restricted"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
