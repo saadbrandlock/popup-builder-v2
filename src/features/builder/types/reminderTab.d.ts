@@ -5,7 +5,38 @@
 
 import type { AxiosInstance } from 'axios';
 
-export interface ReminderTabConfig {
+export interface FloatingButtonConfig {
+  enabled: boolean;
+  icon: {
+    type: 'antd' | 'custom' | 'emoji' | 'fontawesome';
+    value: string; // Icon name for antd, FontAwesome class for fontawesome, URL for custom, emoji character for emoji
+    size: number;
+    color: string;
+  };
+  position: {
+    bottom: number;
+    right: number;
+  };
+  styling: {
+    size: number; // Button diameter
+    backgroundColor: string;
+    borderColor: string;
+    borderWidth: number;
+    boxShadow: string;
+  };
+  animations: {
+    entrance: {
+      type: string;
+      duration: string;
+    };
+    hover: {
+      enabled: boolean;
+      scale: number;
+    };
+  };
+}
+
+export interface DesktopTabConfig {
   enabled: boolean;
   display: {
     text: string;
@@ -34,6 +65,19 @@ export interface ReminderTabConfig {
       letterSpacing: string;
     };
   };
+  interactions: {
+    dragging: {
+      enabled: boolean;
+    };
+    clicking: {
+      enabled: boolean;
+    };
+  };
+}
+
+export interface ReminderTabConfig {
+  // Global settings
+  enabled: boolean;
   animations: {
     entrance: {
       type: string;
@@ -43,20 +87,10 @@ export interface ReminderTabConfig {
       type: string;
     };
   };
-  interactions: {
-    dragging: {
-      enabled: boolean;
-    };
-    clicking: {
-      enabled: boolean;
-    };
-  };
-  responsive: {
-    mobile: {
-      fontSize: number;
-      hide: boolean;
-    };
-  };
+  
+  // Device-specific configurations
+  desktop: DesktopTabConfig;
+  mobile: FloatingButtonConfig;
 }
 
 export interface AnimationType {
@@ -112,5 +146,57 @@ export interface ConfigTabProps {
   updateConfig: (path: string, value: any) => void;
 }
 
-// Export type alias for HTML converter compatibility
-export type ReactBuilderConfig = ReminderTabConfig;
+// Legacy config type for HTML converter compatibility
+export interface ReactBuilderConfig {
+  enabled: boolean;
+  display: {
+    text: string;
+    position: 'left' | 'right';
+    initialPosition: {
+      top: string;
+      transform: string;
+    };
+  };
+  styling: {
+    dimensions: {
+      width: number;
+      height: number;
+    };
+    colors: {
+      primary: string;
+      secondary: string;
+      textColor: string;
+      draggerColor: string;
+      dotColor: string;
+    };
+    typography: {
+      fontFamily: string;
+      fontSize: number;
+      fontWeight: string;
+      letterSpacing: string;
+    };
+  };
+  animations: {
+    entrance: {
+      type: string;
+      duration: string;
+    };
+    popupTrigger: {
+      type: string;
+    };
+  };
+  interactions: {
+    dragging: {
+      enabled: boolean;
+    };
+    clicking: {
+      enabled: boolean;
+    };
+  };
+  responsive: {
+    mobile: {
+      fontSize: number;
+      hide: boolean;
+    };
+  };
+}

@@ -36,36 +36,31 @@ export const POPUP_TRIGGER_TYPES: PopupTriggerType[] = [
 export const FONT_SIZE_MARKS = { 10: '10px', 15: '15px', 20: '20px' };
 export const MOBILE_FONT_SIZE_MARKS = { 8: '8px', 12: '12px', 16: '16px' };
 
+// Icon options for mobile floating button
+export const FLOATING_BUTTON_ICONS = [
+  { type: 'fontawesome', value: 'fas fa-gift', label: 'Gift' },
+  { type: 'fontawesome', value: 'fas fa-tags', label: 'Tag' },
+  { type: 'fontawesome', value: 'fas fa-percentage', label: 'Percentage' },
+  { type: 'fontawesome', value: 'fas fa-crown', label: 'Crown' },
+  { type: 'fontawesome', value: 'fas fa-star', label: 'Star' },
+  { type: 'fontawesome', value: 'fas fa-fire', label: 'Fire' },
+  { type: 'fontawesome', value: 'fas fa-bell', label: 'Bell' },
+  { type: 'fontawesome', value: 'fas fa-bolt', label: 'Lightning' },
+  { type: 'fontawesome', value: 'fas fa-shopping-cart', label: 'Shopping Cart' },
+  { type: 'fontawesome', value: 'fas fa-bullhorn', label: 'Announcement' },
+  { type: 'fontawesome', value: 'fas fa-thumbs-up', label: 'Thumbs Up' },
+  { type: 'fontawesome', value: 'fas fa-heart', label: 'Heart' },
+  { type: 'emoji', value: '🎁', label: 'Gift Emoji' },
+  { type: 'emoji', value: '🏷️', label: 'Tag Emoji' },
+  { type: 'emoji', value: '💰', label: 'Money Emoji' },
+  { type: 'emoji', value: '⭐', label: 'Star Emoji' },
+  { type: 'emoji', value: '🔥', label: 'Fire Emoji' },
+  { type: 'emoji', value: '🛍️', label: 'Shopping Emoji' }
+] as const;
+
 // Default configuration
 export const DEFAULT_REMINDER_TAB_CONFIG: ReminderTabConfig = {
   enabled: true,
-  display: {
-    text: 'Special Offer!',
-    position: 'left',
-    initialPosition: {
-      top: '50%',
-      transform: 'translateY(-50%)'
-    }
-  },
-  styling: {
-    dimensions: {
-      width: 80,
-      height: 160
-    },
-    colors: {
-      primary: '#8B0000',
-      secondary: '#DC143C',
-      textColor: '#FFFFFF',
-      draggerColor: '#666666',
-      dotColor: 'rgba(255, 255, 255, 0.8)'
-    },
-    typography: {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 14,
-      fontWeight: 'bold',
-      letterSpacing: '1px'
-    }
-  },
   animations: {
     entrance: {
       type: 'slideIn',
@@ -75,18 +70,72 @@ export const DEFAULT_REMINDER_TAB_CONFIG: ReminderTabConfig = {
       type: 'modal'
     }
   },
-  interactions: {
-    dragging: {
-      enabled: true
+  desktop: {
+    enabled: true,
+    display: {
+      text: 'Special Offer!',
+      position: 'left',
+      initialPosition: {
+        top: '50%',
+        transform: 'translateY(-50%)'
+      }
     },
-    clicking: {
-      enabled: true
+    styling: {
+      dimensions: {
+        width: 80,
+        height: 160
+      },
+      colors: {
+        primary: '#8B0000',
+        secondary: '#DC143C',
+        textColor: '#FFFFFF',
+        draggerColor: '#666666',
+        dotColor: 'rgba(255, 255, 255, 0.8)'
+      },
+      typography: {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: 14,
+        fontWeight: 'bold',
+        letterSpacing: '1px'
+      }
+    },
+    interactions: {
+      dragging: {
+        enabled: true
+      },
+      clicking: {
+        enabled: true
+      }
     }
   },
-  responsive: {
-    mobile: {
-      fontSize: 12,
-      hide: false
+  mobile: {
+    enabled: true,
+    icon: {
+      type: 'fontawesome',
+      value: 'fas fa-gift',
+      size: 24,
+      color: '#FFFFFF'
+    },
+    position: {
+      bottom: 24,
+      right: 24
+    },
+    styling: {
+      size: 56,
+      backgroundColor: '#8B0000',
+      borderColor: '#DC143C',
+      borderWidth: 2,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+    },
+    animations: {
+      entrance: {
+        type: 'slideIn',
+        duration: '0.3s'
+      },
+      hover: {
+        enabled: true,
+        scale: 1.1
+      }
     }
   }
 };

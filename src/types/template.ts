@@ -1,4 +1,4 @@
-import { ReminderTabConfig } from "@/features/builder/types";
+import { ReminderTabConfig } from '@/features/builder/types';
 
 export interface TCBTemplate {
   id: string; // uuid-string
@@ -29,6 +29,7 @@ export interface TCBTemplate {
   reminder_tab_html: string | null;
   reminder_tab_state_json_client: Record<string, any> | null;
   reminder_tab_html_client: string | null;
+  child_templates?: (TCBTemplate & {linked_at: string, linked_by: number})[];
 }
 
 export interface CleanTemplateResponse {
@@ -36,7 +37,10 @@ export interface CleanTemplateResponse {
   name: string;
   description?: string;
   status: string;
-  devices: string[];
+  devices: Array<{
+    id: number;
+    device_type: string;
+  }>;
   type: string;
   lastUpdated: Date;
   createdAt: Date;
@@ -52,6 +56,8 @@ export interface CleanTemplateResponse {
   reminder_tab_html_client?: string;
   shopper_ids: number[];
   account_ids?: number[];
+  device_ids?: number[];
+  child_templates?: (TCBTemplate & {linked_at: string, linked_by: number})[];
 }
 
 // Types and Interfaces [template merger popup and reminder tab]

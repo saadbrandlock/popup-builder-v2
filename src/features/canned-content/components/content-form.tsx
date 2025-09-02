@@ -10,7 +10,7 @@ export interface CannedContentFormProps {
   onSubmit: (values: Partial<CBCannedContent>) => void;
   initialValues: CBCannedContent | null;
   industries: string[];
-  fields: string[];
+  fields: {key: string, value: number}[];
 }
 
 const CannedContentForm: React.FC<CannedContentFormProps> = ({
@@ -27,7 +27,10 @@ const CannedContentForm: React.FC<CannedContentFormProps> = ({
 
   React.useEffect(() => {
     if (visible && initialValues) {
-      form.setFieldsValue(initialValues);
+      form.setFieldsValue({
+        ...initialValues,
+        field: +initialValues.field!,
+      });
     } else {
       form.resetFields();
     }
@@ -68,7 +71,7 @@ const CannedContentForm: React.FC<CannedContentFormProps> = ({
         >
           <Select
             placeholder="Select field"
-            options={fields.map((f) => ({ label: splitByAndCapitalize(f, '_'), value: f }))}
+            options={fields.map((f) => ({ label: splitByAndCapitalize(f.key, '_'), value: f.value }))}
           />
         </Form.Item>
         <Form.Item

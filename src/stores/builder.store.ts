@@ -1,4 +1,4 @@
-import { TCBTemplate, TemplateConfig } from '@/types';
+import {  CleanTemplateResponse, TemplateConfig } from '@/types';
 import { ReminderTabConfig } from '@/features/builder/types';
 import { DEFAULT_REMINDER_TAB_CONFIG } from '@/features/builder/utils/reminderTabConstants';
 import { create } from 'zustand';
@@ -6,7 +6,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 type BuilderState = {
   adminBuilderStep: number;
-  templateState: TCBTemplate | null;
+  templateState: CleanTemplateResponse | null;
   templateConfig: TemplateConfig | null;
   currentTemplateId: string | null;
   reminderTabConfig: ReminderTabConfig;
@@ -28,6 +28,8 @@ type BuilderActions = {
     markReminderTabUnsaved: (unsaved: boolean) => void;
     setReminderTabLastSave: (date: Date | null) => void;
     setReminderTabSaveError: (error: string | null) => void;
+    // Clear persisted store data
+    clearPersistedStore: () => void;
   };
 };
 
@@ -61,6 +63,10 @@ export const useBuilderStore = create<BuilderState & BuilderActions>()(
         markReminderTabUnsaved: (unsaved: boolean) => set({ reminderTabUnsavedChanges: unsaved }),
         setReminderTabLastSave: (date: Date | null) => set({ reminderTabLastSave: date }),
         setReminderTabSaveError: (error: string | null) => set({ reminderTabSaveError: error }),
+        // Clear persisted store data
+        clearPersistedStore: () => {
+          localStorage.removeItem('builder-store');
+        },
       };
 
       return {

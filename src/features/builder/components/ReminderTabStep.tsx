@@ -1,11 +1,17 @@
 import React, { useCallback } from 'react';
-import { Card, Button, Space, Typography, message, Alert } from 'antd';
-import { ArrowLeftOutlined, ArrowRightOutlined, SaveOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Card, Button, Space, Typography, message, Alert, Spin } from 'antd';
+import {
+  ArrowLeftOutlined,
+  ArrowRightOutlined,
+  SaveOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
 import { useBuilderStore } from '@/stores/builder.store';
 import { useGenericStore } from '@/stores/generic.store';
 import { useReminderTabAutosave } from '../hooks/useReminderTabAutosave';
 import { ReminderTabEditor } from './reminder-tab';
 import type { ReminderTabStepProps } from '@/features/builder/types';
+import { useLoadingStore } from '@/stores/common/loading.store';
 
 const { Title, Text } = Typography;
 
@@ -13,9 +19,10 @@ const ReminderTabStep: React.FC<ReminderTabStepProps> = ({
   onNext,
   onBack,
   onSave,
-  apiClient
+  apiClient,
 }) => {
   const { reminderTabConfig, currentTemplateId, actions } = useBuilderStore();
+  const { templateByIdLoading } = useLoadingStore();
 
   // Initialize autosave
   const {
@@ -24,7 +31,7 @@ const ReminderTabStep: React.FC<ReminderTabStepProps> = ({
     hasUnsavedChanges,
     saveError,
     performManualSave,
-    triggerAutoSave
+    triggerAutoSave,
   } = useReminderTabAutosave({
     enabled: true,
     interval: 10000, // 10 seconds
@@ -35,13 +42,16 @@ const ReminderTabStep: React.FC<ReminderTabStepProps> = ({
     onError: (error) => {
       console.error('Reminder tab autosave error:', error);
       message.error(`Autosave failed: ${error.message}`);
-    }
+    },
   });
 
-  const handleConfigChange = useCallback((config: any) => {
-    console.log('📝 ReminderTabStep: Config change detected', config);
-    actions.setReminderTabConfig(config);
-  }, [actions]);
+  const handleConfigChange = useCallback(
+    (config: any) => {
+      console.log('📝 ReminderTabStep: Config change detected', config);
+      actions.setReminderTabConfig(config);
+    },
+    [actions]
+  );
 
   const handleSave = useCallback(async () => {
     try {
@@ -67,7 +77,8 @@ const ReminderTabStep: React.FC<ReminderTabStepProps> = ({
           Reminder Tab Configuration
         </Title>
         <Text type="secondary">
-          Design a reminder tab that will appear on your website to attract visitor attention
+          Design a reminder tab that will appear on your website to attract
+          visitor attention
         </Text>
       </div>
 
@@ -93,40 +104,50 @@ const ReminderTabStep: React.FC<ReminderTabStepProps> = ({
         />
       )}
 
-      <Card className="mb-6">
-        <ReminderTabEditor 
-          config={reminderTabConfig}
-          onConfigChange={handleConfigChange}
-          saveStatus={{
-            isSaving,
-            lastSave,
-            hasUnsavedChanges,
-            saveError
-          }}
-        />
-      </Card>
+      <>
+        {templateByIdLoading ? (
+          <div>
+            <Spin tip={<p>Loading Template Data...</p>} />
+          </div>
+        ) : (
+          <>
+            <Card className="mb-6">
+              <ReminderTabEditor
+                config={reminderTabConfig}
+                onConfigChange={handleConfigChange}
+                saveStatus={{
+                  isSaving,
+                  lastSave,
+                  hasUnsavedChanges,
+                  saveError,
+                }}
+              />
+            </Card>
 
-      <div className="flex justify-between items-center">
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={handleBack}
-          size="large"
-        >
-          Back to Builder
-        </Button>
+            <div className="flex justify-between items-center">
+              <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={handleBack}
+                size="large"
+              >
+                Back to Builder
+              </Button>
 
-        <Space>
-          <Button
-            icon={isSaving ? <LoadingOutlined /> : <SaveOutlined />}
-            onClick={handleSave}
-            loading={isSaving}
-            disabled={isSaving}
-            size="large"
-          >
-            {isSaving ? 'Saving...' : 'Save Configuration'}
-          </Button>
-        </Space>
-      </div>
+              <Space>
+                <Button
+                  icon={isSaving ? <LoadingOutlined /> : <SaveOutlined />}
+                  onClick={handleSave}
+                  loading={isSaving}
+                  disabled={isSaving}
+                  size="large"
+                >
+                  {isSaving ? 'Saving...' : 'Save Configuration'}
+                </Button>
+              </Space>
+            </div>
+          </>
+        )}
+      </>
     </div>
   );
 };

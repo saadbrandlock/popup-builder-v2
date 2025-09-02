@@ -116,7 +116,7 @@ export const MobileReview: React.FC<MobileReviewProps> = ({}) => {
               )}
             </div>
 
-            <ReviewActions type="mobile" />
+            <ReviewActions type="mobile" goToEditTemplate={() => {}} />
           </Col>
         </Row>
       </Card>

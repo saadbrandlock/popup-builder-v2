@@ -5,12 +5,14 @@ import { TCBTemplate, TCBTemplateStaging } from '@/types';
 import { useTemplateFieldsStore } from '@/stores/common/template-fields.store';
 import { useBuilderStore } from '@/stores/builder.store';
 import { DEFAULT_REMINDER_TAB_CONFIG } from '../utils/reminderTabConstants';
+import { useLoadingStore } from '@/stores/common/loading.store';
 
 export const useBuilderMain = ({ apiClient }: { apiClient: AxiosInstance }) => {
   const api = createAPI(apiClient);
 
   const { actions: templateFieldsActions } = useTemplateFieldsStore();
   const { actions: builderActions } = useBuilderStore();
+  const { actions: loadingActions } = useLoadingStore();
 
   const getTemplateFields = async () => {
     try {
@@ -68,6 +70,7 @@ export const useBuilderMain = ({ apiClient }: { apiClient: AxiosInstance }) => {
 
   const loadTemplate = async (templateId: string) => {
     try {
+      loadingActions.setTemplateByIdLoading(true);
       console.log('🔄 Loading template:', templateId);
 
       // Get template data including staging data for reminder tab config
@@ -91,6 +94,9 @@ export const useBuilderMain = ({ apiClient }: { apiClient: AxiosInstance }) => {
         console.log('ℹ️ No staging template data found, using defaults');
       }
 
+      console.log(templateResponse, '::::::::::::::::::::::::::::::::::::::::::::::::::::::::::>');
+      
+
       // Update store with loaded data
       builderActions.setTemplateState(templateResponse);
       builderActions.setReminderTabConfig(reminderTabConfig);
@@ -108,6 +114,8 @@ export const useBuilderMain = ({ apiClient }: { apiClient: AxiosInstance }) => {
       console.error('Error loading template:', error);
       message.error('Failed to load template');
       throw error;
+    } finally {
+      loadingActions.setTemplateByIdLoading(false);
     }
   };
 

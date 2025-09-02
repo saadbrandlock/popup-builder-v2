@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { WebsiteBackground } from './WebsiteBackground';
 import type { BrowserPreviewProps } from '../types/clientFlow';
 import { Safari } from '@/components/magicui/safari';
 import Android from '@/components/magicui/android';
 import { safeDecodeAndSanitizeHtml } from '@/lib/utils/helper';
 import type { ClientFlowData } from '@/types/api';
+import { useOptimizedHTMLMerger } from '@/lib/hooks';
+import { ReminderTabConfig } from '@/features/builder/types';
 
 /**
  * BrowserPreview - Enhanced wrapper that combines existing PopupPreview with website background
@@ -21,6 +23,8 @@ export const BrowserPreview: React.FC<BrowserPreviewProps> = ({
 }) => {
   const [sanitizedHtml, setSanitizedHtml] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { mergeFromRecord } = useOptimizedHTMLMerger();
 
   // Process popup template HTML when it changes
   useEffect(() => {
@@ -37,16 +41,28 @@ export const BrowserPreview: React.FC<BrowserPreviewProps> = ({
       setIsProcessing(true);
       try {
         // Get the first template that matches the current viewport
-        const template =
-          popupTemplate.find((t: ClientFlowData) =>
-            t.devices.some((device) => device.device_type === viewport)
-          ) || popupTemplate[0]; // Fallback to first template
+        const template = popupTemplate[0]; // Fallback to first template
 
         if (template && template.template_html) {
           const processedHtml = await safeDecodeAndSanitizeHtml(
             template.template_html
           );
-          setSanitizedHtml(processedHtml);
+
+          const mergedHtml = mergeFromRecord(
+            {
+              reminder_tab_state_json:
+                template.reminder_tab_state_json as ReminderTabConfig,
+              template_html: processedHtml,
+            },
+            {
+              enableAnimations: true,
+              animationDuration: '0.4s',
+            }
+          );
+
+          console.log('mergedHtml', mergedHtml);
+
+          setSanitizedHtml(mergedHtml);
         } else {
           setSanitizedHtml('');
         }
@@ -61,6 +77,32 @@ export const BrowserPreview: React.FC<BrowserPreviewProps> = ({
     processPopupHtml();
   }, [popupTemplate, viewport]);
 
+  // Update iframe content when sanitizedHtml changes
+  useEffect(() => {
+    if (iframeRef.current && sanitizedHtml) {
+      const iframe = iframeRef.current;
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      
+      if (iframeDoc) {
+        iframeDoc.open();
+        iframeDoc.write(sanitizedHtml);
+        iframeDoc.close();
+
+        // Setup interaction handlers if interactive mode is enabled
+        if (interactive) {
+          const handlePopupInteraction = (event: string) => {
+            onPopupInteraction?.(event);
+          };
+
+          // Listen for custom events from the iframe
+          iframe.contentWindow?.addEventListener('popupInteraction', (e: any) => {
+            handlePopupInteraction(e.detail?.type || 'popup-interaction');
+          });
+        }
+      }
+    }
+  }, [sanitizedHtml, interactive, onPopupInteraction]);
+
   // Render popup overlay component
   const PopupOverlay = () => {
     if (!sanitizedHtml || isProcessing) {
@@ -70,15 +112,18 @@ export const BrowserPreview: React.FC<BrowserPreviewProps> = ({
     console.log('sanitizedHtml', sanitizedHtml);
 
     return (
-      <div
-        // className="popup-template-container max-w-md mx-4 bg-white rounded-lg shadow-xl overflow-hidden"
-        onClick={(e) => {
-          if (interactive) {
-            e.stopPropagation();
-            onPopupInteraction?.('popup-click');
-          }
+      <iframe
+        ref={iframeRef}
+        className="w-full h-full border-0 bg-transparent"
+        style={{
+          width: '100%',
+          height: '100%',
+          border: 'none',
+          background: 'transparent',
+          overflow: 'hidden'
         }}
-        dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+        title="Interactive Popup Preview"
+        sandbox="allow-scripts allow-same-origin allow-forms"
       />
     );
   };

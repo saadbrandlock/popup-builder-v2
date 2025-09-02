@@ -108,8 +108,8 @@ export const useContent = ({ apiClient }: { apiClient: AxiosInstance }) => {
   const getFields = async () => {
     loadingActions.setContentSubDataLoading(true);
     try {
-      const response = await api.content.getFields();
-      actions.setFields(response);
+      const response = await api.templateFields.getTemplateFields();
+      actions.setFields(response.map((field) => ({key: field.field, value: +field.id})));
     } catch (error) {
       console.error('Error getting fields:', error);
       message.error('Failed to get fields');

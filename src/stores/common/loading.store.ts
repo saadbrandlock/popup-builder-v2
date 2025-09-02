@@ -3,6 +3,7 @@ import { create } from 'zustand';
 type LoadingState = {
   templateListingLoading: boolean;
   templateListActionLoading: boolean;
+  templateByIdLoading: boolean;
   devicesLoading: boolean;
   configSaving: boolean;
   contentListingLoading: boolean;
@@ -19,6 +20,7 @@ type LoadingActions = {
   actions: {
     setTemplateListingLoading: (loading: boolean) => void;
     setTemplateListActionLoading: (loading: boolean) => void;
+    setTemplateByIdLoading: (loading: boolean) => void;
     setDevicesLoading: (loading: boolean) => void;
     setConfigSaving: (loading: boolean) => void;
     setContentListingLoading: (loading: boolean) => void;
@@ -35,6 +37,7 @@ type LoadingActions = {
 export const useLoadingStore = create<LoadingState & LoadingActions>((set) => ({
   templateListingLoading: false,
   templateListActionLoading: false,
+  templateByIdLoading: false,
   devicesLoading: false,
   configSaving: false,
   contentListingLoading: false,
@@ -50,6 +53,7 @@ export const useLoadingStore = create<LoadingState & LoadingActions>((set) => ({
       set({ templateListingLoading: loading }),
     setTemplateListActionLoading: (loading: boolean) =>
       set({ templateListActionLoading: loading }),
+    setTemplateByIdLoading: (loading: boolean) => set({ templateByIdLoading: loading }),
     setDevicesLoading: (loading: boolean) => set({ devicesLoading: loading }),
     setConfigSaving: (loading: boolean) => set({ configSaving: loading }),
     setContentListingLoading: (loading: boolean) =>

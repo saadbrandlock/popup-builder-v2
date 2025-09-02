@@ -153,8 +153,8 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
     },
     {
       title: 'Field',
-      dataIndex: 'field',
-      key: 'field',
+      dataIndex: 'field_name',
+      key: 'field_name',
       sorter: true,
       render: (text) => splitByAndCapitalize(text, '_'),
     },
@@ -230,8 +230,8 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
           placeholder="Filter by Field"
           onChange={(value) => handleFilterChange('field', value)}
           options={fields.map((f) => ({
-            label: splitByAndCapitalize(f, '_'),
-            value: f,
+            label: splitByAndCapitalize(f.key, '_'),
+            value: f.value,
           }))}
           loading={contentSubDataLoading}
         />

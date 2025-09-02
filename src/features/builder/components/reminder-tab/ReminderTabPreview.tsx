@@ -1,5 +1,21 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { Typography } from 'antd';
+import * as AntdIcons from '@ant-design/icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faGift, 
+  faTags, 
+  faPercentage, 
+  faCrown, 
+  faStar, 
+  faFire, 
+  faBell, 
+  faBolt, 
+  faShoppingCart, 
+  faBullhorn, 
+  faThumbsUp, 
+  faHeart 
+} from '@fortawesome/free-solid-svg-icons';
 import type { ReminderTabPreviewProps } from '@/features/builder/types';
 
 const { Text } = Typography;
@@ -16,8 +32,10 @@ const ReminderTabPreview: React.FC<ReminderTabPreviewProps> = memo(({
 
   // Memoized styles to prevent recreation
   const previewStyle = useMemo(() => ({
-    width: previewDevice === 'mobile' ? '375px' : '100%',
-    height: previewDevice === 'mobile' ? '667px' : '400px',
+    width: '100%',
+    height: '400px',
+    maxWidth: '100%',
+    maxHeight: '100%',
     border: '1px solid #d9d9d9',
     borderRadius: '8px',
     position: 'relative' as const,
@@ -25,54 +43,64 @@ const ReminderTabPreview: React.FC<ReminderTabPreviewProps> = memo(({
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
   }), [previewDevice]);
 
-  const tabStyle = useMemo(() => ({
-    position: 'absolute' as const,
-    [config.display.position]: 0,
-    top: dragPosition.top,
-    transform: dragPosition.transform,
-    width: `${config.styling.dimensions.width}px`,
-    height: `${config.styling.dimensions.height}px`,
-    color: config.styling.colors.textColor,
-    borderRadius: config.display.position === 'left' ? '0 8px 8px 0' : '8px 0 0 8px',
-    display: config.enabled ? 'flex' : 'none',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: config.styling.typography.fontFamily,
-    fontWeight: config.styling.typography.fontWeight,
-    letterSpacing: config.styling.typography.letterSpacing,
-    cursor: 'pointer',
-    boxShadow: isDragging ? '0 6px 20px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.3)',
-    opacity: isDragging ? 0.8 : 1,
-    transition: isDragging ? 'none' : 'all 0.3s ease',
-    flexDirection: config.display.position === 'left' ? 'row-reverse' : 'row',
-    zIndex: isDragging ? 1001 : 1000,
-    userSelect: 'none' as const,
-    overflow: 'hidden'
-  }), [config, dragPosition, isDragging]);
+  // Desktop Tab Styles
+  const tabStyle = useMemo(() => {
+    const desktopConfig = config.desktop;
+    return {
+      position: 'absolute' as const,
+      [desktopConfig.display.position]: 0,
+      top: dragPosition.top,
+      transform: dragPosition.transform,
+      width: `${desktopConfig.styling.dimensions.width}px`,
+      height: `${desktopConfig.styling.dimensions.height}px`,
+      color: desktopConfig.styling.colors.textColor,
+      borderRadius: desktopConfig.display.position === 'left' ? '0 8px 8px 0' : '8px 0 0 8px',
+      display: (config.enabled && desktopConfig.enabled) ? 'flex' : 'none',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: desktopConfig.styling.typography.fontFamily,
+      fontWeight: desktopConfig.styling.typography.fontWeight,
+      letterSpacing: desktopConfig.styling.typography.letterSpacing,
+      cursor: 'pointer',
+      boxShadow: isDragging ? '0 6px 20px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.3)',
+      opacity: isDragging ? 0.8 : 1,
+      transition: isDragging ? 'none' : 'all 0.3s ease',
+      flexDirection: (desktopConfig.display.position === 'left' ? 'row-reverse' : 'row') as 'row' | 'row-reverse',
+      zIndex: isDragging ? 1001 : 1000,
+      userSelect: 'none' as const,
+      overflow: 'hidden'
+    };
+  }, [config, dragPosition, isDragging]);
 
-  const textStyle = useMemo(() => ({
-    fontSize: previewDevice === 'mobile' ? `${config.responsive.mobile.fontSize}px` : `${config.styling.typography.fontSize}px`,
-    letterSpacing: config.styling.typography.letterSpacing,
-    whiteSpace: 'nowrap' as const,
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: `linear-gradient(135deg, ${config.styling.colors.primary}, ${config.styling.colors.secondary})`,
-    height: '100%',
-    writingMode: config.display.position === 'left' ? 'vertical-lr' : 'vertical-rl' as const,
-    textOrientation: 'mixed' as const
-  }), [config, previewDevice]);
+  const textStyle = useMemo(() => {
+    const desktopConfig = config.desktop;
+    return {
+      fontSize: `${desktopConfig.styling.typography.fontSize}px`,
+      letterSpacing: desktopConfig.styling.typography.letterSpacing,
+      whiteSpace: 'nowrap' as const,
+      flex: 1,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: `linear-gradient(135deg, ${desktopConfig.styling.colors.primary}, ${desktopConfig.styling.colors.secondary})`,
+      height: '100%',
+      writingMode: (desktopConfig.display.position === 'left' ? 'vertical-lr' : 'vertical-rl') as 'vertical-lr' | 'vertical-rl',
+      textOrientation: 'mixed' as const
+    };
+  }, [config]);
 
-  const draggerStyle = useMemo(() => ({
-    background: config.styling.colors.draggerColor,
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '8px 0',
-    cursor: 'move'
-  }), [config.styling.colors.draggerColor]);
+  const draggerStyle = useMemo(() => {
+    const desktopConfig = config.desktop;
+    return {
+      background: desktopConfig.styling.colors.draggerColor,
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '8px 0',
+      cursor: 'move'
+    };
+  }, [config]);
 
   const tabDotsStyle = useMemo(() => ({
     display: 'grid',
@@ -82,18 +110,87 @@ const ReminderTabPreview: React.FC<ReminderTabPreviewProps> = memo(({
     padding: '0px 6px'
   }), []);
 
-  const dotStyle = useMemo(() => ({
-    width: '6px',
-    height: '6px',
-    background: config.styling.colors.dotColor,
-    borderRadius: '50%'
-  }), [config.styling.colors.dotColor]);
+  const dotStyle = useMemo(() => {
+    const desktopConfig = config.desktop;
+    return {
+      width: '6px',
+      height: '6px',
+      background: desktopConfig.styling.colors.dotColor,
+      borderRadius: '50%'
+    };
+  }, [config]);
+
+  // Mobile Floating Button Styles
+  const floatingButtonStyle = useMemo(() => {
+    const mobileConfig = config.mobile;
+    return {
+      position: 'absolute' as const,
+      bottom: `${mobileConfig.position.bottom}px`,
+      right: `${mobileConfig.position.right}px`,
+      width: `${mobileConfig.styling.size}px`,
+      height: `${mobileConfig.styling.size}px`,
+      backgroundColor: mobileConfig.styling.backgroundColor,
+      borderRadius: '50%',
+      border: `${mobileConfig.styling.borderWidth}px solid ${mobileConfig.styling.borderColor}`,
+      boxShadow: mobileConfig.styling.boxShadow,
+      display: (config.enabled && mobileConfig.enabled) ? 'flex' : 'none',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      zIndex: 1000
+    };
+  }, [config]);
+
+  const floatingButtonIconStyle = useMemo(() => {
+    const mobileConfig = config.mobile;
+    return {
+      fontSize: `${mobileConfig.icon.size}px`,
+      color: mobileConfig.icon.color
+    };
+  }, [config]);
+
+  const renderIcon = useCallback(() => {
+    const mobileConfig = config.mobile;
+
+    if (mobileConfig.icon.type === 'antd') {
+      const IconComponent = (AntdIcons as any)[mobileConfig.icon.value];
+      return IconComponent ? <IconComponent style={floatingButtonIconStyle} /> : null;
+    }
+    
+    if (mobileConfig.icon.type === 'emoji') {
+      return <span style={floatingButtonIconStyle}>{mobileConfig.icon.value}</span>;
+    }
+    
+    if (mobileConfig.icon.type === 'fontawesome') {
+      // Map FontAwesome class names to actual FontAwesome icons
+      const iconMapping: Record<string, any> = {
+        'fas fa-gift': faGift,
+        'fas fa-tags': faTags,
+        'fas fa-percentage': faPercentage,
+        'fas fa-crown': faCrown,
+        'fas fa-star': faStar,
+        'fas fa-fire': faFire,
+        'fas fa-bell': faBell,
+        'fas fa-bolt': faBolt,
+        'fas fa-shopping-cart': faShoppingCart,
+        'fas fa-bullhorn': faBullhorn,
+        'fas fa-thumbs-up': faThumbsUp,
+        'fas fa-heart': faHeart,
+      };
+      const iconDef = iconMapping[mobileConfig.icon.value] || faGift;
+      return <FontAwesomeIcon icon={iconDef} style={floatingButtonIconStyle} />;
+    }
+    
+    return null;
+  }, [config.mobile, floatingButtonIconStyle]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!config.interactions.dragging.enabled) return;
+    const desktopConfig = config.desktop;
+    if (!desktopConfig.interactions.dragging.enabled) return;
     setIsDragging(true);
     e.preventDefault();
-  }, [config.interactions.dragging.enabled]);
+  }, [config]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -107,8 +204,9 @@ const ReminderTabPreview: React.FC<ReminderTabPreviewProps> = memo(({
         if (!previewElement) return;
         
         const rect = previewElement.getBoundingClientRect();
-        const newY = e.clientY - rect.top - (config.styling.dimensions.height / 2);
-        const constrainedY = Math.max(0, Math.min(newY, rect.height - config.styling.dimensions.height));
+        const desktopConfig = config.desktop;
+        const newY = e.clientY - rect.top - (desktopConfig.styling.dimensions.height / 2);
+        const constrainedY = Math.max(0, Math.min(newY, rect.height - desktopConfig.styling.dimensions.height));
         
         setDragPosition({
           top: `${constrainedY}px`,
@@ -128,28 +226,40 @@ const ReminderTabPreview: React.FC<ReminderTabPreviewProps> = memo(({
         document.removeEventListener('mouseup', handleGlobalMouseUp);
       };
     }
-  }, [isDragging, config.styling.dimensions.height]);
+  }, [isDragging, config]);
 
-  if (previewDevice === 'mobile' && config.responsive.mobile.hide) {
+  // Handle mobile disabled state
+  if (previewDevice === 'mobile' && !config.mobile.enabled) {
     return (
       <div style={previewStyle} className="flex items-center justify-center">
-        <Text type="secondary">Hidden on mobile devices</Text>
+        <Text type="secondary">Mobile floating button is disabled</Text>
+      </div>
+    );
+  }
+
+  // Handle desktop disabled state
+  if (previewDevice === 'desktop' && !config.desktop.enabled) {
+    return (
+      <div style={previewStyle} className="flex items-center justify-center">
+        <Text type="secondary">Desktop tab is disabled</Text>
       </div>
     );
   }
 
   return (
-    <div 
-      style={previewStyle} 
-      data-preview-container
-      onMouseUp={handleMouseUp}
-    >
-      {config.enabled && (
+    <div className="flex justify-center items-center w-full h-full min-h-[400px] overflow-auto">
+      <div 
+        style={previewStyle} 
+        data-preview-container
+        onMouseUp={handleMouseUp}
+      >
+      {/* Desktop Tab */}
+      {previewDevice === 'desktop' && config.enabled && (
         <div style={tabStyle}>
           <div style={textStyle}>
-            {config.display.text}
+            {config.desktop.display.text}
           </div>
-          {config.interactions.dragging.enabled && (
+          {config.desktop.interactions.dragging.enabled && (
             <div 
               style={draggerStyle}
               onMouseDown={handleMouseDown}
@@ -163,6 +273,14 @@ const ReminderTabPreview: React.FC<ReminderTabPreviewProps> = memo(({
           )}
         </div>
       )}
+
+      {/* Mobile Floating Button */}
+      {previewDevice === 'mobile' && config.enabled && (
+        <div style={floatingButtonStyle}>
+          {renderIcon()}
+        </div>
+      )}
+      </div>
     </div>
   );
 });

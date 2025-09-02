@@ -22,6 +22,10 @@ interface SharedTemplateTableProps<T extends object> {
   actionButtons?: React.ReactNode;
   onResetFilters?: () => void;
   search?: React.ReactNode;
+  expandable?: {
+    expandedRowRender: (record: T) => React.ReactNode;
+    rowExpandable: (record: T) => boolean;
+  };
 }
 
 function SharedTemplateTable<T extends object>({
@@ -36,6 +40,7 @@ function SharedTemplateTable<T extends object>({
   actionButtons,
   onResetFilters,
   search,
+  expandable,
 }: SharedTemplateTableProps<T>) {
   const [filtersVisible, setFiltersVisible] = useState(false);
 
@@ -124,6 +129,7 @@ function SharedTemplateTable<T extends object>({
         pagination={pagination}
         loading={loading}
         onChange={onChange}
+        expandable={expandable}
       />
     </div>
   );

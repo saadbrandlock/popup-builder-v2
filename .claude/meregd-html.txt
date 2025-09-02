@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Popup Preview</title>
+      
+      <!-- FontAwesome CDN for icons -->
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+      
+      <!-- Reminder Tab Styles -->
+      <style>
+          /* Entrance Animations */
+          
+        @keyframes slideInLeft {
+          0% { transform: translateX(-100%); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideInRight {
+          0% { transform: translateX(100%); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideInUp {
+          0% { transform: translateY(100%); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+
+          /* Desktop Reminder Tab Styles */
+          .reminder-tab {
+              position: fixed;
+              z-index: 1000;
+              color: #FFFFFF;
+              cursor: pointer;
+              user-select: none;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+              transition: all 0.3s ease;
+              font-family: Arial, sans-serif;
+              font-weight: bold;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 80px;
+              height: 160px;
+              overflow: hidden;
+          }
+  
+          .reminder-tab-text {
+              font-size: 14px;
+              letter-spacing: 1px;
+              white-space: nowrap;
+              flex: 1;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: linear-gradient(135deg, #8B0000, #DC143C);
+              height: 100%;
+          }
+  
+          .reminder-tab-dragger {
+              background: #666666;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 8px 0;
+          }
+  
+          .reminder-tab.position-left {
+              left: 0;
+              border-radius: 0 8px 8px 0;
+              flex-direction: row-reverse;
+          }
+  
+          .reminder-tab.position-left .reminder-tab-text {
+              writing-mode: vertical-lr;
+              text-orientation: mixed;
+          }
+  
+          .reminder-tab.position-right {
+              right: 0;
+              border-radius: 8px 0 0 8px;
+          }
+  
+          .reminder-tab.position-right .reminder-tab-text {
+              writing-mode: vertical-rl;
+              text-orientation: mixed;
+          }
+  
+          .tab-dots {
+              display: grid;
+              grid-template-columns: repeat(2, 6px);
+              gap: 4px;
+              cursor: move;
+              padding: 0 6px;
+          }
+  
+          .dot {
+              width: 6px;
+              height: 6px;
+              background: rgba(255, 255, 255, 0.8);
+              border-radius: 50%;
+          }
+  
+          .reminder-tab:hover {
+              box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+              transform: scale(1.05);
+          }
+  
+          .reminder-tab.dragging {
+              opacity: 0.8;
+              z-index: 1001;
+          }
+
+          /* Mobile Floating Button Styles */
+          .mobile-floating-button {
+              position: fixed;
+              bottom: 24px;
+              right: 24px;
+              width: 56px;
+              height: 56px;
+              background-color: #8B0000;
+              border: 2px solid #DC143C;
+              border-radius: 50%;
+              display: none;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              z-index: 1000;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+              transition: all 0.3s ease;
+          }
+
+          .mobile-floating-button:hover {
+              transform: scale(1.1);
+          }
+
+          .mobile-floating-button i {
+              font-size: 24px;
+              color: #FFFFFF;
+          }
+
+          .mobile-floating-button .emoji-icon {
+              font-size: 24px;
+          }
+
+          /* Responsive Media Queries */
+          @media (max-width: 768px) {
+              .reminder-tab {
+                  display: none !important;
+              }
+              .mobile-floating-button {
+                  display: none !important;
+              }
+          }
+
+          @media (min-width: 769px) {
+              .mobile-floating-button {
+                  display: none !important;
+              }
+              .reminder-tab {
+                  display: flex !important;
+              }
+          }
+
+          /* Apply entrance animations */
+          
+          .reminder-tab.position-left {
+            animation: slideInLeft 0.3s ease-out;
+          }
+          .reminder-tab.position-right {
+            animation: slideInRight 0.3s ease-out;
+          }
+          
+      </style>
+      
+      <!-- Enhanced Popup Animation Styles -->
+      <style>
+          /* Popup container initial state */
+          .u-popup-container {
+              display: none !important;
+              position: fixed !important;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              top: 0;
+              z-index: 9999;
+              opacity: 0;
+              transition: opacity 0.4s ease;
+          }
+          
+          /* Active state with animation */
+          .u-popup-container.active {
+              display: flex !important;
+              opacity: 1;
+          }
+          
+          /* Popup main content with different trigger animations */
+          .u-popup-main {
+              transform: scale(0.7);
+              opacity: 0;
+              transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+          }
+          
+          .u-popup-container.active .u-popup-main {
+              transform: scale(1);
+              opacity: 1;
+          }
+          
+          /* Modal trigger animation */
+          .u-popup-container.trigger-modal .u-popup-main {
+              transform: scale(0.7);
+          }
+          
+          .u-popup-container.trigger-modal.active .u-popup-main {
+              transform: scale(1);
+          }
+          
+          /* Slide trigger animation */
+          .u-popup-container.trigger-slide .u-popup-main {
+              transform: translateY(100%);
+          }
+          
+          .u-popup-container.trigger-slide.active .u-popup-main {
+              transform: translateY(0);
+          }
+          
+          /* Fade trigger animation */
+          .u-popup-container.trigger-fade .u-popup-main {
+              opacity: 0;
+              transform: none;
+          }
+          
+          .u-popup-container.trigger-fade.active .u-popup-main {
+              opacity: 1;
+          }
+          
+          /* Zoom trigger animation */
+          .u-popup-container.trigger-zoom .u-popup-main {
+              transform: scale(0);
+          }
+          
+          .u-popup-container.trigger-zoom.active .u-popup-main {
+              transform: scale(1);
+          }
+          
+          /* Overlay fade animation */
+          .u-popup-overlay {
+              opacity: 0;
+              transition: opacity 0.4s ease;
+          }
+          
+          .u-popup-container.active .u-popup-overlay {
+              opacity: 1;
+          }
+          
+          /* Ensure reminder components are visible */
+          #reminderTab,
+          #mobileFloatingButton {
+              opacity: 1 !important;
+              visibility: visible !important;
+          }
+          
+          body {
+              margin: 0;
+              padding: 0;
+              overflow-x: hidden;
+          }
+      </style>
+  </head>
+  <body>
+      <!-- Reminder Tab -->
+      
+      <div id="reminderTab" class="reminder-tab position-right" style="top: 50%; transform: translateY(-50%);">
+          <div class="reminder-tab-text">Special Offer!</div>
+          <div class="reminder-tab-dragger">
+              <div class="tab-dots">
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+              </div>
+          </div>
+      </div>
+      <script>
+  class ReminderTab{constructor(){this.tab=document.getElementById("reminderTab"),this.dragger=this.tab?.querySelector(".reminder-tab-dragger"),this.isDragging=!1,this.currentPosition="right",this.dragTimeout=null,this.init()}init(){if(!this.tab)return;this.tab.addEventListener("click",t=>{this.isDragging||t.target===this.dragger||this.openPopup()});this.addDragListeners();}addDragListeners(){if(!this.dragger)return;this.dragger.addEventListener("mousedown",t=>{t.stopPropagation(),t.preventDefault(),this.startDrag()}),this.dragger.addEventListener("touchstart",t=>{t.stopPropagation(),t.preventDefault(),this.startDrag()},{passive:!1}),document.addEventListener("mousemove",t=>this.drag(t)),document.addEventListener("mouseup",()=>this.endDrag()),document.addEventListener("touchmove",t=>this.drag(t.touches[0]),{passive:!1}),document.addEventListener("touchend",()=>this.endDrag())}startDrag(){this.isDragging=!0,this.tab.classList.add("dragging"),document.body.style.userSelect="none"}drag(t){if(!this.isDragging)return;const e=t.clientX,i=t.clientY,s=window.innerWidth,n=window.innerHeight,r=this.tab.offsetHeight;let o=i-r/2;o=Math.max(0,Math.min(o,n-r));const a=e<s/2?"left":"right";a!==this.currentPosition&&this.updatePosition(a),this.tab.style.top=o+"px",this.tab.style.transform="none"}endDrag(){this.isDragging&&(this.isDragging=!1,this.tab.classList.remove("dragging"),document.body.style.userSelect="",clearTimeout(this.dragTimeout),this.dragTimeout=setTimeout(()=>{this.isDragging=!1},150))}updatePosition(t){this.tab.classList.remove("position-left","position-right"),this.tab.classList.add(`position-${t}`),this.currentPosition=t}openPopup(){const t=new CustomEvent("openReminderPopup",{detail:{source:"reminderTab"}});document.dispatchEvent(t),"function"==typeof window.openReminderPopup&&window.openReminderPopup()}setText(t){const e=this.tab?.querySelector(".reminder-tab-text");e&&(e.textContent=t)}setPosition(t){"left"!==t&&"right"!==t||this.updatePosition(t)}show(){this.tab&&(this.tab.style.display="flex")}hide(){this.tab&&(this.tab.style.display="none")}getPosition(){return this.currentPosition}}
+
+  
+
+  document.addEventListener("DOMContentLoaded",function(){
+    window.reminderTab=new ReminderTab;
+    
+  });
+  </script>
+  
+  
+      
+      <!-- Popup Template -->
+      <div class="u-popup-container"> <div class="u-popup-overlay"></div> <style type="text/css"> .u-popup-container .u-row { display: flex; flex-wrap: nowrap; margin-left: 0; margin-right: 0; } .u-popup-container .u-row .u-col { position: relative; width: 100%; padding-right: 0; padding-left: 0; } .u-popup-container .u-row .u-col.u-col-50 { flex: 0 0 50%; max-width: 50%; } .u-popup-container .u-row .u-col.u-col-100 { flex: 0 0 100%; max-width: 100%; } @media (max-width: 480px) { .u-popup-container .container { max-width: 100% !important; } .u-popup-container .u-row:not(.no-stack) { flex-wrap: wrap; } .u-popup-container .u-row:not(.no-stack) .u-col { flex: 0 0 100% !important; max-width: 100% !important; } } .u-popup-container p{margin:0}.u-popup-container .error-field{-webkit-animation-duration:1s;animation-duration:1s;-webkit-animation-fill-mode:both;animation-fill-mode:both;-webkit-animation-name:shake;animation-name:shake}.u-popup-container .error-field input,.u-popup-container .error-field textarea{border-color:#a94442!important;color:#a94442!important}.u-popup-container .field-error{font-size:14px;font-weight:700;padding:5px 10px;position:absolute;right:10px;top:-20px}.u-popup-container .field-error:after{border:solid transparent;border-color:#ebcccc rgba(136,183,213,0) rgba(136,183,213,0);border-width:5px;content:" ";height:0;left:50%;margin-left:-5px;pointer-events:none;position:absolute;top:100%;width:0}.u-popup-container .spinner{margin:0 auto;text-align:center;width:70px}.u-popup-container .spinner>div{-webkit-animation:sk-bouncedelay 1.4s ease-in-out infinite both;animation:sk-bouncedelay 1.4s ease-in-out infinite both;background-color:hsla(0,0%,100%,.5);border-radius:100%;display:inline-block;height:12px;margin:0 2px;width:12px}.u-popup-container .spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.u-popup-container .spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes sk-bouncedelay{0%,80%,to{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes sk-bouncedelay{0%,80%,to{-webkit-transform:scale(0);transform:scale(0)}40%{-webkit-transform:scale(1);transform:scale(1)}}@-webkit-keyframes shake{0%,to{-webkit-transform:translateZ(0);transform:translateZ(0)}10%,30%,50%,70%,90%{-webkit-transform:translate3d(-10px,0,0);transform:translate3d(-10px,0,0)}20%,40%,60%,80%{-webkit-transform:translate3d(10px,0,0);transform:translate3d(10px,0,0)}}@keyframes shake{0%,to{-webkit-transform:translateZ(0);transform:translateZ(0)}10%,30%,50%,70%,90%{-webkit-transform:translate3d(-10px,0,0);transform:translate3d(-10px,0,0)}20%,40%,60%,80%{-webkit-transform:translate3d(10px,0,0);transform:translate3d(10px,0,0)}}.u-popup-container .container{--bs-gutter-x:0px;--bs-gutter-y:0;margin-left:auto;margin-right:auto;padding-left:calc(var(--bs-gutter-x)*.5);padding-right:calc(var(--bs-gutter-x)*.5);width:100%} .u-popup-container a[onclick]{cursor:pointer} @media (max-width: 480px) { .u-popup-container .hide-mobile { display: none !important; } } @media (min-width: 481px) { .u-popup-container .hide-desktop { display: none !important; } } .u-popup-container a { color: #0000ee; text-decoration: underline; } #u_body a:hover { color: #0000ee; text-decoration: underline; } .u-popup-container { position: absolute; left: 0; right: 0; bottom: 0; top: 0; display: flex; flex-direction: column; } .u-popup-container .u-popup-overlay { position: fixed; left: 0; right: 0; bottom: 0; top: 0; background-color: rgba(0, 0, 0, 0.1); z-index: -1; } .u-popup-container .u-popup-main { width: 100%; max-width: 600px; height: auto; margin: auto; } .u-popup-container .u-popup-header, .u-popup-container .u-popup-footer { position: relative; width: 100%; max-width: 600px; margin: auto; } .u-popup-container .u-popup-content { height: 100%; overflow-y: inherit; } .u-popup-container .u-close-button { position: absolute; top: 0px; right: 0px; display: flex; flex-flow: column nowrap; justify-content: center; align-items: center; margin: 0px; padding: 0px; width: 40px; height: 40px; background-color: #DDDDDD; border: 0; border-radius: 0px; cursor: pointer; z-index: 99; } .u-popup-container .u-close-button .icon-cross { margin: 0; padding: 0; border: 0; background: none; position: relative; width: 20px; height: 20px; } .u-popup-container .u-close-button .icon-cross:before, .u-popup-container .u-close-button .icon-cross:after { content: ""; position: absolute; top: 8px; left: 0; right: 0; height: 3px; background-color: #000000; border-radius: 6px; } .u-popup-container .u-close-button .icon-cross:before { transform: rotate(45deg); } .u-popup-container .u-close-button .icon-cross:after { transform: rotate(-45deg); } #u_content_button_1 a:hover { color: #FFFFFF !important; background-color: #ff1503 !important; } #u_content_button_2 a:hover { color: #212121 !important; background-color: transparent !important; } </style> <div class="u-popup-main"> <div class="u-popup-header"> <a href="#" class="u-close-button"> <span class="icon-cross"></span> </a> </div> <div class="u-popup-content"> <div id="u_body" style="display: flex; flex-direction: column; justify-content: center;color: #000000;background-color: #FFFFFF;font-family: arial,helvetica,sans-serif; border-radius: 10px;"> <div style="padding: 0px;"> <div class="container" style="max-width: 500px;margin: 0 auto;"> <div class="u-row"> <div class="u-col u-col-100" style="display:flex;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;border-radius: 0px;"> <div style="width: 100%;padding:0px;"> <div style="overflow-wrap: break-word;padding: 10px;"> <div style="position:relative;line-height:0px;text-align:center"> <img alt="" src="https://debuficgraftb.cloudfront.net/dev-staging/public/template-builder/2/7c9a574f-1892-4d7e-9911-98a55cca7e8a/assets/unlayer-select-1756113185231/1756113186208.png" style="width: 50%;max-width: 240px;" title=""> </div> </div> <div style="overflow-wrap: break-word;padding: 10px;"> <h1 style="margin: 0px; line-height: 140%; text-align: center; word-wrap: break-word; font-size: 22px; font-weight: 400;"><span>&nbsp;<span id="bl__popup-template-heading">Here's your additional 10% off!</span></span></h1> </div> <div style="overflow-wrap: break-word;padding: 0px;"> <div style="font-size: 14px; line-height: 140%; text-align: center; word-wrap: break-word;"> <p style="line-height: 140%;"><span id="bl__popup-template-subheading">Don't worry we've got you covered with this additional 10% off.</span></p> </div> </div> <div style="overflow-wrap: break-word;padding: 10px;"> <div style="text-align:center;line-height:0" aria-label="divider"><div style="border-top-width:1px;border-top-style:solid;border-top-color:#BBBBBB;width:100%;display:inline-block;line-height:1px;height:0px;vertical-align:middle"> </div></div> </div> </div> </div> </div> </div> </div> <div style="padding: 0px;"> <div class="container" style="max-width: 500px;margin: 0 auto;"> <div class="u-row" style="align-items: center;"> <div class="u-col u-col-50" style="display:flex;align-items:center;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;border-radius: 0px;"> <div style="width: 100%;padding:0px;"> <div style="overflow-wrap: break-word;padding: 4px;"> <h4 style="margin: 0px; line-height: 140%; text-align: left; word-wrap: break-word; font-size: 16px; font-weight: 400;"><strong>Here's your extra 10% off</strong></h4> </div> <div style="overflow-wrap: break-word;padding: 4px;"> <div style="font-size: 14px; line-height: 140%; text-align: left; word-wrap: break-word;"> <p style="line-height: 140%;">Click the button to copy you 10% off coupon code.</p> </div> </div> </div> </div> <div class="u-col u-col-50" style="display:flex;align-items:center;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;border-radius: 0px;"> <div style="width: 100%;padding:0px;"> <div id="u_content_button_1" style="overflow-wrap: break-word;padding: 10px;"> <div style="text-align: right;"> <a href="" style="color:#FFFFFF;background-color:#ff3323;border-radius: 4px;line-height:120%;display:inline-block;text-decoration:none;text-align:center;padding:10px 20px;width:auto;max-width:100%;word-wrap:break-word;font-size: 14px;"> <span style="line-height: 16.8px;">Copy Code</span> </a> </div> </div> </div> </div> </div> </div> </div> <div style="padding: 0px;"> <div class="container" style="max-width: 500px;margin: 0 auto;"> <div class="u-row"> <div class="u-col u-col-100" style="display:flex;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;border-radius: 0px;"> <div style="width: 100%;padding:0px;"> <div style="overflow-wrap: break-word;padding: 10px;"> <div style="text-align:center;line-height:0" aria-label="divider"><div style="border-top-width:1px;border-top-style:solid;border-top-color:#BBBBBB;width:100%;display:inline-block;line-height:1px;height:0px;vertical-align:middle"> </div></div> </div> <div id="u_content_button_2" style="overflow-wrap: break-word;padding: 10px;"> <div style="text-align: center;"> <a href="" style="color:#010101;background-color:transparent;border-radius: 4px;line-height:120%;display:inline-block;text-decoration:none;text-align:center;padding:10px 20px;width:auto;max-width:100%;word-wrap:break-word;font-size: 14px;"> <span style="text-decoration: underline; line-height: 16.8px;"><span id="bl__popup-template-close-btn">No, Thanks!</span></span> </a> </div> </div> </div> </div> </div> </div> </div> </div> </div> </div> </div>
+      
+      <!-- Reminder Tab Scripts -->
+      <script>
+  class ReminderTab{constructor(){this.tab=document.getElementById("reminderTab"),this.dragger=this.tab?.querySelector(".reminder-tab-dragger"),this.isDragging=!1,this.currentPosition="right",this.dragTimeout=null,this.init()}init(){if(!this.tab)return;this.tab.addEventListener("click",t=>{this.isDragging||t.target===this.dragger||this.openPopup()});this.addDragListeners();}addDragListeners(){if(!this.dragger)return;this.dragger.addEventListener("mousedown",t=>{t.stopPropagation(),t.preventDefault(),this.startDrag()}),this.dragger.addEventListener("touchstart",t=>{t.stopPropagation(),t.preventDefault(),this.startDrag()},{passive:!1}),document.addEventListener("mousemove",t=>this.drag(t)),document.addEventListener("mouseup",()=>this.endDrag()),document.addEventListener("touchmove",t=>this.drag(t.touches[0]),{passive:!1}),document.addEventListener("touchend",()=>this.endDrag())}startDrag(){this.isDragging=!0,this.tab.classList.add("dragging"),document.body.style.userSelect="none"}drag(t){if(!this.isDragging)return;const e=t.clientX,i=t.clientY,s=window.innerWidth,n=window.innerHeight,r=this.tab.offsetHeight;let o=i-r/2;o=Math.max(0,Math.min(o,n-r));const a=e<s/2?"left":"right";a!==this.currentPosition&&this.updatePosition(a),this.tab.style.top=o+"px",this.tab.style.transform="none"}endDrag(){this.isDragging&&(this.isDragging=!1,this.tab.classList.remove("dragging"),document.body.style.userSelect="",clearTimeout(this.dragTimeout),this.dragTimeout=setTimeout(()=>{this.isDragging=!1},150))}updatePosition(t){this.tab.classList.remove("position-left","position-right"),this.tab.classList.add(`position-${t}`),this.currentPosition=t}openPopup(){const t=new CustomEvent("openReminderPopup",{detail:{source:"reminderTab"}});document.dispatchEvent(t),"function"==typeof window.openReminderPopup&&window.openReminderPopup()}setText(t){const e=this.tab?.querySelector(".reminder-tab-text");e&&(e.textContent=t)}setPosition(t){"left"!==t&&"right"!==t||this.updatePosition(t)}show(){this.tab&&(this.tab.style.display="flex")}hide(){this.tab&&(this.tab.style.display="none")}getPosition(){return this.currentPosition}}
+
+  
+
+  document.addEventListener("DOMContentLoaded",function(){
+    window.reminderTab=new ReminderTab;
+    
+  });
+  </script>
+      
+      <!-- Enhanced Connection Script -->
+      <script>
+      (function() {
+          let popupElement = null;
+          let triggerElements = [];
+          let isAnimating = false;
+          
+          function findElements() {
+              popupElement = document.querySelector('.u-popup-container');
+              
+              // Find all trigger elements
+              triggerElements = [];
+              const reminderTab = document.getElementById('reminderTab');
+              const mobileButton = document.getElementById('mobileFloatingButton');
+              
+              if (reminderTab) triggerElements.push(reminderTab);
+              if (mobileButton) triggerElements.push(mobileButton);
+          }
+          
+          function getTriggerAnimationType() {
+              // Try to get animation type from reminder config if available
+              if (window.reminderTab && window.reminderTab.config && window.reminderTab.config.animations) {
+                  return window.reminderTab.config.animations.popupTrigger?.type || 'modal';
+              }
+              return 'modal';
+          }
+          
+          function showPopup() {
+              if (!popupElement || isAnimating) return;
+              
+              isAnimating = true;
+              const triggerType = getTriggerAnimationType();
+              
+              // Add trigger-specific class
+              popupElement.className = popupElement.className.replace(/trigger-\w+/g, '') + ' trigger-' + triggerType;
+              
+              popupElement.style.display = 'flex';
+              
+              // Force reflow for animation
+              void popupElement.offsetWidth;
+              
+              popupElement.classList.add('active');
+              popupElement.setAttribute('aria-hidden', 'false');
+              
+              setTimeout(() => {
+                  isAnimating = false;
+                  popupElement.dispatchEvent(new CustomEvent('popup:shown', { detail: { trigger: triggerType } }));
+              }, 400);
+          }
+          
+          function hidePopup() {
+              if (!popupElement || isAnimating) return;
+              
+              isAnimating = true;
+              popupElement.classList.remove('active');
+              popupElement.setAttribute('aria-hidden', 'true');
+              
+              setTimeout(() => {
+                  popupElement.style.display = 'none';
+                  isAnimating = false;
+                  popupElement.dispatchEvent(new CustomEvent('popup:hidden'));
+              }, 400);
+          }
+          
+          function connectElements() {
+              findElements();
+              
+              // Connect trigger elements
+              triggerElements.forEach(trigger => {
+                  if (trigger) {
+                      trigger.addEventListener('click', function(e) {
+                          // Don't trigger on drag handles
+                          if (e.target.closest('.reminder-tab-dragger, .drag-handle, [data-drag]')) {
+                              return;
+                          }
+                          showPopup();
+                      });
+                  }
+              });
+              
+              // Connect close buttons
+              const closeSelectors = [".u-close-button",".u-popup-overlay","[data-close]",".close",".btn-close"];
+              closeSelectors.forEach(selector => {
+                  document.querySelectorAll(selector).forEach(btn => {
+                      btn.addEventListener('click', function(e) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          hidePopup();
+                      });
+                  });
+              });
+              
+              // Overlay and outside click handlers
+              if (popupElement) {
+                  const overlay = popupElement.querySelector('.u-popup-overlay');
+                  if (overlay) {
+                      overlay.addEventListener('click', hidePopup);
+                  }
+                  
+                  popupElement.addEventListener('click', function(e) {
+                      if (e.target === popupElement) {
+                          hidePopup();
+                      }
+                  });
+              }
+              
+              // ESC key to close
+              document.addEventListener('keydown', function(e) {
+                  if (e.key === 'Escape' && popupElement && popupElement.classList.contains('active')) {
+                      hidePopup();
+                  }
+              });
+              
+              
+              // Listen for custom events
+              document.addEventListener('openReminderPopup', showPopup);
+              document.addEventListener('closeReminderPopup', hidePopup);
+          }
+          
+          // Initialize
+          if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', connectElements);
+          } else {
+              connectElements();
+          }
+          
+          // Expose enhanced merger API
+          window.popupMerger = {
+              show: showPopup,
+              hide: hidePopup,
+              toggle: function() {
+                  if (popupElement && popupElement.classList.contains('active')) {
+                      hidePopup();
+                  } else {
+                      showPopup();
+                  }
+              },
+              refresh: connectElements,
+              isOpen: function() {
+                  return popupElement && popupElement.classList.contains('active');
+              }
+          };
+      })();
+      </script>
+  </body>
+  </html>

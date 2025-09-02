@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Card, Col, Row, Tag } from 'antd';
 import { Clock, MonitorStop } from 'lucide-react';
 import FeedbackForm from '../components/feedback-form';
@@ -8,6 +8,8 @@ import {
 } from '../components/BrowserPreview';
 import { useGenericStore } from '@/stores/generic.store';
 import ReviewActions from '../components/review-actions';
+import { useClientFlowStore } from '@/stores/clientFlowStore';
+import { ClientFlowData } from '@/types';
 
 /**
  * DesktopReview - Step 1 - Desktop review screen
@@ -17,7 +19,37 @@ import ReviewActions from '../components/review-actions';
 interface DesktopReviewProps {}
 
 export const DesktopReview: React.FC<DesktopReviewProps> = ({}) => {
-  const { accountDetails } = useGenericStore();
+  const { accountDetails, navigate } = useGenericStore();
+  const { clientData, actions } = useClientFlowStore();
+
+  const [template, setTemplate] = useState<ClientFlowData | null>(null);
+
+  const getPreviewTemplate = () => {
+    if (clientData && clientData.length) {
+      return clientData.filter(
+        (template) =>
+          template.devices.find((device) => device.device_type === 'desktop') &&
+          template.staging_status === 'client-review'
+      );
+    } else {
+      return [];
+    }
+  };
+
+  const onEditTemplate = () => {
+    if (template) {
+      navigate(`/coupon-builder-v2/user-template-editor/${template.template_id}`);
+    }
+  };
+  
+  useEffect(() => {
+    if (clientData && clientData.length) {
+      const _template = getPreviewTemplate()[0];
+      setTemplate(_template);
+      actions.setSelectedTemplate(_template);
+    }
+  }, [clientData]);
+  
 
   return (
     <>
@@ -81,7 +113,7 @@ export const DesktopReview: React.FC<DesktopReviewProps> = ({}) => {
                     clientId: accountDetails.id.toString(),
                     id: accountDetails.id.toString(),
                   }}
-                  popupTemplate={''}
+                  popupTemplate={[template]}
                   showBrowserChrome={true}
                   interactive={false}
                   scale={0.9}
@@ -94,7 +126,9 @@ export const DesktopReview: React.FC<DesktopReviewProps> = ({}) => {
               )}
             </div>
 
-            <ReviewActions type="desktop" />
+            {template && (
+              <ReviewActions type="desktop" goToEditTemplate={onEditTemplate} />
+            )}
           </Col>
         </Row>
       </Card>

@@ -12,6 +12,7 @@ import { useUnlayerImageUpload } from './useUnlayerImageUpload';
 import { createAPI } from '@/api';
 import { sanitizeHtml } from '@/lib';
 import { processTemplateFields } from '@/lib/utils/templateFieldProcessor';
+import { useClientFlowStore } from '@/stores/clientFlowStore';
 
 export interface UseUnlayerEditorOptions {
   projectId: number;
@@ -238,64 +239,91 @@ export const useUnlayerEditor = (
 
       try {
         actions.setLoading(true);
+        const selectedTemplate = useClientFlowStore.getState().selectedTemplate;
+        console.log('🔍 Loading template - selectedTemplate:', selectedTemplate);
+        console.log('🔍 Loading template - templateId:', templateId);
 
-        const api = createAPI(apiClient);
-        const template = await api.templates.getTemplateById(templateId);
-
-        // Check if template has builder state
-        if (template.builder_state_json) {
-          // Parse JSON if it's a string, otherwise use as-is
-          let designData = template.builder_state_json;
-          if (typeof designData === 'string') {
-            try {
-              designData = JSON.parse(designData);
-              console.log('✅ Parsed JSON string to object');
-            } catch (error) {
-              console.error(
-                '❌ Failed to parse builder_state_json as JSON:',
-                error
-              );
-
-              // Check if it's HTML content
-              if (designData.includes('<') && designData.includes('>')) {
-                // Don't load HTML as design - it will show as text
-                onTemplateLoadError?.(
-                  new Error(
-                    'Template contains HTML content instead of Unlayer design JSON'
-                  )
-                );
-                return;
+        // Check if we're in template editing mode (from client review)
+        if (selectedTemplate && selectedTemplate.template_id === templateId) {
+          console.log('📝 Loading template from client review selectedTemplate');
+          console.log('📝 Loading template from client review selectedTemplate:', selectedTemplate);
+          // Use selectedTemplate data directly (it's already a ClientFlowData)
+          if (selectedTemplate.builder_state_json) {
+            let designData = selectedTemplate.builder_state_json;
+            
+            if (typeof designData === 'string') {
+              try {
+                designData = JSON.parse(designData);
+                console.log('✅ Parsed selectedTemplate JSON string to object');
+              } catch (error) {
+                console.error('❌ Failed to parse selectedTemplate builder_state_json as JSON:', error);
+                
+                if (designData.includes('<') && designData.includes('>')) {
+                  onTemplateLoadError?.(
+                    new Error('Template contains HTML content instead of Unlayer design JSON')
+                  );
+                  return;
+                }
               }
             }
-          }
 
-          // Additional validation - check if it's a valid Unlayer design
-          if (designData && typeof designData === 'object') {
-
-            if (!designData.body && !designData.counters) {
-              console.log(
-                "⚠️ This doesn't look like a valid Unlayer design format"
-              );
-              console.log(
-                '💡 Expected format: { body: {...}, counters: {...}, schemaVersion: ... }'
-              );
-            } else {
-              // Fix HTML entity encoding in text content
-              console.log('🔧 Fixing HTML entity encoding in design data...');
-              designData = decodeHtmlEntitiesInDesign(designData);
+            if (designData && typeof designData === 'object') {
+              if (!designData.body && !designData.counters) {
+                console.log("⚠️ selectedTemplate doesn't look like a valid Unlayer design format");
+              } else {
+                console.log('🔧 Fixing HTML entity encoding in selectedTemplate design data...');
+                designData = decodeHtmlEntitiesInDesign(designData);
+              }
             }
+            
+            loadDesign(designData);
+            onTemplateLoad?.(selectedTemplate);
+          } else {
+            console.log('⚠️ selectedTemplate has no builder state');
+            onTemplateLoad?.(selectedTemplate);
           }
-          loadDesign(designData);
         } else {
-          console.log('⚠️ Template has no builder state');
-        }
+          // Normal template loading from API
+          console.log('📡 Loading template from API');
+          const api = createAPI(apiClient);
+          const template = await api.templates.getTemplateById(templateId);
 
-        // Call success callback
-        onTemplateLoad?.(template);
+          if (template.builder_state_json) {
+            let designData = template.builder_state_json;
+            if (typeof designData === 'string') {
+              try {
+                designData = JSON.parse(designData);
+                console.log('✅ Parsed API template JSON string to object');
+              } catch (error) {
+                console.error('❌ Failed to parse API template builder_state_json as JSON:', error);
+
+                if (designData.includes('<') && designData.includes('>')) {
+                  onTemplateLoadError?.(
+                    new Error('Template contains HTML content instead of Unlayer design JSON')
+                  );
+                  return;
+                }
+              }
+            }
+
+            if (designData && typeof designData === 'object') {
+              if (!designData.body && !designData.counters) {
+                console.log("⚠️ API template doesn't look like a valid Unlayer design format");
+              } else {
+                console.log('🔧 Fixing HTML entity encoding in API template design data...');
+                designData = decodeHtmlEntitiesInDesign(designData);
+              }
+            }
+            loadDesign(designData);
+            onTemplateLoad?.(template);
+          } else {
+            console.log('⚠️ API template has no builder state');
+            onTemplateLoad?.(template);
+          }
+        }
       } catch (error) {
         console.error('❌ Failed to load template:', error);
-        const err =
-          error instanceof Error ? error : new Error('Failed to load template');
+        const err = error instanceof Error ? error : new Error('Failed to load template');
         actions.setError(`Template load failed: ${err.message}`);
         onTemplateLoadError?.(err);
       } finally {
@@ -357,16 +385,19 @@ export const useUnlayerEditor = (
       unlayer?.saveDesign((design: any) => {
         try {
           // Process template fields before exporting
-          const processedDesign = templateFields.length > 0 
-            ? processTemplateFields(design, templateFields)
-            : design;
-          
+          const processedDesign =
+            templateFields.length > 0
+              ? processTemplateFields(design, templateFields)
+              : design;
+
           // Update store with processed design
           actions.exportJson(processedDesign);
           actions.setCurrentDesign(processedDesign);
           actions.setExporting(false);
 
-          console.log('✅ JSON exported successfully with template fields processed');
+          console.log(
+            '✅ JSON exported successfully with template fields processed'
+          );
           console.log('📋 Exported JSON:', processedDesign);
           resolve(processedDesign);
         } catch (error) {
@@ -414,7 +445,9 @@ export const useUnlayerEditor = (
       actions.exportBoth(design, html);
       actions.setExporting(false);
 
-      console.log('✅ Both HTML and JSON exported successfully with template fields processed');
+      console.log(
+        '✅ Both HTML and JSON exported successfully with template fields processed'
+      );
       console.log('📋 Exported JSON:', design);
       console.log('🌐 Exported HTML:', html);
       return { design, html };
@@ -446,16 +479,6 @@ export const useUnlayerEditor = (
         });
         setupImageUpload(unlayer);
         console.log('🖼️ Custom image upload configured for Unlayer');
-      } else {
-        console.log(
-          '⚠️ Custom image upload not configured - missing required options:',
-          {
-            enableCustomImageUpload,
-            hasApiClient: !!apiClient,
-            templateId,
-            accountId,
-          }
-        );
       }
 
       // Load template if templateId provided and loading enabled
