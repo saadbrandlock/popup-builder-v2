@@ -10,9 +10,11 @@ import { useTemplateFieldsStore } from '@/stores/common/template-fields.store';
 import { useAutosave } from './useAutosave';
 import { useUnlayerImageUpload } from './useUnlayerImageUpload';
 import { createAPI } from '@/api';
-import { sanitizeHtml } from '@/lib';
+import { sanitizeHtml } from '@/lib/utils/helper';
 import { processTemplateFields } from '@/lib/utils/templateFieldProcessor';
 import { useClientFlowStore } from '@/stores/clientFlowStore';
+import { useBaseTemplateStore } from '@/features/base-template';
+import { useBuilderStore } from '@/stores/builder.store';
 
 export interface UseUnlayerEditorOptions {
   projectId: number;
@@ -26,6 +28,7 @@ export interface UseUnlayerEditorOptions {
   templateId?: string;
   accountId?: string;
   enableCustomImageUpload?: boolean;
+  saveMode?: 'staging' | 'base';
   // Template loading options
   loadTemplateOnReady?: boolean;
   onTemplateLoad?: (template: any) => void;
@@ -126,9 +129,7 @@ const decodeHtmlEntitiesInDesign = (designData: any): any => {
 /**
  * Main hook for Unlayer editor integration
  */
-export const useUnlayerEditor = (
-  options: UseUnlayerEditorOptions
-): UseUnlayerEditorReturn => {
+export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEditorReturn => {
   const {
     projectId,
     autoSave = true,
@@ -140,6 +141,7 @@ export const useUnlayerEditor = (
     templateId,
     accountId,
     enableCustomImageUpload = true,
+    saveMode = 'staging',
     loadTemplateOnReady = true,
     onTemplateLoad,
     onTemplateLoadError,
@@ -191,6 +193,7 @@ export const useUnlayerEditor = (
     templateId,
     accountId,
     saveToAPI: enableCustomImageUpload && !!apiClient && !!templateId, // Use same condition as image upload
+    saveMode,
   });
 
   /**
@@ -218,8 +221,7 @@ export const useUnlayerEditor = (
         console.log('✅ Design loaded successfully');
       } catch (error) {
         console.error('❌ Failed to load design:', error);
-        const err =
-          error instanceof Error ? error : new Error('Failed to load design');
+        const err = error instanceof Error ? error : new Error('Failed to load design');
         actions.setError(err.message);
         onError?.(err);
       }
@@ -239,25 +241,35 @@ export const useUnlayerEditor = (
 
       try {
         actions.setLoading(true);
-        const selectedTemplate = useClientFlowStore.getState().selectedTemplate;
-        console.log('🔍 Loading template - selectedTemplate:', selectedTemplate);
+        const selectedTemplateClient = useClientFlowStore.getState().selectedTemplate;
+        const selectedTemplateAdmin =
+          saveMode === 'staging'
+            ? useBuilderStore.getState().templateState
+            : useBaseTemplateStore.getState().selectedTemplate;
+        console.log('🔍 Loading template - selectedTemplate:', selectedTemplateClient);
         console.log('🔍 Loading template - templateId:', templateId);
 
         // Check if we're in template editing mode (from client review)
-        if (selectedTemplate && selectedTemplate.template_id === templateId) {
+        if (selectedTemplateClient && selectedTemplateClient.template_id === templateId) {
           console.log('📝 Loading template from client review selectedTemplate');
-          console.log('📝 Loading template from client review selectedTemplate:', selectedTemplate);
+          console.log(
+            '📝 Loading template from client review selectedTemplate:',
+            selectedTemplateClient
+          );
           // Use selectedTemplate data directly (it's already a ClientFlowData)
-          if (selectedTemplate.builder_state_json) {
-            let designData = selectedTemplate.builder_state_json;
-            
+          if (selectedTemplateClient.builder_state_json) {
+            let designData = selectedTemplateClient.builder_state_json;
+
             if (typeof designData === 'string') {
               try {
                 designData = JSON.parse(designData);
                 console.log('✅ Parsed selectedTemplate JSON string to object');
               } catch (error) {
-                console.error('❌ Failed to parse selectedTemplate builder_state_json as JSON:', error);
-                
+                console.error(
+                  '❌ Failed to parse selectedTemplate builder_state_json as JSON:',
+                  error
+                );
+
                 if (designData.includes('<') && designData.includes('>')) {
                   onTemplateLoadError?.(
                     new Error('Template contains HTML content instead of Unlayer design JSON')
@@ -275,18 +287,24 @@ export const useUnlayerEditor = (
                 designData = decodeHtmlEntitiesInDesign(designData);
               }
             }
-            
+
             loadDesign(designData);
-            onTemplateLoad?.(selectedTemplate);
+            onTemplateLoad?.(selectedTemplateClient);
           } else {
             console.log('⚠️ selectedTemplate has no builder state');
-            onTemplateLoad?.(selectedTemplate);
+            onTemplateLoad?.(selectedTemplateClient);
           }
         } else {
           // Normal template loading from API
           console.log('📡 Loading template from API');
           const api = createAPI(apiClient);
-          const template = await api.templates.getTemplateById(templateId);
+          console.log('this is selectedTemplateAdmin', !!selectedTemplateAdmin);
+
+          const template = selectedTemplateAdmin?.id
+            ? selectedTemplateAdmin
+            : saveMode === 'staging'
+              ? await api.templates.getTemplateById(templateId)
+              : await api.templates.getBaseTemplateById(templateId);
 
           if (template.builder_state_json) {
             let designData = template.builder_state_json;
@@ -358,8 +376,7 @@ export const useUnlayerEditor = (
           console.log('✅ HTML exported successfully');
           resolve(sanitizeHtml(html));
         } catch (error) {
-          const err =
-            error instanceof Error ? error : new Error('HTML export failed');
+          const err = error instanceof Error ? error : new Error('HTML export failed');
           actions.setError(err.message);
           actions.setExporting(false);
           onError?.(err);
@@ -386,23 +403,18 @@ export const useUnlayerEditor = (
         try {
           // Process template fields before exporting
           const processedDesign =
-            templateFields.length > 0
-              ? processTemplateFields(design, templateFields)
-              : design;
+            templateFields.length > 0 ? processTemplateFields(design, templateFields) : design;
 
           // Update store with processed design
           actions.exportJson(processedDesign);
           actions.setCurrentDesign(processedDesign);
           actions.setExporting(false);
 
-          console.log(
-            '✅ JSON exported successfully with template fields processed'
-          );
+          console.log('✅ JSON exported successfully with template fields processed');
           console.log('📋 Exported JSON:', processedDesign);
           resolve(processedDesign);
         } catch (error) {
-          const err =
-            error instanceof Error ? error : new Error('JSON export failed');
+          const err = error instanceof Error ? error : new Error('JSON export failed');
           actions.setError(err.message);
           actions.setExporting(false);
           onError?.(err);
@@ -445,9 +457,7 @@ export const useUnlayerEditor = (
       actions.exportBoth(design, html);
       actions.setExporting(false);
 
-      console.log(
-        '✅ Both HTML and JSON exported successfully with template fields processed'
-      );
+      console.log('✅ Both HTML and JSON exported successfully with template fields processed');
       console.log('📋 Exported JSON:', design);
       console.log('🌐 Exported HTML:', html);
       return { design, html };
@@ -493,15 +503,9 @@ export const useUnlayerEditor = (
       // Primary event: design:updated
       unlayer.addEventListener('design:updated', (updatedDesign: any) => {
         console.log('🔄 design:updated event fired');
-        console.log(
-          '📊 Event data keys:',
-          updatedDesign ? Object.keys(updatedDesign) : 'null'
-        );
+        console.log('📊 Event data keys:', updatedDesign ? Object.keys(updatedDesign) : 'null');
         console.log('⏰ Timestamp:', new Date().toISOString());
-        console.log(
-          '🎯 Current hasUnsavedChanges before:',
-          store.hasUnsavedChanges
-        );
+        console.log('🎯 Current hasUnsavedChanges before:', store.hasUnsavedChanges);
 
         actions.setCurrentDesign(updatedDesign);
         actions.markUnsavedChanges(true);
@@ -530,9 +534,7 @@ export const useUnlayerEditor = (
       ];
 
       // 🧪 ENHANCED DEBUG MODE - Test ALL possible events first
-      console.log(
-        '🔬 ENHANCED DEBUG MODE: Testing comprehensive event detection'
-      );
+      console.log('🔬 ENHANCED DEBUG MODE: Testing comprehensive event detection');
 
       // Test basic editor events first to see if ANY events work
       const basicTestEvents = [
@@ -563,10 +565,7 @@ export const useUnlayerEditor = (
       additionalEvents.forEach((eventName) => {
         try {
           unlayer.addEventListener(eventName, (data: any) => {
-            console.log(
-              `📡 Additional event fired: ${eventName}`,
-              data ? 'with data' : 'no data'
-            );
+            console.log(`📡 Additional event fired: ${eventName}`, data ? 'with data' : 'no data');
             console.log('⏰ Timestamp:', new Date().toISOString());
 
             // Mark as changed for any canvas operation
@@ -576,9 +575,7 @@ export const useUnlayerEditor = (
             }
 
             // Force auto-save check for immediate response
-            console.log(
-              `🚀 Triggering auto-save check from ${eventName} event`
-            );
+            console.log(`🚀 Triggering auto-save check from ${eventName} event`);
             forceAutoSaveCheck();
 
             // Optionally get current design and update store
@@ -590,10 +587,7 @@ export const useUnlayerEditor = (
           });
           console.log(`✅ Registered event listener: ${eventName}`);
         } catch (error) {
-          console.log(
-            `⚠️ Failed to register event listener: ${eventName}`,
-            error
-          );
+          console.log(`⚠️ Failed to register event listener: ${eventName}`, error);
         }
       });
 
@@ -614,9 +608,7 @@ export const useUnlayerEditor = (
             onDesignChange?.(currentDesign);
 
             // Force auto-save check for fallback detection
-            console.log(
-              '🚀 Triggering auto-save check from fallback detection'
-            );
+            console.log('🚀 Triggering auto-save check from fallback detection');
             forceAutoSaveCheck();
           }
         });

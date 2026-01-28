@@ -14,11 +14,11 @@
 }
 
 @layer base {
-  :root {
-    --primary: hsl(214, 58%, 42%);
+  .coupon-template-builder {
+    --primary: 0 0% 9%;
     --primary-dark: #222854;
     --primary-light: #93c1fc;
-    --secondary: #17191c;
+    --secondary: 0 0% 96.1%;
     --secondary-dark: #000000;
     --secondary-light: #f3f4f6;
     --neutral: #e5e7eb;
@@ -42,8 +42,31 @@
     --smoke-white-light: #fbfbfb;
     --text-blue-active: #3d91ff;
     --neutral-dark-2: #1d2429;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
   }
-  .dark {
+  .coupon-template-builder.dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
     --card: 0 0% 3.9%;
@@ -67,10 +90,63 @@
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%
+    --chart-5: 340 75% 55%;
   }
 }
 
-.browser__template-desktop-preview img {
+.coupon-template-builder .browser__template-desktop-preview img {
   display: initial !important;
+}
+
+.coupon-template-builder .custom-carousel .ant-carousel-dot {
+  background-color: #6b7280 !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+}
+.coupon-template-builder .custom-carousel .ant-carousel-dot-active {
+  background-color: #374151 !important;
+}
+.coupon-template-builder .custom-carousel .ant-carousel-dot button {
+  background-color: inherit !important;
+  border-radius: 50% !important;
+  width: 8px !important;
+  height: 8px !important;
+}
+
+/* Carousel navigation arrows styling */
+.coupon-template-builder .custom-carousel .ant-carousel-prev,
+.coupon-template-builder .custom-carousel .ant-carousel-next {
+  background-color: rgba(229, 231, 235, 0.8) !important;
+  border-radius: 50% !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid rgba(209, 213, 219, 0.8) !important;
+  transition: all 0.3s ease !important;
+}
+
+.coupon-template-builder .custom-carousel .ant-carousel-prev:hover,
+.coupon-template-builder .custom-carousel .ant-carousel-next:hover {
+  background-color: rgba(229, 231, 235, 1) !important;
+  border-color: rgba(156, 163, 175, 1) !important;
+}
+
+.coupon-template-builder .custom-carousel .ant-carousel-prev::before,
+.coupon-template-builder .custom-carousel .ant-carousel-next::before {
+  color: #374151 !important;
+  font-size: 16px !important;
+}
+
+
+
+@layer base {
+  .coupon-template-builder * {
+    @apply border-border;
+  }
+  .coupon-template-builder {
+    @apply bg-background text-foreground;
+  }
 }

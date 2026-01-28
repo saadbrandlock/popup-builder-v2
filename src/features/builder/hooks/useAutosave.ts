@@ -6,12 +6,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { EditorRef } from 'react-email-editor';
 import { useUnlayerStore } from '../stores/unlayerStore';
-import { useTemplateFieldsStore } from '@/stores/common/template-fields.store';
 import { createAPI } from '@/api';
 import type { AxiosInstance } from 'axios';
-import { useUnlayerEditor } from './useUnlayerEditor';
 import { processTemplateFields } from '@/lib/utils/templateFieldProcessor';
 import { useClientFlowStore } from '@/stores/clientFlowStore';
+import { useTemplateFieldsStore } from '@/stores/common/template-fields.store';
 
 export interface UseAutosaveOptions {
   enabled?: boolean;
@@ -23,6 +22,7 @@ export interface UseAutosaveOptions {
   templateId?: string;
   accountId?: string;
   saveToAPI?: boolean; // Enable/disable API saves
+  saveMode?: 'staging' | 'base';
 }
 
 export interface UseAutosaveReturn {
@@ -52,7 +52,8 @@ export const useAutosave = (
     apiClient,
     templateId,
     accountId,
-    saveToAPI = false
+    saveToAPI = false,
+    saveMode = 'staging',
   } = options;
 
   // Store state
@@ -93,6 +94,9 @@ export const useAutosave = (
           const processedDesign = templateFields.length > 0 
             ? processTemplateFields(design, templateFields)
             : design;
+
+            console.log(templateFields, design, processedDesign, templateFields.length > 0);
+            
           
           // Only save to our custom API when enabled
           if (saveToAPI && apiClient && templateId) {
@@ -116,15 +120,23 @@ export const useAutosave = (
               
               console.log('✅ Auto-saved client review template successfully');
             } else {
-              console.log('💾 Auto-saving regular template via staging API');
-              
-              // Use regular staging template API
-              await api.templates.upsertTemplate(templateId, {
-                builder_state_json: processedDesign,
-                is_builder_state: true
-              });
-              
-              console.log('✅ Auto-saved regular template successfully');
+              if (saveMode === 'base') {
+                console.log('💾 Auto-saving basic template via basic update API');
+                await api.templates.updateBaseTemplate(templateId, {
+                  builder_state_json: processedDesign,
+                });
+                console.log('✅ Auto-saved basic template successfully');
+              } else {
+                console.log('💾 Auto-saving regular template via staging API');
+                
+                // Use regular staging template API
+                await api.templates.upsertTemplate(templateId, {
+                  builder_state_json: processedDesign,
+                  is_builder_state: true
+                });
+                
+                console.log('✅ Auto-saved regular template successfully');
+              }
             }
             
             // Update local store state without calling saveDesign
@@ -154,7 +166,7 @@ export const useAutosave = (
       actions.setError(`Autosave failed: ${err.message}`);
       onError?.(err);
     }
-  }, [editorRef, hasUnsavedChanges, actions, onSave, onError, saveToAPI, apiClient, templateId, templateFields]);
+  }, [editorRef, hasUnsavedChanges, actions, onSave, onError, saveToAPI, apiClient, templateId, templateFields, saveMode]);
 
   /**
    * Manual save operation
@@ -201,15 +213,23 @@ export const useAutosave = (
               
               console.log('✅ Manual save client review template completed');
             } else {
-              console.log('💾 Manual saving regular template via staging API');
-              
-              // Use regular staging template API
-              await api.templates.upsertTemplate(templateId, {
-                builder_state_json: processedDesign,
-                is_builder_state: true
-              });
-              
-              console.log('✅ Manual save regular template completed');
+              if (saveMode === 'base') {
+                console.log('💾 Manual saving basic template via basic update API');
+                await api.templates.updateBaseTemplate(templateId, {
+                  builder_state_json: processedDesign,
+                });
+                console.log('✅ Manual save basic template completed');
+              } else {
+                console.log('💾 Manual saving regular template via staging API');
+                
+                // Use regular staging template API
+                await api.templates.upsertTemplate(templateId, {
+                  builder_state_json: processedDesign,
+                  is_builder_state: true
+                });
+                
+                console.log('✅ Manual save regular template completed');
+              }
             }
             
             // Update local store state without calling saveDesign
@@ -235,7 +255,7 @@ export const useAutosave = (
         }
       });
     });
-  }, [editorRef, actions, onSave, onError, saveToAPI, apiClient, templateId, templateFields]);
+  }, [editorRef, actions, onSave, onError, saveToAPI, apiClient, templateId, templateFields, saveMode]);
 
   /**
    * Enable autosave with optional interval

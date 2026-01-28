@@ -71,7 +71,7 @@ export interface TemplateConfig {
   description: string;
   status?: string;
   is_generic?: boolean;
-  account_ids?: number[];
+  account_ids?: number;
 }
 
 // Component Category Types
@@ -210,6 +210,14 @@ export interface CBTemplateFieldContentIdMapping extends AuditMetadata {
   field: string;
   field_id: string;
   default_field_value: string;
+}
+export interface CBTemplateFieldContentIdMappingWithContent extends AuditMetadata {
+  id: string;
+  field: string;
+  field_id: string;
+  default_field_value: string;
+  supported_devices: Record<string, number>;
+  content: CBCannedContent[];
 }
 
 // =====================

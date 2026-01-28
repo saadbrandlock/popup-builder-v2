@@ -1,526 +1,224 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Button, Space, Alert, Divider, Tabs, Badge, Modal } from 'antd';
+import { Card, Row, Col, Tag, Alert, Typography, Radio, Space } from 'antd';
 import { 
   CheckCircleOutlined, 
-  DownloadOutlined, 
-  SendOutlined, 
-  EyeOutlined, 
-  CommentOutlined,
+  ClockCircleOutlined,
+  ExclamationCircleOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
-import { BaseProps } from '../../../types/props';
-import { BrowserPreview } from '../components/BrowserPreview';
-import { ReviewCard } from '../components/ReviewCard';
-import { NavigationStepper } from '../components/NavigationStepper';
-import { useClientFlowStore } from '../../../stores/clientFlowStore';
-import type { StepConfig } from '../types/clientFlow';
+import { Clock, FileCheck } from 'lucide-react';
+import { BrowserPreview, BrowserPreviewSkeleton } from '../components/BrowserPreview';
+import { useClientFlowStore } from '@/stores/clientFlowStore';
+import { useGenericStore } from '@/stores/generic.store';
+import { ClientFlowData } from '@/types';
+
+const { Text } = Typography;
 
 /**
- * ReviewScreen - Final review screen showing side-by-side desktop and mobile previews
- * Allows final approval and submission of the complete review
- * Now extends BaseProps for consistency with project patterns
+ * ReviewScreen - Step 4 - Final review screen
+ * Shows review status and preview with consistent layout patterns
  */
-interface ReviewScreenProps extends BaseProps {}
+interface ReviewScreenProps {}
 
-export const ReviewScreen: React.FC<ReviewScreenProps> = ({}) => {
-  const {
-    selectedTemplate,
-    websiteData,
-    desktopReview,
-    mobileReview,
-    finalReview,
-    previewSettings,
-    comments,
-    currentStep,
-    actions,
-    error,
-  } = useClientFlowStore();
+export const ReviewScreen: React.FC<ReviewScreenProps> = () => {
+  const { accountDetails } = useGenericStore();
+  const { clientData, actions } = useClientFlowStore();
+  
+  const [selectedDevice, setSelectedDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [template, setTemplate] = useState<ClientFlowData | null>(null);
 
-  const [activeTab, setActiveTab] = useState<
-    'side-by-side' | 'desktop' | 'mobile'
-  >('side-by-side');
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const getPreviewTemplate = () => {
+    if (clientData && clientData.length) {
+      return clientData.filter(
+        (template) =>
+          template.devices.find((device) => device.device_type === selectedDevice) &&
+          template.staging_status === 'client-review'
+      );
+    } else {
+      return [];
+    }
+  };
 
-  // Step configuration
-  const steps: StepConfig[] = [
-    { id: 'landing', title: 'Template Selection', status: 'completed' },
-    {
-      id: 'desktop',
-      title: 'Desktop Review',
-      status: desktopReview.status === 'approved' ? 'completed' : 'error',
-    },
-    {
-      id: 'mobile',
-      title: 'Mobile Review',
-      status: mobileReview.status === 'approved' ? 'completed' : 'error',
-    },
-    { id: 'final', title: 'Final Review', status: 'current' },
-  ];
+  // Mock data for review status
+  const reviewData = {
+    status: 'submitted',
+    submittedOn: 'Dec 15, 2024',
+    templateType: 'Coupon Module',
+    changesMade: '3 sections',
+    estimatedTime: '24-48 hours during business days'
+  };
 
-  // Ensure we have required data and both reviews are approved
   useEffect(() => {
-    if (!selectedTemplate || !websiteData) {
-      actions.setCurrentStep(0);
-    } else if (desktopReview.status !== 'approved') {
-      actions.setCurrentStep(1);
-    } else if (mobileReview.status !== 'approved') {
-      actions.setCurrentStep(2);
+    if (clientData && clientData.length) {
+      const _template = getPreviewTemplate()[0];
+      setTemplate(_template);
+      actions.setSelectedTemplate(_template);
     }
-  }, [
-    selectedTemplate,
-    websiteData,
-    desktopReview.status,
-    mobileReview.status,
-    actions,
-  ]);
-
-  const handleFinalApprove = () => {
-    actions.updateReview('final', {
-      status: 'approved',
-      reviewedAt: new Date().toISOString(),
-      reviewerId: 'current-user',
-    });
-  };
-
-  const handleFinalReject = () => {
-    actions.updateReview('final', {
-      status: 'rejected',
-      reviewedAt: new Date().toISOString(),
-      reviewerId: 'current-user',
-      feedback: 'Final review rejected',
-    });
-  };
-
-  const handleRequestChanges = (feedback: string) => {
-    actions.updateReview('final', {
-      status: 'needs_changes',
-      reviewedAt: new Date().toISOString(),
-      reviewerId: 'current-user',
-      feedback,
-    });
-
-    actions.addComment({
-      step: 'final',
-      message: feedback,
-      author: 'current-user',
-      resolved: false,
-    });
-  };
-
-  const handleSubmitReview = () => {
-    if (finalReview.status === 'approved') {
-      setShowSubmitModal(true);
-    }
-  };
-
-  const handleConfirmSubmit = () => {
-    // TODO: Implement actual submission logic
-    console.log('Submitting review:', {
-      template: selectedTemplate,
-      website: websiteData,
-      reviews: {
-        desktop: desktopReview,
-        mobile: mobileReview,
-        final: finalReview,
-      },
-      comments: comments,
-    });
-
-    setShowSubmitModal(false);
-    // Could redirect to success page or show success message
-    Modal.success({
-      title: 'Review Submitted Successfully',
-      content:
-        'Your template review has been submitted and will be processed shortly.',
-    });
-  };
-
-  const handleExportReport = () => {
-    // TODO: Implement export functionality
-    console.log('Exporting review report');
-  };
-
-  if (!selectedTemplate || !websiteData) {
-    return (
-      <div className="review-screen min-h-screen bg-gray-50 p-6">
-        <div className="max-w-4xl mx-auto">
-          <Alert
-            message="Missing Data"
-            description="Template or website data is missing. Redirecting..."
-            type="warning"
-            showIcon
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (
-    desktopReview.status !== 'approved' ||
-    mobileReview.status !== 'approved'
-  ) {
-    return (
-      <div className="review-screen min-h-screen bg-gray-50 p-6">
-        <div className="max-w-4xl mx-auto">
-          <Alert
-            message="Previous Reviews Required"
-            description="Please complete and approve both desktop and mobile reviews before proceeding to final review."
-            type="warning"
-            showIcon
-            action={
-              <Space>
-                {desktopReview.status !== 'approved' && (
-                  <Button
-                    size="small"
-                    onClick={() => actions.setCurrentStep(1)}
-                  >
-                    Desktop Review
-                  </Button>
-                )}
-                {mobileReview.status !== 'approved' && (
-                  <Button
-                    size="small"
-                    onClick={() => actions.setCurrentStep(2)}
-                  >
-                    Mobile Review
-                  </Button>
-                )}
-              </Space>
-            }
-          />
-        </div>
-      </div>
-    );
-  }
-
-  const allComments = comments.filter(
-    (comment) => comment.step === 'final' || comment.step === 'general'
-  );
-  const totalComments = comments.length;
-  const unresolvedComments = comments.filter((c) => !c.resolved).length;
+  }, [clientData, selectedDevice]);
 
   return (
-    <div className="review-screen min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <NavigationStepper
-            currentStep={currentStep}
-            totalSteps={4}
-            steps={steps}
-            onStepClick={(step) => {
-              if (step < currentStep) {
-                actions.setCurrentStep(step);
-              }
-            }}
-          />
-        </div>
-
-        {/* Error Alert */}
-        {error && (
-          <Alert
-            message="Error"
-            description={error}
-            type="error"
-            closable
-            onClose={() => actions.clearError()}
-            className="mb-6"
-          />
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Preview Area */}
-          <div className="lg:col-span-3">
-            <Card
-              title={
-                <div className="flex items-center justify-between">
-                  <span>Final Review - {selectedTemplate.name}</span>
-                  <Space>
-                    <Badge count={unresolvedComments} size="small">
-                      <Button icon={<CommentOutlined />} size="small">
-                        Comments
-                      </Button>
-                    </Badge>
-                    <Button icon={<EyeOutlined />} size="small">
-                      Fullscreen
-                    </Button>
-                  </Space>
-                </div>
-              }
-              className="h-full"
+    <Card
+      styles={{
+        header: {
+          backgroundColor: '#EFF6FF',
+        },
+      }}
+      title={
+        <div className="flex justify-between items-center py-4">
+          <div>
+            <h1 className="text-2xl flex items-center gap-2">
+              <FileCheck className="text-blue-500" />
+              <span>Review Pending from Admin</span>
+            </h1>
+            <p className="font-medium text-gray-500">
+              Your popup customization is under review. Preview how it will look once approved.
+            </p>
+          </div>
+          <div>
+            <Tag
+              color="volcano"
+              className="inline-flex items-center gap-1 text-base"
             >
-              <Tabs
-                activeKey={activeTab}
-                onChange={(key) => setActiveTab(key as any)}
-                items={[
-                  {
-                    key: 'side-by-side',
-                    label: 'Side by Side',
-                    children: (
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                          {/* Desktop Preview */}
-                          <div>
-                            <div className="flex items-center justify-between mb-3">
-                              <h3 className="text-lg font-medium">Desktop</h3>
-                              <Badge
-                                status="success"
-                                text="Approved"
-                                className="text-green-600"
-                              />
-                            </div>
-                            <div className="border rounded-lg p-4 bg-white">
-                              <BrowserPreview
-                                viewport="desktop"
-                                websiteBackground={websiteData}
-                                popupTemplate={selectedTemplate}
-                                showBrowserChrome={true}
-                                interactive={false}
-                                scale={0.6}
-                                onPopupInteraction={(action) => {
-                                  console.log('Desktop interaction:', action);
-                                }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Mobile Preview */}
-                          <div>
-                            <div className="flex items-center justify-between mb-3">
-                              <h3 className="text-lg font-medium">Mobile</h3>
-                              <Badge
-                                status="success"
-                                text="Approved"
-                                className="text-green-600"
-                              />
-                            </div>
-                            <div className="border rounded-lg p-4 bg-white flex justify-center">
-                              <BrowserPreview
-                                viewport="mobile"
-                                websiteBackground={websiteData}
-                                popupTemplate={selectedTemplate}
-                                showBrowserChrome={true}
-                                interactive={false}
-                                scale={0.8}
-                                onPopupInteraction={(action) => {
-                                  console.log('Mobile interaction:', action);
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: 'desktop',
-                    label: 'Desktop Only',
-                    children: (
-                      <div className="flex justify-center">
-                        <BrowserPreview
-                          viewport="desktop"
-                          websiteBackground={websiteData}
-                          popupTemplate={selectedTemplate}
-                          showBrowserChrome={previewSettings.showBrowserChrome}
-                          interactive={previewSettings.interactive}
-                          scale={previewSettings.scale}
-                          onPopupInteraction={(action) => {
-                            console.log('Desktop interaction:', action);
-                          }}
-                        />
-                      </div>
-                    ),
-                  },
-                  {
-                    key: 'mobile',
-                    label: 'Mobile Only',
-                    children: (
-                      <div className="flex justify-center">
-                        <BrowserPreview
-                          viewport="mobile"
-                          websiteBackground={websiteData}
-                          popupTemplate={selectedTemplate}
-                          showBrowserChrome={previewSettings.showBrowserChrome}
-                          interactive={previewSettings.interactive}
-                          scale={previewSettings.scale}
-                          onPopupInteraction={(action) => {
-                            console.log('Mobile interaction:', action);
-                          }}
-                        />
-                      </div>
-                    ),
-                  },
-                ]}
-              />
-
-              {/* Review Summary */}
-              <Divider />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <CheckCircleOutlined className="text-green-600 text-lg mb-1" />
-                  <div className="font-medium">Desktop Approved</div>
-                  <div className="text-gray-600 text-xs">
-                    {desktopReview.reviewedAt &&
-                      new Date(desktopReview.reviewedAt).toLocaleDateString()}
-                  </div>
-                </div>
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <CheckCircleOutlined className="text-green-600 text-lg mb-1" />
-                  <div className="font-medium">Mobile Approved</div>
-                  <div className="text-gray-600 text-xs">
-                    {mobileReview.reviewedAt &&
-                      new Date(mobileReview.reviewedAt).toLocaleDateString()}
-                  </div>
-                </div>
-                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <CommentOutlined className="text-blue-600 text-lg mb-1" />
-                  <div className="font-medium">{totalComments} Comments</div>
-                  <div className="text-gray-600 text-xs">
-                    {unresolvedComments} unresolved
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Final Review Controls */}
-          <div className="space-y-6">
-            {/* Final Review Card */}
-            <ReviewCard
-              title="Final Review"
-              status={finalReview}
-              onApprove={handleFinalApprove}
-              onReject={handleFinalReject}
-              onRequestChanges={handleRequestChanges}
-              comments={allComments}
-            />
-
-            {/* Review Summary */}
-            <Card title="Review Summary" size="small">
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between items-center">
-                  <span>Template:</span>
-                  <span className="font-medium">{selectedTemplate.name}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Client:</span>
-                  <span className="font-medium">{websiteData.companyName}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Desktop:</span>
-                  <Badge status="success" text="Approved" />
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Mobile:</span>
-                  <Badge status="success" text="Approved" />
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Comments:</span>
-                  <span>
-                    {totalComments} total, {unresolvedComments} unresolved
-                  </span>
-                </div>
-              </div>
-            </Card>
-
-            {/* Actions */}
-            <Card title="Actions" size="small">
-              <Space direction="vertical" className="w-full">
-                <Button
-                  icon={<DownloadOutlined />}
-                  onClick={handleExportReport}
-                  className="w-full"
-                >
-                  Export Report
-                </Button>
-
-                <Button
-                  type="primary"
-                  icon={<SendOutlined />}
-                  onClick={handleSubmitReview}
-                  disabled={finalReview.status !== 'approved'}
-                  className="w-full"
-                  size="large"
-                >
-                  Submit Review
-                </Button>
-
-                {finalReview.status !== 'approved' && (
-                  <p className="text-xs text-orange-600 text-center">
-                    Please approve the final review to submit
-                  </p>
-                )}
-              </Space>
-            </Card>
-
-            {/* Back Navigation */}
-            <Card title="Navigation" size="small">
-              <Space direction="vertical" className="w-full">
-                <Button
-                  onClick={() => actions.setCurrentStep(2)}
-                  className="w-full"
-                >
-                  Back to Mobile Review
-                </Button>
-                <Button
-                  onClick={() => actions.setCurrentStep(1)}
-                  className="w-full"
-                >
-                  Back to Desktop Review
-                </Button>
-                <Button
-                  onClick={() => actions.setCurrentStep(0)}
-                  className="w-full"
-                >
-                  Back to Template Selection
-                </Button>
-              </Space>
-            </Card>
+              <Clock size={16} /> Pending Review
+            </Tag>
           </div>
         </div>
-
-        {/* Submit Confirmation Modal */}
-        <Modal
-          title="Submit Review"
-          open={showSubmitModal}
-          onOk={handleConfirmSubmit}
-          onCancel={() => setShowSubmitModal(false)}
-          okText="Submit"
-          cancelText="Cancel"
-        >
-          <div className="space-y-4">
-            <p>Are you sure you want to submit this review?</p>
-
-            <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
-              <div>
-                <strong>Template:</strong> {selectedTemplate.name}
+      }
+    >
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={6}>
+          {/* Review Status */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                <ClockCircleOutlined className="text-white text-sm" />
               </div>
-              <div>
-                <strong>Client:</strong> {websiteData.companyName}
+              <Text strong className="text-gray-800 text-base">Template Review Progress</Text>
+            </div>
+            
+            <div className="space-y-3">
+              {/* Submitted - Completed */}
+              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-green-200 shadow-sm">
+                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <CheckCircleOutlined className="text-white text-xs" />
+                </div>
+                <Text className="text-green-700 font-medium text-sm">Submitted</Text>
               </div>
-              <div>
-                <strong>Desktop Status:</strong>{' '}
-                <span className="text-green-600">Approved</span>
+              
+              {/* Under Review - In Progress */}
+              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-orange-200 shadow-sm">
+                <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center animate-pulse">
+                  <ClockCircleOutlined className="text-white text-xs" />
+                </div>
+                <Text className="text-orange-700 font-medium text-sm">Under Review</Text>
               </div>
-              <div>
-                <strong>Mobile Status:</strong>{' '}
-                <span className="text-green-600">Approved</span>
-              </div>
-              <div>
-                <strong>Final Status:</strong>{' '}
-                <span className="text-green-600">Approved</span>
-              </div>
-              <div>
-                <strong>Total Comments:</strong> {totalComments}
+              
+              {/* Approved - Pending */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 opacity-60">
+                <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                  <CheckCircleOutlined className="text-gray-400 text-xs" />
+                </div>
+                <Text className="text-gray-500 font-medium text-sm">Approved</Text>
               </div>
             </div>
 
-            <p className="text-sm text-gray-600">
-              Once submitted, this review will be processed and the client will
-              be notified.
-            </p>
+            {/* Estimated Time Card */}
+            <div className="mt-4 p-3 bg-white rounded-lg border border-blue-200 shadow-sm">
+              <div className="flex items-start gap-2">
+                <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
+                  <Clock size={12} className="text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <Text strong className="text-blue-700 text-sm block mb-1">Estimated Review Time</Text>
+                  <Text className="text-blue-600 text-xs leading-relaxed">{reviewData.estimatedTime}</Text>
+                </div>
+              </div>
+            </div>
           </div>
-        </Modal>
-      </div>
-    </div>
+
+          {/* Submitted Details */}
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <FileTextOutlined className="text-blue-500" />
+              <Text strong>Submitted Details</Text>
+            </div>
+            
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <Text type="secondary">Submitted On:</Text>
+                <Text strong>{reviewData.submittedOn}</Text>
+              </div>
+              
+              <div className="flex justify-between">
+                <Text type="secondary">Template Type:</Text>
+                <Text strong>{reviewData.templateType}</Text>
+              </div>
+              
+              <div className="flex justify-between">
+                <Text type="secondary">Changes Made:</Text>
+                <Text strong>{reviewData.changesMade}</Text>
+              </div>
+            </div>
+          </div>
+        </Col>
+        
+        <Col xs={24} md={18}>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold mb-1">Live Preview</h3>
+              <Text type="secondary">Preview how your template will look once approved</Text>
+            </div>
+            
+            <Radio.Group 
+              value={selectedDevice} 
+              onChange={(e) => setSelectedDevice(e.target.value)}
+              size="small"
+            >
+              <Radio.Button value="desktop">
+                <Space>
+                  <span>🖥️</span>
+                  Desktop
+                </Space>
+              </Radio.Button>
+              <Radio.Button value="mobile">
+                <Space>
+                  <span>📱</span>
+                  Mobile
+                </Space>
+              </Radio.Button>
+            </Radio.Group>
+          </div>
+
+          <div className="w-full">
+            {accountDetails ? (
+              <BrowserPreview
+                className="shadow-md"
+                viewport={selectedDevice}
+                websiteBackground={{
+                  backgroundImage: {
+                    desktop: 'https://debuficgraftb.cloudfront.net/dev-staging/KP_1739628284.604344.png',
+                    mobile: 'https://i.ibb.co/dwfFJCCk/Screenshot-2025-08-13-180522.png',
+                  },
+                  websiteUrl: accountDetails.domain,
+                  companyName: accountDetails.name,
+                  category: accountDetails.category,
+                  clientId: accountDetails.id.toString(),
+                  id: accountDetails.id.toString(),
+                }}
+                popupTemplate={[template]}
+                showBrowserChrome={true}
+                interactive={false}
+                scale={0.9}
+                onPopupInteraction={(action) => {
+                  console.log(`${selectedDevice} interaction:`, action);
+                }}
+              />
+            ) : (
+              <BrowserPreviewSkeleton viewport={selectedDevice} />
+            )}
+          </div>
+        </Col>
+      </Row>
+    </Card>
   );
 };

@@ -26,11 +26,7 @@ import {
 } from '@ant-design/icons';
 import StatusTag from './common/StatusTag';
 import DeviceTags from './common/DeviceTags';
-import {
-  SharedTemplateTable,
-  ShopperSegmentTagGroup,
-  TimeDisplay,
-} from '@/components/common';
+import { SharedTemplateTable, ShopperSegmentTagGroup, TimeDisplay } from '@/components/common';
 import { FilterComponent } from '@/components/common/shared-table';
 import { useTemplateListingStore } from '@/stores/list/templateListing.store';
 import { useDevicesStore } from '@/stores/common/devices.store';
@@ -40,7 +36,7 @@ import { BaseProps } from '@/types/props';
 import { shopperLookup } from '@/lib/utils/helper';
 import { useDebouncedCallback } from '@/lib/hooks/use-debounce';
 import { useTemplateListing } from '../hooks/use-template-listing';
-import { CleanTemplateResponse, TCBTemplate } from '@/types';
+import { AccountDetails, CleanTemplateResponse, TCBTemplate } from '@/types';
 import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
 import { Link } from 'lucide-react';
 import LinkTemplateModal from './common/link-template-modal';
@@ -91,13 +87,10 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
   };
 
   const { devices } = useDevicesStore();
-  const { devicesLoading, templateListingLoading, templateListActionLoading } =
-    useLoadingStore();
-  const { templates, pagination, filters, sorter, error, actions } =
-    useTemplateListingStore();
+  const { devicesLoading, templateListingLoading, templateListActionLoading } = useLoadingStore();
+  const { templates, pagination, filters, sorter, error, actions } = useTemplateListingStore();
 
-  const [linkTemplateModalVisible, setLinkTemplateModalVisible] =
-    useState(false);
+  const [linkTemplateModalVisible, setLinkTemplateModalVisible] = useState(false);
   const [selectedTemplateDetails, setSelectedTemplateDetails] = useState<{
     name: string;
     id: string;
@@ -152,17 +145,16 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
             content: (
               <div className="space-y-3">
                 <p>
-                  You are about to push <strong>{templateText}</strong> to client review. Once pushed,
-                  clients will be able to see and review the template(s).
+                  You are about to push <strong>{templateText}</strong> to client review. Once
+                  pushed, clients will be able to see and review the template(s).
                 </p>
                 <p className="text-amber-600 font-medium">
-                  ⚠️ Have you completed designing all the template(s)? This
-                  action will make them visible to clients.
+                  ⚠️ Have you completed designing all the template(s)? This action will make them
+                  visible to clients.
                 </p>
               </div>
             ),
-            onConfirm: async () =>
-              await handleAction('client-review', template),
+            onConfirm: async () => await handleAction('client-review', template),
           });
         },
       });
@@ -180,7 +172,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
             description: template.description || '',
             id: template.id,
             name: template.name,
-            account_id: template.account_ids![0],
+            account_id: template.account_details.id,
           });
         },
       });
@@ -218,10 +210,23 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
 
   const columns = [
     {
+      title: 'Created For (Account)',
+      dataIndex: 'account_details',
+      key: 'account_details',
+      sorter: true,
+      fixed: 'left' as const,
+      width: 150,
+      render: (account_details: Pick<AccountDetails, 'id' | 'name' | 'domain'>) => (
+        <Text strong>{account_details.name}</Text>
+      ),
+    },
+    {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
       sorter: true,
+      fixed: 'left' as const,
+      width: 160,
       render: (name: string) => <Text strong>{name}</Text>,
     },
     {
@@ -230,9 +235,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
       key: 'devices',
       sorter: true,
       render: (devices: { device_type: string; id: number }[]) => (
-        <DeviceTags
-          devices={devices.map((device) => device.device_type.toLowerCase())}
-        />
+        <DeviceTags devices={devices.map((device) => device.device_type.toLowerCase())} />
       ),
     },
     {
@@ -273,11 +276,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
       sorter: true,
       key: 'lastUpdated',
       render: (dateString: string) => (
-        <TimeDisplay
-          dateString={dateString}
-          showIcon={true}
-          showRelative={true}
-        />
+        <TimeDisplay dateString={dateString} showIcon={true} showRelative={true} />
       ),
     },
     {
@@ -290,11 +289,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
           trigger={['click']}
           placement="bottomRight"
         >
-          <Button
-            type="text"
-            icon={<MoreOutlined />}
-            onClick={(e) => e.stopPropagation()}
-          />
+          <Button type="text" icon={<MoreOutlined />} onClick={(e) => e.stopPropagation()} />
         </Dropdown>
       ),
     },
@@ -357,9 +352,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
     newSorter
   ) => {
     const sorterResult = newSorter as SorterResult<CleanTemplateResponse>;
-    const newSortColumn = sorterResult.field
-      ? `t.${sorterResult.field}`
-      : 't.name';
+    const newSortColumn = sorterResult.field ? `t.${sorterResult.field}` : 't.name';
     const newSortDirection = sorterResult.order
       ? sorterResult.order === 'ascend'
         ? 'asc'
@@ -373,10 +366,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
     });
   };
 
-  const debouncedFetchTemplates = useDebouncedCallback(
-    () => getTemplates(),
-    500
-  );
+  const debouncedFetchTemplates = useDebouncedCallback(() => getTemplates(), 500);
 
   useEffect(() => {
     if (filters.nameSearch !== undefined) {
@@ -417,32 +407,29 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
       <div className="flex sm:items-center justify-between gap-4">
         <div>
           <Title level={2} className="mb-1!">
-            Coupon Templates Listinggg
+            Coupon Templates Listingg
           </Title>
-          <Text type="secondary">
-            Manage and organize your coupon templates
-          </Text>
+          <Text type="secondary">Manage and organize your coupon templates</Text>
         </div>
 
         <Space>
           <Button
-            type="primary"
             icon={<PlusOutlined />}
             onClick={() => navigate('/coupon-builder-v2/popup-builder')}
           >
             Create Template
           </Button>
+          <Button
+            type="primary"
+            icon={<EyeOutlined />}
+            onClick={() => navigate('/coupon-builder-v2/base-templates')}
+          >
+            Base Template
+          </Button>
         </Space>
       </div>
 
-      {error && (
-        <Alert
-          message={error}
-          type="error"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
-      )}
+      {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
       <SharedTemplateTable<CleanTemplateResponse>
         title=""
         columns={columns}
@@ -453,16 +440,13 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
         onChange={handleTableChange}
         filters={filterComponents}
         onResetFilters={handleResetFilters}
+        scroll={{ x: 1200 }}
         search={
           <Search
-            placeholder="Search by name"
+            placeholder="Search by template name or account name"
             allowClear
-            onSearch={(value) =>
-              handleFilterChange('nameSearch', value || null)
-            }
-            onChange={(e) =>
-              handleFilterChange('nameSearch', e.target.value || null)
-            }
+            onSearch={(value) => handleFilterChange('nameSearch', value || null)}
+            onChange={(e) => handleFilterChange('nameSearch', e.target.value || null)}
             value={filters.nameSearch}
             style={{ width: '400px' }}
           />

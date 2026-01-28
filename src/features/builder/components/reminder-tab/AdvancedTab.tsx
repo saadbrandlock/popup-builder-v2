@@ -43,7 +43,7 @@ const AdvancedTab: React.FC<ConfigTabProps> = memo(({
               </Text>
             </div>
             <Switch 
-              checked={config.interactions.dragging.enabled}
+              checked={config.desktop.interactions.dragging.enabled}
               onChange={handleDraggingToggle}
             />
           </div>
@@ -57,14 +57,14 @@ const AdvancedTab: React.FC<ConfigTabProps> = memo(({
               </Text>
             </div>
             <Switch 
-              checked={config.interactions.clicking.enabled}
+              checked={config.desktop.interactions.clicking.enabled}
               onChange={handleClickingToggle}
             />
           </div>
         </div>
       </Panel>
 
-      <Panel header="Mobile Settings" key="mobile">
+      {/* <Panel header="Mobile Settings" key="mobile">
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div>
@@ -75,7 +75,7 @@ const AdvancedTab: React.FC<ConfigTabProps> = memo(({
               </Text>
             </div>
             <Switch 
-              checked={config.responsive.mobile.hide}
+              checked={config.enabled}
               onChange={handleMobileHideToggle}
             />
           </div>
@@ -83,7 +83,7 @@ const AdvancedTab: React.FC<ConfigTabProps> = memo(({
           <div>
             <label className="block text-sm font-medium mb-2">Mobile Font Size</label>
             <Slider 
-              value={config.responsive.mobile.fontSize}
+              value={config.}
               onChange={handleMobileFontSizeChange}
               min={VALIDATION_CONSTRAINTS.typography.mobileFontSize.min} 
               max={VALIDATION_CONSTRAINTS.typography.mobileFontSize.max} 
@@ -91,7 +91,7 @@ const AdvancedTab: React.FC<ConfigTabProps> = memo(({
             />
           </div>
         </div>
-      </Panel>
+      </Panel> */}
     </Collapse>
   );
 });

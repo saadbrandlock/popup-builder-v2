@@ -1,5 +1,6 @@
 import { ReminderTabConfig } from '@/features/builder/types';
 import { MergeOptions, TemplateData } from '@/types';
+import { getFontAwesomeUnicodeIcon, getAntdUnicodeIcon } from '@/lib/constants/iconMappings';
 
 class DynamicHTMLMerger {
   generateHTML(config: ReminderTabConfig): string {
@@ -9,8 +10,7 @@ class DynamicHTMLMerger {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Reminder Tab</title>
-      <!-- FontAwesome CDN for icons -->
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+      <!-- Using Unicode icons - no external dependencies -->
       ${this.generateCSS(config)}
   </head>
   <body>
@@ -306,30 +306,16 @@ class DynamicHTMLMerger {
     const iconValue = iconConfig.value || 'fas fa-gift';
     
     if (iconType === 'fontawesome') {
-      return `<i class="${iconValue}"></i>`;
+      const unicodeIcon = getFontAwesomeUnicodeIcon(iconValue);
+      return `<span class="unicode-icon">${unicodeIcon}</span>`;
     } else if (iconType === 'emoji') {
       return `<span class="emoji-icon">${iconValue}</span>`;
     } else if (iconType === 'antd') {
-      // Fallback mapping for old antd icons
-      const antdToFontAwesome: Record<string, string> = {
-        'GiftOutlined': 'fas fa-gift',
-        'TagOutlined': 'fas fa-tags',
-        'PercentageOutlined': 'fas fa-percentage',
-        'CrownOutlined': 'fas fa-crown',
-        'StarOutlined': 'fas fa-star',
-        'FireOutlined': 'fas fa-fire',
-        'BellOutlined': 'fas fa-bell',
-        'ThunderboltOutlined': 'fas fa-bolt',
-        'ShoppingCartOutlined': 'fas fa-shopping-cart',
-        'SoundOutlined': 'fas fa-bullhorn',
-        'LikeOutlined': 'fas fa-thumbs-up',
-        'HeartOutlined': 'fas fa-heart',
-      };
-      const faClass = antdToFontAwesome[iconValue] || 'fas fa-gift';
-      return `<i class="${faClass}"></i>`;
+      const unicodeIcon = getAntdUnicodeIcon(iconValue);
+      return `<span class="unicode-icon">${unicodeIcon}</span>`;
     }
     
-    return '<i class="fas fa-gift"></i>';
+    return '<span class="unicode-icon">🎁</span>';
   }
 
   private generateJavaScript(config: ReminderTabConfig): string {
@@ -403,6 +389,9 @@ export class OptimizedHTMLMerger {
       ],
       enableAnimations: true,
       animationDuration: '0.3s',
+      autoOpenPopup: false,
+      disableCloseButtons: false,
+      hideReminderTab: false,
       ...options,
     };
 
@@ -460,8 +449,7 @@ export class OptimizedHTMLMerger {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Popup Preview</title>
       
-      <!-- FontAwesome CDN for icons -->
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+      <!-- Using Unicode icons - no external dependencies -->
       
       <!-- Reminder Tab Styles -->
       ${reminderStyles}
@@ -486,23 +474,41 @@ export class OptimizedHTMLMerger {
   }
 
   private generatePopupAnimationStyles(config: Required<MergeOptions>): string {
+    const hideReminderCSS = config.hideReminderTab ? `
+          /* Hide reminder tab components */
+          #reminderTab,
+          #mobileFloatingButton {
+              display: none !important;
+              visibility: hidden !important;
+          }
+    ` : `
+          /* Ensure reminder components are visible */
+          #reminderTab,
+          #mobileFloatingButton {
+              opacity: 1 !important;
+              visibility: visible !important;
+          }
+    `;
+
     return `<style>
           /* Popup container initial state */
           .u-popup-container {
-              display: none !important;
-              position: fixed !important;
+              display: none;
+              position: fixed;
               left: 0;
               right: 0;
               bottom: 0;
               top: 0;
               z-index: 9999;
+              padding: 2rem;
               opacity: 0;
               transition: opacity ${config.animationDuration} ease;
           }
           
           /* Active state with animation */
           .u-popup-container.active {
-              display: flex !important;
+              display: flex;
+              flex-direction: column;
               opacity: 1;
           }
           
@@ -565,12 +571,7 @@ export class OptimizedHTMLMerger {
               opacity: 1;
           }
           
-          /* Ensure reminder components are visible */
-          #reminderTab,
-          #mobileFloatingButton {
-              opacity: 1 !important;
-              visibility: visible !important;
-          }
+          ${hideReminderCSS}
           
           body {
               margin: 0;
@@ -586,6 +587,7 @@ export class OptimizedHTMLMerger {
           let popupElement = null;
           let triggerElements = [];
           let isAnimating = false;
+          const autoOpen = ${config.autoOpenPopup || false};
           
           function findElements() {
               popupElement = document.querySelector('${config.popupSelector}');
@@ -660,7 +662,8 @@ export class OptimizedHTMLMerger {
                   }
               });
               
-              // Connect close buttons
+              // Connect close buttons (unless disabled)
+              ${config.disableCloseButtons ? '// Close buttons disabled' : `
               const closeSelectors = ${JSON.stringify(config.closeSelectors)};
               closeSelectors.forEach(selector => {
                   document.querySelectorAll(selector).forEach(btn => {
@@ -692,11 +695,20 @@ export class OptimizedHTMLMerger {
                       hidePopup();
                   }
               });
+              `}
               
               
               // Listen for custom events
               document.addEventListener('openReminderPopup', showPopup);
               document.addEventListener('closeReminderPopup', hidePopup);
+              
+              // Auto-open popup if enabled
+              if (autoOpen && popupElement) {
+                  // Small delay to ensure all elements are properly rendered
+                  setTimeout(() => {
+                      showPopup();
+                  }, 100);
+              }
           }
           
           // Initialize

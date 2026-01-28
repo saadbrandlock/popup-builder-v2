@@ -10,10 +10,74 @@ import { FetchParams } from '../types/main.types';
 import { TablePaginationConfig } from 'antd';
 import { CleanTemplateResponse, TCBTemplate } from '@/types';
 import { useClientFlowStore } from '@/features';
+import { removeNullUndefinedKeys } from '@/lib/utils/helper';
 
 export class TemplatesAPI extends BaseAPI {
   constructor(apiClient: AxiosInstance) {
     super(apiClient);
+  }
+
+  async createBaseTemplate(template: {
+    name: string;
+    category_id: number;
+    description?: string;
+    is_custom_coded: boolean;
+    canvas_type: string;
+    is_generic: boolean;
+    status: string;
+    remarks?: string | null;
+    child_templates?: any;
+    is_featured?: boolean;
+    display_order?: number;
+  }): Promise<{ template_id: string }> {
+    try {
+      const payload = removeNullUndefinedKeys(template);
+      const data = await this.post<{ template_id: string }>(
+        `/base-templates/create`,
+        payload
+      );
+      return data;
+    } catch (error) {
+      this.handleError(error, 'create basic template');
+    }
+  }
+
+  async updateBaseTemplate(
+    templateId: string,
+    template: {
+      name?: string;
+      description?: string;
+      is_custom_coded?: boolean;
+      canvas_type?: string;
+      is_generic?: boolean;
+      status?: string;
+      remarks?: string | null;
+      child_templates?: any;
+      is_featured?: boolean;
+      display_order?: number;
+      builder_state_json?: any;
+    }
+  ): Promise<TCBTemplate> {
+    try {
+      const payload = removeNullUndefinedKeys(template);
+      console.log(payload);
+      
+      const response = await this.put<TCBTemplate>(
+        `/base-templates/${templateId}`,
+        payload
+      );
+      return response;
+    } catch (error) {
+      this.handleError(error, 'update basic template');
+    }
+  }
+
+  async getBaseTemplateById(id: string): Promise<any> {
+    try {
+      return this.get<any>(`/base-templates/${id}`);
+    } catch (error) {
+      this.handleError(error, 'get base template by id');
+    }
   }
 
   async getTemplates(
@@ -323,8 +387,8 @@ export class TemplatesAPI extends BaseAPI {
       is_custom_coded: template.is_custom_coded,
       reminder_tab_state_json: template.reminder_tab_state_json || {},
       device_ids: template.device_ids,
-      account_ids: template.account_ids,
       child_templates: template.child_templates,
+      account_details: template.account_details,
     };
   }
 }

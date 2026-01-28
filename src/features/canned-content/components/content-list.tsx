@@ -16,7 +16,6 @@ import { useContentListingStore } from '@/stores/list/contentListing';
 import { useContent } from '../hooks/use-content';
 import { BaseProps } from '@/types/props';
 import { useDebouncedCallback } from '@/lib/hooks';
-import { splitByAndCapitalize } from '@/lib';
 import { TimeDisplay } from '@/components/common';
 import SharedTemplateTable, {
   FilterComponent,
@@ -24,6 +23,7 @@ import SharedTemplateTable, {
 import { useLoadingStore } from '@/stores/common/loading.store';
 import CannedContentForm from './content-form';
 import { useGenericStore } from '@/stores/generic.store';
+import { splitByAndCapitalize } from '@/lib/utils/helper';
 
 const { Search } = Input;
 
@@ -295,7 +295,7 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
           filters={filterComponents}
           search={
             <Search
-              placeholder="Search content..."
+              placeholder="Search content......."
               allowClear
               onSearch={(value) => handleFilterChange('search', value || null)}
               onChange={(e) =>

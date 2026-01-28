@@ -9,7 +9,7 @@ export interface FloatingButtonConfig {
   enabled: boolean;
   icon: {
     type: 'antd' | 'custom' | 'emoji' | 'fontawesome';
-    value: string; // Icon name for antd, FontAwesome class for fontawesome, URL for custom, emoji character for emoji
+    value: string; // Icon name for antd, Unicode emoji for fontawesome, URL for custom, emoji character for emoji
     size: number;
     color: string;
   };

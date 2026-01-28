@@ -7,15 +7,18 @@
     "config": "tailwind.config.cjs",
     "css": "src/styles/index.css",
     "baseColor": "neutral",
-    "cssVariables": false,
+    "cssVariables": true,
     "prefix": ""
   },
+  "iconLibrary": "lucide",
   "aliases": {
-    "components": "@/components/common",
-    "utils": "@/lib/utils/schadcn",
+    "components": "@/components",
+    "utils": "@/lib/utils",
     "ui": "@/components/ui",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
-  "iconLibrary": "lucide"
+  "registries": {
+    "@magicui": "https://magicui.design/r/{name}.json"
+  }
 }

@@ -1,6 +1,11 @@
 // Client Flow Types - API-Ready Architecture
 
-import { ClientFlowData, ShopperDetails } from '@/types';
+import {
+  CBTemplateFieldContentIdMapping,
+  CBTemplateFieldContentIdMappingWithContent,
+  ClientFlowData,
+  ShopperDetails,
+} from '@/types';
 
 // Note: DeviceType is re-exported from popup-builder in index.ts
 // ============================================================================
@@ -19,30 +24,10 @@ export interface WebsiteData {
   category: string;
 }
 
-export interface HTMLContent {
-  html: string;
-  css: string;
-  js?: string;
-}
-
-export interface ScreenshotData {
-  id: string;
-  url: string;
-  viewport: 'desktop' | 'mobile' | 'tablet';
-  timestamp: string;
-}
-
 // ============================================================================
 // REVIEW FLOW TYPES
 // ============================================================================
 
-export interface ReviewProgress {
-  currentStep: number;
-  totalSteps: number;
-  completedSteps: string[];
-  startedAt: string;
-  lastUpdatedAt: string;
-}
 
 export interface ReviewStatus {
   status: 'pending' | 'approved' | 'rejected' | 'needs_changes';
@@ -58,14 +43,6 @@ export interface Comment {
   author: string;
   createdAt: string;
   resolved: boolean;
-}
-
-export interface PreviewSettings {
-  scale: number;
-  showBrowserChrome: boolean;
-  interactive: boolean;
-  showDeviceFrame: boolean;
-  backgroundOpacity: number;
 }
 
 // ============================================================================
@@ -130,15 +107,12 @@ export interface StepConfig {
 export interface ClientFlowState {
   // Review Flow State
   currentStep: number;
-  reviewProgress: ReviewProgress;
 
   // Client Data (API-ready)
   clientData: ClientFlowData[] | null;
-  websiteData: WebsiteData | null;
 
   // Template Data (API-ready)
   selectedTemplate: any | null;
-  availableTemplates: any[];
 
   // Review Data
   desktopReview: ReviewStatus;
@@ -146,71 +120,62 @@ export interface ClientFlowState {
   finalReview: ReviewStatus;
   comments: Comment[];
 
-  // Preview Settings
-  previewSettings: PreviewSettings;
-
-  // Loading States (following existing pattern)
-  loading: {
-    clientData: boolean;
-    websiteData: boolean;
-    templates: boolean;
-    reviewSubmission: boolean;
-  };
-
   // Error States
   error: string | null;
 
   shopperDetails: ShopperDetails | null;
-  activeShopper: {
+  activeContentShopper: {
     template: { name: string | null; id: string | null };
     content: { name: string | null; id: string | null };
   };
+
+  // content step
+  contentFields: CBTemplateFieldContentIdMappingWithContent[];
+  contentFormData: { [key: string]: string };
+  selectedDeviceId: number | null;
+
+  // feedback state
+  feedbackData: { [key: string]: string };
+
+  // field highlighting state
+  activeHighlightedField: string | null;
+  highlightedFieldName: string | null;
 }
 
 export interface ClientFlowActions {
   actions: {
     // Navigation
     setCurrentStep: (step: number) => void;
-    nextStep: () => void;
-    previousStep: () => void;
 
     // Client Data Management (API-ready)
     setClientData: (data: ClientFlowData[]) => void;
-    setWebsiteData: (data: WebsiteData) => void;
 
     // Template Management (API-ready)
     setSelectedTemplate: (template: any) => void;
-    setAvailableTemplates: (templates: any[]) => void;
-
-    // Review Management
-    updateReview: (
-      step: 'desktop' | 'mobile' | 'final',
-      status: ReviewStatus
-    ) => void;
-    addComment: (comment: Omit<Comment, 'id' | 'createdAt'>) => void;
-
-    // Preview Settings
-    updatePreviewSettings: (settings: Partial<PreviewSettings>) => void;
-
-    // Loading States (following existing pattern)
-    setLoading: (key: keyof ClientFlowState['loading'], value: boolean) => void;
 
     // Error Management
-    setError: (error: string | null) => void;
     clearError: () => void;
-
-    // Reset
-    resetFlow: () => void;
 
     // Shopper Details
     setShopperDetails: (details: ShopperDetails) => void;
-    setActiveShopper: ({
+    setActiveContentShopper: ({
       template,
       content,
     }: {
       template?: { name: string; id: string };
       content?: { name: string; id: string };
     }) => void;
+
+    // content step
+    setContentFields: (fields: CBTemplateFieldContentIdMappingWithContent[]) => void;
+    setContentFormData: (data: { [key: string]: string }) => void;
+    setSelectedDeviceId: (deviceId: number | null) => void;
+
+    // field highlighting
+    setHighlightedField: (fieldId: string | null, fieldName?: string | null) => void;
+
+    // feedback management
+    updateFeedbackData: (type: string, value: string) => void;
   };
 }
 
@@ -240,4 +205,3 @@ export interface ClientFlowApiResponse<T = any> {
 
 export type ViewportType = 'desktop' | 'mobile';
 export type ReviewStepType = 'desktop' | 'mobile' | 'general';
-export type LoadingKey = keyof ClientFlowState['loading'];

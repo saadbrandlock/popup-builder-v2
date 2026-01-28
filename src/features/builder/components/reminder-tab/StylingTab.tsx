@@ -18,31 +18,31 @@ const StylingTab: React.FC<ConfigTabProps> = memo(({
   
   // Stable color change handlers
   const handlePrimaryColorChange = useCallback((color: Color) => {
-    updateConfig('styling.colors.primary', color.toHexString());
+    updateConfig('desktop.styling.colors.primary', color.toHexString());
   }, [updateConfig]);
 
   const handleSecondaryColorChange = useCallback((color: Color) => {
-    updateConfig('styling.colors.secondary', color.toHexString());
+    updateConfig('desktop.styling.colors.secondary', color.toHexString());
   }, [updateConfig]);
 
   const handleTextColorChange = useCallback((color: Color) => {
-    updateConfig('styling.colors.textColor', color.toHexString());
+    updateConfig('desktop.styling.colors.textColor', color.toHexString());
   }, [updateConfig]);
 
   const handleDraggerColorChange = useCallback((color: Color) => {
-    updateConfig('styling.colors.draggerColor', color.toHexString());
+    updateConfig('desktop.styling.colors.draggerColor', color.toHexString());
   }, [updateConfig]);
 
   const handleFontFamilyChange = useCallback((value: string) => {
-    updateConfig('styling.typography.fontFamily', value);
+    updateConfig('desktop.styling.typography.fontFamily', value);
   }, [updateConfig]);
 
   const handleFontSizeChange = useCallback((value: number) => {
-    updateConfig('styling.typography.fontSize', value);
+    updateConfig('desktop.styling.typography.fontSize', value);
   }, [updateConfig]);
 
   const handleFontWeightChange = useCallback((value: string) => {
-    updateConfig('styling.typography.fontWeight', value);
+    updateConfig('desktop.styling.typography.fontWeight', value);
   }, [updateConfig]);
 
   return (
@@ -53,7 +53,7 @@ const StylingTab: React.FC<ConfigTabProps> = memo(({
           <div>
             <label className="block text-sm font-medium mb-2">Primary Color</label>
             <ColorPicker 
-              value={config.styling.colors.primary}
+              value={config.desktop.styling.colors.primary}
               onChange={handlePrimaryColorChange}
               size="large" 
               showText 
@@ -65,7 +65,7 @@ const StylingTab: React.FC<ConfigTabProps> = memo(({
           <div>
             <label className="block text-sm font-medium mb-2">Secondary Color</label>
             <ColorPicker 
-              value={config.styling.colors.secondary}
+              value={config.desktop.styling.colors.secondary}
               onChange={handleSecondaryColorChange}
               size="large" 
               showText 
@@ -77,7 +77,7 @@ const StylingTab: React.FC<ConfigTabProps> = memo(({
           <div>
             <label className="block text-sm font-medium mb-2">Text Color</label>
             <ColorPicker 
-              value={config.styling.colors.textColor}
+              value={config.desktop.styling.colors.textColor}
               onChange={handleTextColorChange}
               size="large" 
               showText 
@@ -89,7 +89,7 @@ const StylingTab: React.FC<ConfigTabProps> = memo(({
           <div>
             <label className="block text-sm font-medium mb-2">Dragger Color</label>
             <ColorPicker 
-              value={config.styling.colors.draggerColor}
+              value={config.desktop.styling.colors.draggerColor}
               onChange={handleDraggerColorChange}
               size="large" 
               showText 
@@ -108,7 +108,7 @@ const StylingTab: React.FC<ConfigTabProps> = memo(({
           <div>
             <label className="block text-sm font-medium mb-2">Font Family</label>
             <Select 
-              value={config.styling.typography.fontFamily}
+              value={config.desktop.styling.typography.fontFamily}
               onChange={handleFontFamilyChange}
               className="w-full"
             >
@@ -122,7 +122,7 @@ const StylingTab: React.FC<ConfigTabProps> = memo(({
             <div>
               <label className="block text-sm font-medium mb-2">Font Size</label>
               <Slider 
-                value={config.styling.typography.fontSize}
+                value={config.desktop.styling.typography.fontSize}
                 onChange={handleFontSizeChange}
                 min={VALIDATION_CONSTRAINTS.typography.fontSize.min} 
                 max={VALIDATION_CONSTRAINTS.typography.fontSize.max} 
@@ -133,7 +133,7 @@ const StylingTab: React.FC<ConfigTabProps> = memo(({
             <div>
               <label className="block text-sm font-medium mb-2">Font Weight</label>
               <Select 
-                value={config.styling.typography.fontWeight}
+                value={config.desktop.styling.typography.fontWeight}
                 onChange={handleFontWeightChange}
                 className="w-full"
               >

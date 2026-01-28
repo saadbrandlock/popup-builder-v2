@@ -18,9 +18,16 @@ export { DesktopReview } from './screens/DesktopReview';
 export { MobileReview } from './screens/MobileReview';
 export { CopyReview } from './screens/CopyReview';
 export { ReviewScreen } from './screens/ReviewScreen';
+export { ClientEditor } from './screens/ClientEditor';
+export type { ClientEditorProps } from './screens/ClientEditor';
+export { OnboardingPreview } from './screens/OnboardingPreview';
 
 // Reusable Components
 export { BrowserPreview } from './components/BrowserPreview';
 export { ReviewCard } from './components/ReviewCard';
 export { NavigationStepper } from './components/NavigationStepper';
 export { WebsiteBackground } from './components/WebsiteBackground';
+export { ClientEditorStep } from './components/ClientEditorStep';
+export type { ClientEditorStepProps } from './components/ClientEditorStep';
+export { ClientReminderTabStep } from './components/ClientReminderTabStep';
+export type { ClientReminderTabStepProps } from './components/ClientReminderTabStep';

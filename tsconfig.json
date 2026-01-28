@@ -31,5 +31,5 @@
     "declarationDir": "dist"
   },
   "include": ["src"],
-  "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/demo/**", "src/features/popup-builder/**"]
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/demo/**"]
 }

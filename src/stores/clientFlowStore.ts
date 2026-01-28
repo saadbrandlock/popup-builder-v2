@@ -2,22 +2,16 @@ import { create } from 'zustand';
 import type {
   ClientFlowState,
   ClientFlowActions,
-  WebsiteData,
   ReviewStatus,
-  Comment,
-  PreviewSettings,
 } from '../features/client-flow/types/clientFlow';
-import { ClientFlowData, ShopperDetails } from '@/types';
+import {
+  CBTemplateFieldContentIdMapping,
+  CBTemplateFieldContentIdMappingWithContent,
+  ClientFlowData,
+  ShopperDetails,
+} from '@/types';
 
 // Default state values
-const defaultPreviewSettings: PreviewSettings = {
-  scale: 1,
-  showBrowserChrome: true,
-  interactive: false,
-  showDeviceFrame: true,
-  backgroundOpacity: 1,
-};
-
 const defaultReviewStatus: ReviewStatus = {
   status: 'pending',
 };
@@ -31,21 +25,12 @@ export const useClientFlowStore = create<ClientFlowState & ClientFlowActions>(
 
     // Review Flow State
     currentStep: 0,
-    reviewProgress: {
-      currentStep: 0,
-      totalSteps: 4,
-      completedSteps: [],
-      startedAt: new Date().toISOString(),
-      lastUpdatedAt: new Date().toISOString(),
-    },
 
     // Client Data (API-ready)
     clientData: null,
-    websiteData: null,
 
     // Template Data (API-ready)
     selectedTemplate: null,
-    availableTemplates: [],
 
     // Review Data
     desktopReview: defaultReviewStatus,
@@ -53,26 +38,30 @@ export const useClientFlowStore = create<ClientFlowState & ClientFlowActions>(
     finalReview: defaultReviewStatus,
     comments: [],
 
-    // Preview Settings
-    previewSettings: defaultPreviewSettings,
-
-    // Loading States (following existing pattern)
-    loading: {
-      clientData: false,
-      websiteData: false,
-      templates: false,
-      reviewSubmission: false,
-    },
-
     // Error States
     error: null,
 
     // custom
     shopperDetails: null,
-    activeShopper: {
+    activeContentShopper: {
       template: { name: null, id: null },
       content: { name: null, id: null },
     },
+
+    //content step
+    contentFields: [],
+    contentFormData: {} as { [key: string]: string },
+    selectedDeviceId: null as number | null,
+
+    // feedback state
+    feedbackData: {
+      desktop: '',
+      mobile: '',
+    } as { [key: string]: string },
+
+    // field highlighting state
+    activeHighlightedField: null as string | null,
+    highlightedFieldName: null as string | null,
 
     // ============================================================================
     // ACTIONS (following existing store pattern)
@@ -81,29 +70,22 @@ export const useClientFlowStore = create<ClientFlowState & ClientFlowActions>(
     actions: {
       // Navigation
       setCurrentStep: (step: number) => {
-        set((state) => ({
-          currentStep: step,
-          reviewProgress: {
-            ...state.reviewProgress,
-            currentStep: step,
-            lastUpdatedAt: new Date().toISOString(),
-          },
-        }));
+        set({ currentStep: step });
       },
 
       setShopperDetails: (details: ShopperDetails) => {
         set({ shopperDetails: details });
       },
 
-      setActiveShopper: (shopper: {
+      setActiveContentShopper: (shopper: {
         template?: { name: string; id: string };
         content?: { name: string; id: string };
       }) => {
         set((state) => ({
-          activeShopper: {
-            ...state.activeShopper,
-            template: shopper.template || state.activeShopper.template,
-            content: shopper.content || state.activeShopper.content,
+          activeContentShopper: {
+            ...state.activeContentShopper,
+            template: shopper.template || get().activeContentShopper.template,
+            content: shopper.content || get().activeContentShopper.content,
           },
         }));
       },
@@ -112,116 +94,46 @@ export const useClientFlowStore = create<ClientFlowState & ClientFlowActions>(
         set({ clientData: data });
       },
 
-      nextStep: () => {
-        const { currentStep, reviewProgress } = get();
-        const nextStep = Math.min(
-          currentStep + 1,
-          reviewProgress.totalSteps - 1
-        );
-        get().actions.setCurrentStep(nextStep);
-      },
-
-      previousStep: () => {
-        const { currentStep } = get();
-        const prevStep = Math.max(currentStep - 1, 0);
-        get().actions.setCurrentStep(prevStep);
-      },
-
-      setWebsiteData: (data: WebsiteData) => {
-        set({ websiteData: data });
-      },
-
       // Template Management (API-ready)
       setSelectedTemplate: (template: any) => {
         set({ selectedTemplate: template });
       },
 
-      setAvailableTemplates: (templates: any[]) => {
-        set({ availableTemplates: templates });
+      // content step
+      setContentFields: (fields: CBTemplateFieldContentIdMappingWithContent[]) => {
+        set({ contentFields: fields });
       },
 
-      // Review Management
-      updateReview: (
-        step: 'desktop' | 'mobile' | 'final',
-        status: ReviewStatus
-      ) => {
+
+      setContentFormData: (data: { [key: string]: string }) => {
+        set({ contentFormData: data });
+      },
+
+      setSelectedDeviceId: (deviceId: number | null) => {
+        set({ selectedDeviceId: deviceId });
+      },
+
+      // feedback management
+      updateFeedbackData: (type: string, value: string) => {
         set((state) => ({
-          [step === 'desktop' ? 'desktopReview' : 'mobileReview']: status,
-          reviewProgress: {
-            ...state.reviewProgress,
-            lastUpdatedAt: new Date().toISOString(),
+          feedbackData: {
+            ...state.feedbackData,
+            [type]: value,
           },
         }));
       },
 
-      addComment: (comment: Omit<Comment, 'id' | 'createdAt'>) => {
-        const newComment: Comment = {
-          ...comment,
-          id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          createdAt: new Date().toISOString(),
-        };
-
-        set((state) => ({
-          comments: [...state.comments, newComment],
-        }));
-      },
-
-      // Preview Settings
-      updatePreviewSettings: (settings: Partial<PreviewSettings>) => {
-        set((state) => ({
-          previewSettings: {
-            ...state.previewSettings,
-            ...settings,
-          },
-        }));
-      },
-
-      // Loading States (following existing pattern)
-      setLoading: (key: keyof ClientFlowState['loading'], value: boolean) => {
-        set((state) => ({
-          loading: {
-            ...state.loading,
-            [key]: value,
-          },
-        }));
+      // field highlighting management
+      setHighlightedField: (fieldId: string | null, fieldName?: string | null) => {
+        set({ 
+          activeHighlightedField: fieldId,
+          highlightedFieldName: fieldName || null,
+        });
       },
 
       // Error Management
-      setError: (error: string | null) => {
-        set({ error });
-      },
-
       clearError: () => {
         set({ error: null });
-      },
-
-      // Reset
-      resetFlow: () => {
-        set({
-          currentStep: 0,
-          reviewProgress: {
-            currentStep: 0,
-            totalSteps: 4,
-            completedSteps: [],
-            startedAt: new Date().toISOString(),
-            lastUpdatedAt: new Date().toISOString(),
-          },
-          clientData: null,
-          websiteData: null,
-          selectedTemplate: null,
-          availableTemplates: [],
-          desktopReview: defaultReviewStatus,
-          mobileReview: defaultReviewStatus,
-          comments: [],
-          previewSettings: defaultPreviewSettings,
-          loading: {
-            clientData: false,
-            websiteData: false,
-            templates: false,
-            reviewSubmission: false,
-          },
-          error: null,
-        });
       },
     },
   })
@@ -234,14 +146,5 @@ export const useClientFlowStore = create<ClientFlowState & ClientFlowActions>(
 export const useClientFlowActions = () =>
   useClientFlowStore((state) => state.actions);
 
-export const useClientFlowLoading = () =>
-  useClientFlowStore((state) => state.loading);
-
 export const useClientFlowError = () =>
   useClientFlowStore((state) => state.error);
-
-export const useReviewProgress = () =>
-  useClientFlowStore((state) => state.reviewProgress);
-
-export const usePreviewSettings = () =>
-  useClientFlowStore((state) => state.previewSettings);

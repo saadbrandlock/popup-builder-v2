@@ -16,9 +16,6 @@ import { InteractiveHoverButton } from '@/components/magicui/interactive-hover-b
 import { useClientFlow } from '../hooks/use-client-flow';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import CouponModuleNotReady from '../components/coupon-module-not-ready';
-import { safeDecodeAndSanitizeHtml } from '@/lib';
-import { useOptimizedHTMLMerger } from '@/lib/hooks';
-import { ReminderTabConfig } from '@/features/builder/types';
 
 /**
  * LandingPreview - Initial screen showing template preview in browser context
@@ -194,7 +191,7 @@ export const LandingPreview: React.FC<LandingPreviewProps> = ({
             <div>
               <div className="mb-3">
                 <div className="text-xl font-medium text-gray-900">
-                  Live Previewww
+                  Live Preview
                 </div>
                 <div className="text-md text-gray-500">
                   See how your coupon popup looks on your website

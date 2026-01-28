@@ -8,7 +8,7 @@ export const clientReviewSteps = {
         description: "Confirm the mobile popup layout and styling"
     },
     stepThree: {
-        title: "Approve Shopper Content",
-        description: "Review messaging for all shopper segments"
+        title: "Manage Template Copy",
+        description: "Review and manage copy for all shopper segments for this template"
     }
 }

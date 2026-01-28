@@ -6,7 +6,6 @@ import {
   Spin,
   Alert,
   Card,
-  Button,
   Space,
   Typography,
   Checkbox,
@@ -19,6 +18,7 @@ import { useDevicesStore } from '@/stores/common/devices.store';
 import { useGenericStore } from '@/stores/generic.store';
 import { DeviceSelector, ShopperSelector } from '@/components/common';
 import { useLoadingStore } from '@/stores/common/loading.store';
+import StepNavigation, { createSubmitButton } from './common/StepNavigation';
 // MIGRATED: Use Zustand stores instead of contexts
 // TODO: accounts and shoppers should come from API data, not builder context
 
@@ -48,6 +48,7 @@ const ConfigStep: React.FC<ConfigStepProps> = ({
 
   useEffect(() => {
     if (form.isFieldsTouched()) return;
+    
     if (isEditMode && templateEditState) {
       const deviceIds =
         templateEditState.device_ids && templateEditState.device_ids.length > 0
@@ -62,7 +63,7 @@ const ConfigStep: React.FC<ConfigStepProps> = ({
         shopper_ids: templateEditState.shopper_ids,
         description: templateEditState.description || '',
         is_generic: isGenericTemplate,
-        account_ids: templateEditState.account_ids,
+        account_ids: templateEditState.account_details.id,
         // status: templateEditState.status || 'draft',
       });
     }
@@ -133,7 +134,6 @@ const ConfigStep: React.FC<ConfigStepProps> = ({
           <Col xs={24} md={12} lg={8}>
             <Form.Item<TemplateConfig> name="account_ids" label="Accounts">
               <Select
-                mode="multiple"
                 showSearch
                 placeholder={'Select accounts applicable for this template'}
                 options={accounts.map((acc) => ({
@@ -190,10 +190,19 @@ const ConfigStep: React.FC<ConfigStepProps> = ({
           </Col>
         </Row>
 
-        <Form.Item className="flex justify-end gap-2">
-          <Button type="primary" htmlType="submit" loading={configSaving}>
-            Save and Next
-          </Button>
+        <Form.Item>
+          <StepNavigation
+            rightButtons={[
+              createSubmitButton(
+                () => {}, // Form submission is handled by onFinish
+                'Save and Next',
+                {
+                  loading: configSaving,
+                  disabled: disabled || configSaving,
+                }
+              ),
+            ]}
+          />
         </Form.Item>
       </Form>
     </Card>

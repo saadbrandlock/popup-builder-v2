@@ -1,5 +1,6 @@
 import { createAPI } from '@/api';
 import { useClientFlowStore } from '@/stores/clientFlowStore';
+import { useDevicesStore } from '@/stores/common/devices.store';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import { useGenericStore } from '@/stores/generic.store';
 import { message } from 'antd';
@@ -9,6 +10,7 @@ export const useClientFlow = ({ apiClient }: { apiClient: AxiosInstance }) => {
   const api = createAPI(apiClient);
   const { actions: loadingActions } = useLoadingStore();
   const { actions: clientFlowActions, clientData } = useClientFlowStore();
+  const { devices, actions: deviceActions } = useDevicesStore();
 
   const getShopperDetails = async ({
     account_id,
@@ -65,8 +67,38 @@ export const useClientFlow = ({ apiClient }: { apiClient: AxiosInstance }) => {
     }
   };
 
+  const getContentFieldsWithContent = async (accountId: number) => {
+    loadingActions.setContentSubDataLoading(true);
+    try {
+      const response =
+        await api.templateFields.getTemplateFieldsWithContent(accountId);
+      clientFlowActions.setContentFields(response);
+    } catch (error) {
+      console.error('Error getting fields:', error);
+      message.error('Failed to get fields');
+    } finally {
+      loadingActions.setContentSubDataLoading(false);
+    }
+  };
+
+  const getDevices = async () => {
+    if (devices.length > 0) return;
+
+    loadingActions.setDevicesLoading(true);
+    try {
+      const response = await api.devices.getDevices();
+      deviceActions.setDevices(response);
+    } catch (error) {
+      message.error('Failed to load devices');
+    } finally {
+      loadingActions.setDevicesLoading(false);
+    }
+  };
+
   return {
     getShopperDetails,
     getCleintTemplatesData,
+    getContentFieldsWithContent,
+    getDevices
   };
 };

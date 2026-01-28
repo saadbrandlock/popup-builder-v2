@@ -67,6 +67,7 @@ export const useBuilderStore = create<BuilderState & BuilderActions>()(
         clearPersistedStore: () => {
           localStorage.removeItem('builder-store');
         },
+        
       };
 
       return {

@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Modal,
-  Form,
-  Select,
-  Button,
-  message,
-  Typography,
-  Tag,
-  Space,
-  Divider,
-} from 'antd';
+import { Modal, Form, Select, Button, message, Typography, Tag, Space, Divider, Empty } from 'antd';
 import { LinkOutlined, UserOutlined, MobileOutlined } from '@ant-design/icons';
 import { createAPI } from '@/api';
 import { AxiosInstance } from 'axios';
@@ -47,9 +37,7 @@ export const LinkTemplateModal: React.FC<LinkTemplateModalProps> = ({
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [potentialTemplates, setPotentialTemplates] = useState<
-    PotentialChildTemplate[]
-  >([]);
+  const [potentialTemplates, setPotentialTemplates] = useState<PotentialChildTemplate[]>([]);
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
 
   const api = createAPI(apiClient);
@@ -64,8 +52,7 @@ export const LinkTemplateModal: React.FC<LinkTemplateModalProps> = ({
   const fetchPotentialChildTemplates = async () => {
     setLoading(true);
     try {
-      const response =
-        await templatesAPI.getPotentitalChildTemplateDetails(accountId);
+      const response = await templatesAPI.getPotentitalChildTemplateDetails(accountId);
       if (response) {
         setPotentialTemplates(response);
       }
@@ -85,10 +72,7 @@ export const LinkTemplateModal: React.FC<LinkTemplateModalProps> = ({
 
     setSubmitting(true);
     try {
-      await templatesAPI.linkChildTemplates(
-        parentTemplateId,
-        selectedTemplates
-      );
+      await templatesAPI.linkChildTemplates(parentTemplateId, selectedTemplates);
       message.success('Templates linked successfully');
       form.resetFields();
       setSelectedTemplates([]);
@@ -139,11 +123,7 @@ export const LinkTemplateModal: React.FC<LinkTemplateModalProps> = ({
               className="capitalize"
               key={device.id}
               color={getDeviceTypeColor(device.device_type)}
-              icon={
-                device.device_type.toLowerCase() === 'mobile' ? (
-                  <MobileOutlined />
-                ) : undefined
-              }
+              icon={device.device_type.toLowerCase() === 'mobile' ? <MobileOutlined /> : undefined}
             >
               {device.device_type}
             </Tag>
@@ -187,6 +167,7 @@ export const LinkTemplateModal: React.FC<LinkTemplateModalProps> = ({
       );
     });
   };
+  
 
   return (
     <Modal
@@ -228,51 +209,53 @@ export const LinkTemplateModal: React.FC<LinkTemplateModalProps> = ({
 
         <Divider />
 
-        <Form.Item
-          label="Select Child Templates to Link"
-          help="Note: Only one device type can be selected per parent template"
-        >
-          <Select
-            mode="multiple"
-            placeholder="Select templates to link"
-            loading={loading}
-            value={selectedTemplates}
-            onChange={setSelectedTemplates}
-            className="w-full"
-            optionLabelProp="label"
-            maxTagCount="responsive"
+        {potentialTemplates.length ? (
+          <Form.Item
+            label="Select Child Templates to Link"
+            help="Note: Only one device type can be selected per parent template"
           >
-            {getFilteredTemplates().map((template) => (
-              <Option
-                key={template.id}
-                value={template.id}
-                label={template.name}
-                disabled={
-                  selectedTemplates.length > 0 &&
-                  !selectedTemplates.includes(template.id) &&
-                  template.devices.some((device) => {
-                    const selectedDeviceTypes = new Set<string>();
-                    selectedTemplates.forEach((selectedId) => {
-                      const selectedTemplate = potentialTemplates.find(
-                        (t) => t.id === selectedId
-                      );
-                      if (selectedTemplate) {
-                        selectedTemplate.devices.forEach((d) => {
-                          selectedDeviceTypes.add(d.device_type.toLowerCase());
-                        });
-                      }
-                    });
-                    return selectedDeviceTypes.has(
-                      device.device_type.toLowerCase()
-                    );
-                  })
-                }
-              >
-                {renderTemplateOption(template)}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
+            <Select
+              mode="multiple"
+              placeholder="Select templates to link"
+              loading={loading}
+              value={selectedTemplates}
+              onChange={setSelectedTemplates}
+              className="w-full"
+              optionLabelProp="label"
+              maxTagCount="responsive"
+            >
+              {getFilteredTemplates().map((template) => (
+                <Option
+                  key={template.id}
+                  value={template.id}
+                  label={template.name}
+                  disabled={
+                    selectedTemplates.length > 0 &&
+                    !selectedTemplates.includes(template.id) &&
+                    template.devices.some((device) => {
+                      const selectedDeviceTypes = new Set<string>();
+                      selectedTemplates.forEach((selectedId) => {
+                        const selectedTemplate = potentialTemplates.find(
+                          (t) => t.id === selectedId
+                        );
+                        if (selectedTemplate) {
+                          selectedTemplate.devices.forEach((d) => {
+                            selectedDeviceTypes.add(d.device_type.toLowerCase());
+                          });
+                        }
+                      });
+                      return selectedDeviceTypes.has(device.device_type.toLowerCase());
+                    })
+                  }
+                >
+                  {renderTemplateOption(template)}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        ) : (
+          <Empty description="No templates available to link!" />
+        )}
 
         {selectedTemplates.length > 0 && (
           <div className="mt-4">
