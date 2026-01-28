@@ -4,43 +4,60 @@ import dts from 'vite-plugin-dts';
 import { resolve } from 'path';
 
 export default defineConfig(({ mode }) => {
-  const isLib = mode === 'lib';
+  const isDev = mode === 'development';
 
   return {
     plugins: [
       react(),
+      // Generate types in both dev and production
       dts({
         insertTypesEntry: true,
-        exclude: ['**/*.test.ts', '**/*.test.tsx', '**/demo/**']
-      })
-    ],
-    build: isLib ? {
+        exclude: ['**/*.test.ts', '**/*.test.tsx', '**/demo/**'],
+      }),
+    ].filter(Boolean),
+    build: {
       lib: {
         entry: resolve(__dirname, 'src/index.ts'),
         name: 'CouponTemplateBuilder',
         formats: ['es'],
-        fileName: 'index'
+        fileName: 'index',
       },
+      outDir: 'dist',
+      emptyOutDir: true,
+      sourcemap: isDev,
+      minify: !isDev,
+      cssCodeSplit: false,
       rollupOptions: {
-        external: ['react', 'react-dom'],
+        external: [
+          'react',
+          'react-dom',
+          'antd',
+          'zustand',
+          'axios',
+          'lucide-react',
+          'react-email-editor',
+          'dayjs',
+          /^@ant-design/,
+          /^@dnd-kit/,
+        ],
         output: {
           globals: {
             react: 'React',
-            'react-dom': 'ReactDOM'
-          }
-        }
-      }
-    } : {
-      outDir: 'demo-dist'
+            'react-dom': 'ReactDOM',
+          },
+        },
+      },
+      // Fast rebuild in dev mode
+      watch: isDev ? {} : null,
     },
     resolve: {
       alias: {
-        '@': resolve(__dirname, 'src')
-      }
+        '@': resolve(__dirname, 'src'),
+      },
     },
     server: {
       port: 3001,
-      open: true
-    }
+      open: true,
+    },
   };
 });

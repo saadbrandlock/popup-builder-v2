@@ -1,14 +1,13 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, Space, Typography, Card, Row, Col, Alert, Badge } from 'antd';
-import { ArrowLeftOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import EmailEditor, { UnlayerOptions } from 'react-email-editor';
 import { useUnlayerEditor } from '../hooks/useUnlayerEditor';
 import { useBuilderStore } from '@/stores/builder.store';
 import { useGenericStore } from '@/stores/generic.store';
 import { useLoadingStore } from '@/stores/common/loading.store';
-import { useDevicesStore } from '@/stores/common/devices.store';
-import { sanitizeHtml } from '@/lib';
+import { sanitizeHtml } from '@/lib/utils/helper';
 import { manageEditorMode, manageMergeTags } from '../utils';
+import StepNavigation, { createPreviousButton, createNextButton } from './common/StepNavigation';
 
 const { Title, Text } = Typography;
 
@@ -21,8 +20,8 @@ interface UnlayerMainProps {
   apiClient?: any; // AxiosInstance
   enableCustomImageUpload?: boolean;
   clientTemplateId?: string;
+  saveMode?: 'staging' | 'base';
 }
-
 
 export const UnlayerMain = ({
   unlayerConfig,
@@ -32,31 +31,20 @@ export const UnlayerMain = ({
   apiClient,
   enableCustomImageUpload = true,
   clientTemplateId = '',
+  saveMode = 'staging',
 }: UnlayerMainProps) => {
   // State for UI controls
   const [autoSaveInterval] = useState(30);
   const [designMode, setDesignMode] = useState(false);
 
   // Store values for image upload
-  const { currentTemplateId, templateState, actions: builderActions } = useBuilderStore();
+  const {
+    currentTemplateId,
+    templateState,
+    actions: builderActions,
+  } = useBuilderStore();
   const { authProvider } = useGenericStore();
-  const { devices } = useDevicesStore();
 
-  // Check if template has mobile devices
-  const hasMobileDevice = () => {
-    if (!templateState?.device_ids || !devices.length) return false;
-    
-    const mobileDevices = devices.filter(device => 
-      device.device_type.toLowerCase() === 'mobile'
-    );
-    
-    return templateState.device_ids.some(deviceId => 
-      mobileDevices.some(mobileDevice => mobileDevice.id === deviceId)
-    );
-  };
-
-  const shouldShowReminderTab = hasMobileDevice();
-  
   // Loading states for showing combined loading status
   const { builderAutosaving } = useLoadingStore();
 
@@ -88,6 +76,7 @@ export const UnlayerMain = ({
     templateId: clientTemplateId || currentTemplateId || undefined,
     accountId: authProvider.accountId,
     enableCustomImageUpload,
+    saveMode,
   });
 
   // Load initial design when component mounts
@@ -98,33 +87,33 @@ export const UnlayerMain = ({
   }, [initialDesign, isReady, loadDesign]);
 
   // Remove Unlayer branding
-  useEffect(() => {
-    const removebranding = () => {
-      const branding = document.querySelector('a.blockbuilder-branding');
-      if (branding) {
-        branding.remove();
-      }
-    };
+  // useEffect(() => {
+  //   const removebranding = () => {
+  //     const branding = document.querySelector('a.blockbuilder-branding');
+  //     if (branding) {
+  //       branding.remove();
+  //     }
+  //   };
 
-    // Try to remove branding after editor is ready
-    if (isReady) {
-      setTimeout(removebranding, 1000);
-      // Set up interval to keep removing it
-      const interval = setInterval(removebranding, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [isReady]);
+  //   // Try to remove branding after editor is ready
+  //   if (isReady) {
+  //     setTimeout(removebranding, 1000);
+  //     // Set up interval to keep removing it
+  //     const interval = setInterval(removebranding, 5000);
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [isReady]);
 
   useEffect(() => {
     setDesignMode(window.location.href.includes('user-template-editor'));
-  }, [])
+  }, []);
 
   // Handle export actions
   const handleExportHtml = async () => {
     try {
       const html = await exportHtml();
       console.log('📄 Exported HTML:', html);
-      return await sanitizeHtml(html)
+      return await sanitizeHtml(html);
       // You can show a modal or copy to clipboard here
     } catch (error) {
       console.error('Export HTML failed:', error);
@@ -159,7 +148,7 @@ export const UnlayerMain = ({
       console.error('Manual save failed:', error);
     }
   };
-  
+
   return (
     <div style={{ padding: '16px' }}>
       {/* Header Controls */}
@@ -203,7 +192,7 @@ export const UnlayerMain = ({
                 loading={isSaving || builderAutosaving}
                 disabled={!isReady || !hasUnsavedChanges}
               >
-                {(isSaving || builderAutosaving) ? 'Saving...' : 'Save Design'}
+                {isSaving || builderAutosaving ? 'Saving...' : 'Save Design'}
               </Button>
               <Button
                 onClick={handleExportHtml}
@@ -297,7 +286,7 @@ export const UnlayerMain = ({
               options={{
                 ...unlayerConfig,
                 tools: manageEditorMode(designMode),
-                mergeTags: manageMergeTags()
+                mergeTags: manageMergeTags(),
               }}
               style={{
                 height: '700px',
@@ -328,30 +317,21 @@ export const UnlayerMain = ({
       )}
 
       {/* Navigation Buttons */}
-      <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between' }}>
-        <Button 
-          icon={<ArrowLeftOutlined />}
-          onClick={() => builderActions.setAdminBuilderStep(0)}
-        >
-          Previous: Config
-        </Button>
-        
-        <Button 
-          type="primary"
-          icon={<ArrowRightOutlined />}
-          onClick={() => {
-            if (shouldShowReminderTab) {
-              builderActions.setAdminBuilderStep(2);
-            } else {
-              // Complete the flow for non-mobile templates
-              // Could navigate to templates list or show completion message
-              window.history.back();
-            }
-          }}
-        >
-          {shouldShowReminderTab ? 'Next: Reminder Tab' : 'Complete Setup'}
-        </Button>
-      </div>
+      <StepNavigation
+        style={{ marginTop: '24px' }}
+        leftButtons={[
+          createPreviousButton(
+            () => builderActions.setAdminBuilderStep(0),
+            'Previous: Config'
+          ),
+        ]}
+        rightButtons={[
+          createNextButton(
+            () => builderActions.setAdminBuilderStep(2),
+            { label: 'Next: Reminder Tab' }
+          ),
+        ]}
+      />
     </div>
   );
 };

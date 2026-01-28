@@ -162,7 +162,7 @@ export const CouponModuleNotReady: React.FC<CouponModuleNotReadyProps> = ({
           <Col xs={24} md={16}>
             <div className="mb-3">
               <div className="text-xl font-medium text-gray-900">
-                Preview Coming Soon
+                Preview Coming Soonnn
               </div>
               <div className="text-md text-gray-500">
                 Your coupon popup will appear here once ready

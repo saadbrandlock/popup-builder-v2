@@ -8,7 +8,7 @@ A React/TypeScript component library for building dynamic coupon templates with 
 
 For npm package usage:
 ```bash
-npm install @brandlock/coupon-template-builder
+npm install @kishor.purbhe/coupon-template-builder
 ```
 
 For local development:
@@ -21,8 +21,8 @@ npm install
 ### Basic Usage
 
 ```tsx
-import { CouponTemplateBuilder } from '@brandlock/coupon-template-builder';
-import '@brandlock/coupon-template-builder/styles';
+import { CouponTemplateBuilder } from '@kishor.purbhe/coupon-template-builder';
+import '@kishor.purbhe/coupon-template-builder/styles';
 
 function App() {
   return (
@@ -70,7 +70,7 @@ npm run typecheck   # TypeScript type checking
 npm run yalc:publish
 
 # In your main project directory
-yalc add @brandlock/coupon-template-builder
+yalc add @kishor.purbhe/coupon-template-builder
 npm install
 ```
 
@@ -87,7 +87,7 @@ This will watch for changes and automatically push updates to all linked project
 npm run yalc:push
 
 # Or in your main project, pull latest changes
-yalc update @brandlock/coupon-template-builder
+yalc update @kishor.purbhe/coupon-template-builder
 ```
 
 ### Alternative: npm Link
@@ -99,7 +99,7 @@ yalc update @brandlock/coupon-template-builder
    npm link
    
    # In your main project directory
-   npm link @brandlock/coupon-template-builder
+   npm link @kishor.purbhe/coupon-template-builder
    ```
 
 2. **Auto-rebuild on changes:**
@@ -110,8 +110,8 @@ yalc update @brandlock/coupon-template-builder
 
 ### Usage in React App
 ```tsx
-import { CouponTemplateBuilder } from '@brandlock/coupon-template-builder';
-import '@brandlock/coupon-template-builder/styles';
+import { CouponTemplateBuilder } from '@kishor.purbhe/coupon-template-builder';
+import '@kishor.purbhe/coupon-template-builder/styles';
 ```
 
 ## 📁 Project Structure
@@ -216,7 +216,7 @@ interface TemplateElement {
 2. **Style conflicts:**
    Import styles after your main application styles:
    ```tsx
-   import '@brandlock/coupon-template-builder/styles';
+   import '@kishor.purbhe/coupon-template-builder/styles';
    ```
 
 3. **TypeScript errors:**

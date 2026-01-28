@@ -1,4 +1,5 @@
 import { ReminderTabConfig } from '@/features/builder/types';
+import { AccountDetails } from './common';
 
 export interface TCBTemplate {
   id: string; // uuid-string
@@ -13,7 +14,7 @@ export interface TCBTemplate {
   builder_state_json: Record<string, any> | null;
   is_custom_coded: boolean;
   is_generic: boolean; // NEW: Generic template flag
-  account_ids: number[];
+  account_details: Pick<AccountDetails, 'id' | 'name' | 'domain'>;
   canvas_type: string;
   latest_published_version_id: string | null; // uuid-string
   // AuditedEntity includes ip_address, user_agent, remarks, status
@@ -29,7 +30,7 @@ export interface TCBTemplate {
   reminder_tab_html: string | null;
   reminder_tab_state_json_client: Record<string, any> | null;
   reminder_tab_html_client: string | null;
-  child_templates?: (TCBTemplate & {linked_at: string, linked_by: number})[];
+  child_templates?: (TCBTemplate & { linked_at: string; linked_by: number })[];
 }
 
 export interface CleanTemplateResponse {
@@ -55,9 +56,9 @@ export interface CleanTemplateResponse {
   reminder_tab_html?: string;
   reminder_tab_html_client?: string;
   shopper_ids: number[];
-  account_ids?: number[];
   device_ids?: number[];
-  child_templates?: (TCBTemplate & {linked_at: string, linked_by: number})[];
+  child_templates?: (TCBTemplate & { linked_at: string; linked_by: number })[];
+  account_details: Pick<AccountDetails, 'id' | 'name' | 'domain'>;
 }
 
 // Types and Interfaces [template merger popup and reminder tab]
@@ -67,6 +68,9 @@ export interface MergeOptions {
   closeSelectors?: string[];
   enableAnimations?: boolean;
   animationDuration?: string;
+  autoOpenPopup?: boolean; // Auto-open popup on load
+  disableCloseButtons?: boolean; // Prevent popup from being closed
+  hideReminderTab?: boolean; // Hide reminder tab/button from rendering
 }
 
 export interface TemplateData {

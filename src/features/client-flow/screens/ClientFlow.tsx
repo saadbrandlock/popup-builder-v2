@@ -1,19 +1,19 @@
 import React, { useEffect } from 'react';
-import { Steps, Card, Alert, Row, Col, Divider } from 'antd';
+import { Steps, Card, Alert, Typography } from 'antd';
 import {
   DesktopOutlined,
   MobileOutlined,
   EditOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
+
+const { Title } = Typography;
 import { BaseProps } from '../../../types/props';
 import { useClientFlowStore } from '../../../stores/clientFlowStore';
 import { DesktopReview } from './DesktopReview';
 import { MobileReview } from './MobileReview';
 import { CopyReview } from './CopyReview';
 import { ReviewScreen } from './ReviewScreen';
-import { NavigationStepper } from '../components/NavigationStepper';
-import { StepConfig } from '../types/clientFlow';
 import { clientReviewSteps } from '../utils/helpers';
 import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
 import { useClientFlow } from '../hooks/use-client-flow';
@@ -49,18 +49,28 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
     error,
     clientData,
   } = useClientFlowStore();
-  const { getCleintTemplatesData } = useClientFlow({ apiClient });
+  const { getCleintTemplatesData, getContentFieldsWithContent } = useClientFlow({
+    apiClient,
+  });
+  const { contentFields } = useClientFlowStore();
 
   // Sync generic context (account, auth, shoppers, navigate) into global store once
-  useSyncGenericContext({ accountDetails, authProvider, shoppers, navigate, accounts });
-
+  useSyncGenericContext({
+    accountDetails,
+    authProvider,
+    shoppers,
+    navigate,
+    accounts,
+  });
 
   useEffect(() => {
     if (accountDetails && !clientData) {
       getCleintTemplatesData(accountDetails.id);
     }
+    if (!contentFields.length && accountDetails) {
+      getContentFieldsWithContent(accountDetails.id);
+    }
   }, [accountDetails]);
-
 
   // Handle completion callback
   useEffect(() => {
@@ -146,7 +156,6 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
       accounts,
     };
 
-    console.log('currentStep', currentStep);
     switch (currentStep) {
       case 0:
         return <DesktopReview {...stepProps} />;
@@ -171,39 +180,46 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
   };
 
   return (
-    <Row className={`client-flow-container ${className}`} gutter={[16, 16]}>
-      <Col xs={24} md={4}>
-        {/* Header with Steps */}
-        <div className="mb-6">
-          <NavigationStepper
-            currentStep={currentStep}
-            totalSteps={4}
-            //@ts-ignore
-            steps={steps}
-            onStepClick={(step) => {
-              actions.setCurrentStep(step);
-            }}
-          />
-        </div>
-      </Col>
-      <Col xs={24} md={20}>
-        {/* Global Error Display */}
-        {error && (
-          <Alert
-            message="Error"
-            description={error}
-            type="error"
-            closable
-            onClose={() => actions.clearError()}
-            className="mb-6"
-          />
-        )}
+    <div className={`client-flow-container ${className}`}>
+      {/* Page Title */}
+      <div className="mb-6">
+        <Title level={2} className="mb-1">
+          Popup Builder Review
+        </Title>
+        <p className="text-gray-500">
+          Review and approve your coupon module design across all devices
+        </p>
+      </div>
 
-        {/* Step Content */}
-        <div className="step-content">{renderStepContent()}</div>
-      </Col>
-    </Row>
+      {/* Horizontal Steps at the top */}
+      <Card className="mb-6 shadow-sm">
+        <Steps
+          current={currentStep}
+          onChange={(step) => actions.setCurrentStep(step)}
+          items={steps.map((step, index) => ({
+            title: step.title,
+            icon: step.icon,
+            status: step.status,
+          }))}
+          responsive={false}
+          className="px-4"
+        />
+      </Card>
+
+      {/* Global Error Display */}
+      {error && (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          closable
+          onClose={() => actions.clearError()}
+          className="mb-6"
+        />
+      )}
+
+      {/* Step Content */}
+      <div className="step-content">{renderStepContent()}</div>
+    </div>
   );
 };
-
-export default ClientFlow;

@@ -6,6 +6,7 @@ import { useTemplateFieldsStore } from '@/stores/common/template-fields.store';
 import { useBuilderStore } from '@/stores/builder.store';
 import { DEFAULT_REMINDER_TAB_CONFIG } from '../utils/reminderTabConstants';
 import { useLoadingStore } from '@/stores/common/loading.store';
+import { useBaseTemplateStore } from '@/features/base-template';
 
 export const useBuilderMain = ({ apiClient }: { apiClient: AxiosInstance }) => {
   const api = createAPI(apiClient);
@@ -37,10 +38,7 @@ export const useBuilderMain = ({ apiClient }: { apiClient: AxiosInstance }) => {
     }
   };
 
-  const updateTemplate = async (
-    templateId: string,
-    data: Partial<TCBTemplate>
-  ) => {
+  const updateTemplate = async (templateId: string, data: Partial<TCBTemplate>) => {
     try {
       const response = await api.templates.updateTemplate(templateId, data);
       return response;
@@ -51,15 +49,9 @@ export const useBuilderMain = ({ apiClient }: { apiClient: AxiosInstance }) => {
     }
   };
 
-  const assignTemplateToShoppers = async (
-    templateId: string,
-    shopperId: number[]
-  ) => {
+  const assignTemplateToShoppers = async (templateId: string, shopperId: number[]) => {
     try {
-      const response = await api.templates.assignTemplateToShoppers(
-        templateId,
-        shopperId
-      );
+      const response = await api.templates.assignTemplateToShoppers(templateId, shopperId);
       return response;
     } catch (error) {
       console.error('Error assigning template:', error);
@@ -86,16 +78,11 @@ export const useBuilderMain = ({ apiClient }: { apiClient: AxiosInstance }) => {
             ...DEFAULT_REMINDER_TAB_CONFIG,
             ...templateResponse.reminder_tab_state_json,
           };
-          console.log(
-            '✅ Loaded existing reminder tab config from staging template'
-          );
+          console.log('✅ Loaded existing reminder tab config from staging template');
         }
       } catch (stagingError) {
         console.log('ℹ️ No staging template data found, using defaults');
       }
-
-      console.log(templateResponse, '::::::::::::::::::::::::::::::::::::::::::::::::::::::::::>');
-      
 
       // Update store with loaded data
       builderActions.setTemplateState(templateResponse);
@@ -119,11 +106,31 @@ export const useBuilderMain = ({ apiClient }: { apiClient: AxiosInstance }) => {
     }
   };
 
+  const loadBaseTemplate = async (templateId: string) => {
+    try {
+      const templateActions = useBaseTemplateStore.getState().actions;
+      const baseTemplate = await api.templates.getBaseTemplateById(templateId);
+
+      templateActions.setSelectedTemplate(baseTemplate as any);
+      templateActions.setTemplateId(baseTemplate.template_id);
+      templateActions.setCurrentStep(1);
+      templateActions.setSelectedCategoryId(baseTemplate.category_id ?? null);
+
+      useBuilderStore.getState().actions.setCurrentTemplateId(baseTemplate.template_id);
+      console.log(baseTemplate);
+
+      templateActions.setDesignJson(baseTemplate.builder_state_json ?? null);
+    } catch (error) {
+      message.error('Failed to load template');
+    }
+  };
+
   return {
     createTemplate,
     updateTemplate,
     assignTemplateToShoppers,
     getTemplateFields,
     loadTemplate,
+    loadBaseTemplate
   };
 };

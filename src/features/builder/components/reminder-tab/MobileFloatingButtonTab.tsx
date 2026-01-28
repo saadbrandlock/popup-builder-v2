@@ -14,22 +14,8 @@ import {
   Collapse
 } from 'antd';
 import * as AntdIcons from '@ant-design/icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faGift, 
-  faTags, 
-  faPercentage, 
-  faCrown, 
-  faStar, 
-  faFire, 
-  faBell, 
-  faBolt, 
-  faShoppingCart, 
-  faBullhorn, 
-  faThumbsUp, 
-  faHeart 
-} from '@fortawesome/free-solid-svg-icons';
 import { FLOATING_BUTTON_ICONS } from '../../utils/reminderTabConstants';
+import { getFontAwesomeUnicodeIcon } from '@/lib/constants/iconMappings';
 import type { ConfigTabProps } from '../../types';
 
 const { Title, Text } = Typography;
@@ -53,23 +39,8 @@ const MobileFloatingButtonTab: React.FC<ConfigTabProps> = ({
       return <span style={{ fontSize: '16px' }}>{iconValue}</span>;
     }
     if (iconType === 'fontawesome') {
-      // Map FontAwesome class names to actual FontAwesome icons
-      const iconMapping: Record<string, any> = {
-        'fas fa-gift': faGift,
-        'fas fa-tags': faTags,
-        'fas fa-percentage': faPercentage,
-        'fas fa-crown': faCrown,
-        'fas fa-star': faStar,
-        'fas fa-fire': faFire,
-        'fas fa-bell': faBell,
-        'fas fa-bolt': faBolt,
-        'fas fa-shopping-cart': faShoppingCart,
-        'fas fa-bullhorn': faBullhorn,
-        'fas fa-thumbs-up': faThumbsUp,
-        'fas fa-heart': faHeart,
-      };
-      const iconDef = iconMapping[iconValue] || faGift;
-      return <FontAwesomeIcon icon={iconDef} />;
+      const unicodeIcon = getFontAwesomeUnicodeIcon(iconValue);
+      return <span style={{ fontSize: '16px' }}>{unicodeIcon}</span>;
     }
     return null;
   };

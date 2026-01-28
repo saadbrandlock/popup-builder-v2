@@ -1,7 +1,6 @@
-// Import Tailwind CSS
+// Main library entry point - end-to-end test
 import './styles/index.css';
 
-// Main library entry point
 export * from './components';
 export * from './features';
 export * from './lib';

@@ -4,3 +4,4 @@ export * from './template-designer';
 export * from './canned-content';
 export * from './builder';
 export * from './client-flow';
+export * from './base-template';

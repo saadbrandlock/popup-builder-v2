@@ -5,6 +5,7 @@ import { AssetsAPI } from './services/AssetsAPI';
 import { DevicesAPI } from './services/DevicesAPI';
 import { ContentAPI } from './services/ContentAPI';
 import { TemplateFieldsAPI } from './services/TemplateFieldsAPI';
+import { BaseTemplateCategoriesAPI } from './services/BaseTemplateCategoriesAPI';
 
 /**
  * API Factory - Creates API service instances with the provided apiClient
@@ -18,6 +19,7 @@ export class APIFactory {
   private assetsAPI: AssetsAPI | null = null;
   private contentAPI: ContentAPI | null = null;
   private templateFieldsAPI: TemplateFieldsAPI | null = null;
+  private baseTemplateCategoriesAPI: BaseTemplateCategoriesAPI | null = null;
 
   constructor(apiClient: AxiosInstance) {
     this.apiClient = apiClient;
@@ -71,6 +73,15 @@ export class APIFactory {
     return this.templateFieldsAPI;
   }
 
+  get baseTemplateCategories(): BaseTemplateCategoriesAPI {
+    if (!this.baseTemplateCategoriesAPI) {
+      this.baseTemplateCategoriesAPI = new BaseTemplateCategoriesAPI(
+        this.apiClient
+      );
+    }
+    return this.baseTemplateCategoriesAPI;
+  }
+
   // Add more API services here as needed
   // get users(): UsersAPI { ... }
   // get content(): ContentAPI { ... }
@@ -91,6 +102,7 @@ export { AssetsAPI } from './services/AssetsAPI';
 export { DevicesAPI } from './services/DevicesAPI';
 export { ContentAPI } from './services/ContentAPI';
 export { TemplateFieldsAPI } from './services/TemplateFieldsAPI';
+export { BaseTemplateCategoriesAPI } from './services/BaseTemplateCategoriesAPI';
 
 // Re-export types for convenience
 export type {

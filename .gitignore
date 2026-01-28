@@ -1,3 +1,29 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+dist
+dist-ssr
+demo-dist
+build
+.next
+out
+.nuxt
+.cache
+.parcel-cache
+.rollup.cache
+
+# TypeScript
+*.tsbuildinfo
+.tsbuildinfo
+
+# Testing
+coverage
+.nyc_output
+*.lcov
+
 # Logs
 logs
 *.log
@@ -7,15 +33,15 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-demo-dist
+# Local development
 *.local
+.yalc
+yalc.lock
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 .DS_Store
 *.suo
@@ -23,10 +49,26 @@ demo-dist
 *.njsproj
 *.sln
 *.sw?
+*.swp
+*.swo
+*~
 
 # Environment variables
 .env
 .env.local
+.env.*.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Package tarballs
+*.tgz
+
+# Temporary files
+tmp
+temp
+.tmp

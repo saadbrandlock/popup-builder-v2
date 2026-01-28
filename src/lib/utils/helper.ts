@@ -10,6 +10,14 @@ export const shopperLookup = (shoppers: ShopperType[]) => {
   );
 };
 
+export const removeNullUndefinedKeys = <T extends Record<string, any>>(
+  obj: T
+): Partial<T> => {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, value]) => value !== null && value !== undefined)
+  ) as Partial<T>;
+};
+
 export const checkObjectDiff = (
   originalObject: any,
   modifiedObject: any,
@@ -189,7 +197,6 @@ export const safeDecodeAndSanitizeHtml = async (encodedHtml: string): Promise<st
   try {
     // Step 1: Decode HTML entities
     const decodedHtml = decodeHtmlEntities(encodedHtml);
-    
     // Step 2: Sanitize the decoded HTML with more permissive settings for popup templates
     const sanitizedHtml = DOMPurify.sanitize(decodedHtml, {
       USE_PROFILES: { html: true },

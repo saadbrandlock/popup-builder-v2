@@ -1,10 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { WebsiteBackground } from './WebsiteBackground';
 import type { BrowserPreviewProps } from '../types/clientFlow';
 import { Safari } from '@/components/magicui/safari';
 import Android from '@/components/magicui/android';
 import { safeDecodeAndSanitizeHtml } from '@/lib/utils/helper';
-import type { ClientFlowData } from '@/types/api';
 import { useOptimizedHTMLMerger } from '@/lib/hooks';
 import { ReminderTabConfig } from '@/features/builder/types';
 
@@ -57,10 +55,9 @@ export const BrowserPreview: React.FC<BrowserPreviewProps> = ({
             {
               enableAnimations: true,
               animationDuration: '0.4s',
+              autoOpenPopup: true, // Auto-open popup in preview mode
             }
           );
-
-          console.log('mergedHtml', mergedHtml);
 
           setSanitizedHtml(mergedHtml);
         } else {
@@ -108,8 +105,6 @@ export const BrowserPreview: React.FC<BrowserPreviewProps> = ({
     if (!sanitizedHtml || isProcessing) {
       return null;
     }
-
-    console.log('sanitizedHtml', sanitizedHtml);
 
     return (
       <iframe

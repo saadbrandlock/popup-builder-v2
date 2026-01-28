@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Card, Tabs, Radio, Typography, Alert, Button, Space } from 'antd';
+import { Card, Tabs, Radio, Typography, Alert, Button, Space, Row, Col } from 'antd';
 import {
   EyeOutlined,
   MobileOutlined,
@@ -30,9 +30,6 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
     'desktop'
   );
 
-  console.log('Template State:', templateState);
-  console.log('Template Devices:', templateState?.devices);
-
   // Determine supported devices from template
   const supportedDevices = useMemo(() => {
     if (!templateState?.devices) {
@@ -48,8 +45,6 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
 
   const hasDesktop = supportedDevices.includes('desktop');
   const hasMobile = supportedDevices.includes('mobile');
-
-  console.log('Has Desktop:', hasDesktop, 'Has Mobile:', hasMobile);
 
   // Set initial preview device and active tab based on supported devices
   React.useEffect(() => {
@@ -159,9 +154,9 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
   }, []);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <Row gutter={[24, 24]}>
       {/* Configuration Panel */}
-      <div className="lg:col-span-2">
+      <Col xs={24} lg={16}>
         <Card>
           <Tabs activeKey={activeTab} onChange={setActiveTab}>
             {/* Desktop Configuration */}
@@ -169,8 +164,8 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
               <TabPane
                 tab={
                   <span>
-                    <DesktopOutlined />
-                    Desktop Tab
+                    <DesktopOutlined className='mr-2' />
+                    <span>Desktop Tab</span>
                   </span>
                 }
                 key="desktop"
@@ -184,8 +179,8 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
               <TabPane
                 tab={
                   <span>
-                    <MobileOutlined />
-                    Mobile Button
+                    <MobileOutlined className='mr-2' />
+                    <span>Mobile Button</span>
                   </span>
                 }
                 key="mobile"
@@ -202,10 +197,10 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
             </TabPane>
           </Tabs>
         </Card>
-      </div>
+      </Col>
 
       {/* Preview Panel */}
-      <div className="lg:col-span-1">
+      <Col xs={24} lg={8}>
         <Card>
           <div className="flex items-center justify-between mb-4">
             <Title level={4} className="mb-0">
@@ -291,8 +286,8 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
             </Button>
           </Space>
         </Card>
-      </div>
-    </div>
+      </Col>
+    </Row>
   );
 };
 

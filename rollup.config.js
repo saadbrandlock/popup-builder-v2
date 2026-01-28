@@ -7,23 +7,20 @@ import terser from '@rollup/plugin-terser';
 import copy from 'rollup-plugin-copy';
 import path from 'path';
 
-const isDev = process.env.NODE_ENV === 'development' || process.env.ROLLUP_WATCH;
-
+// Production build only - dev uses Vite direct source import
 export default {
   input: 'src/index.ts',
   output: [
     {
       dir: 'dist',
       format: 'esm',
-      sourcemap: isDev,
+      sourcemap: true,
       exports: 'named',
       entryFileNames: 'index.js',
       chunkFileNames: 'chunks/[name]-[hash].js',
-      banner: isDev ? `/* Built at ${new Date().toISOString()} */` : undefined,
     },
   ],
   onwarn(warning, warn) {
-    // Suppress "use client" directive warnings from Ant Design
     if (warning.code === 'MODULE_LEVEL_DIRECTIVE' && warning.message.includes('use client')) {
       return;
     }
@@ -42,13 +39,6 @@ export default {
     typescript({
       tsconfig: './tsconfig.json',
       useTsconfigDeclarationDir: true,
-      tsconfigOverride: {
-        compilerOptions: {
-          incremental: true,
-          ...(isDev && { tsBuildInfoFile: '.tsbuildinfo' }),
-        }
-      },
-      check: !isDev, // Skip type checking in watch mode for speed
       exclude: ['**/*.test.ts', '**/*.test.tsx', '**/demo/**'],
     }),
     postcss({
@@ -56,32 +46,33 @@ export default {
         path: './postcss.config.cjs',
       },
       extensions: ['.css'],
-      minimize: !isDev,
+      minimize: true,
       extract: false,
       inject: true,
     }),
-    // Only use terser in production
-    ...(!isDev ? [terser()] : []),
-    // Only copy files in production
-    ...(!isDev ? [copy({
+    terser(),
+    copy({
       targets: [
         { src: 'README.md', dest: 'dist' },
         { src: 'package.json', dest: 'dist' },
       ],
-    })] : []),
+    }),
   ],
   external: (id) => {
-    return ['react', 'react-dom', 'antd', 'zustand', 'dayjs'].includes(id) ||
-           id.startsWith('@dnd-kit/') ||
-           id.includes('node_modules');
-  },
-  watch: {
-    exclude: ['node_modules/**', 'dist/**'],
-    include: ['src/**'],
-    clearScreen: false,
-    chokidar: {
-      usePolling: false, // Disable polling for better performance
-      ignored: ['**/node_modules/**', '**/dist/**'],
-    },
+    const peerDeps = [
+      'react',
+      'react-dom',
+      'antd',
+      'zustand',
+      'axios',
+      'lucide-react',
+      'react-email-editor',
+      'dayjs',
+    ];
+    return (
+      peerDeps.some((dep) => id === dep || id.startsWith(dep + '/')) ||
+      id.startsWith('@dnd-kit/') ||
+      id.includes('node_modules')
+    );
   },
 };
