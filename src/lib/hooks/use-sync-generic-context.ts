@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import type { AxiosInstance } from 'axios';
 import { useGenericStore } from '@/stores/generic.store';
 import type { ShopperType, AccountDetails } from '@/types/common';
 
@@ -8,6 +8,7 @@ export type GenericContextParams = {
   shoppers?: ShopperType[] | null;
   navigate?: ((path: string) => void) | any | null;
   accounts?: AccountDetails[] | null;
+  apiClient?: AxiosInstance | null;
 };
 
 /**
@@ -21,50 +22,30 @@ export const useSyncGenericContext = ({
   shoppers,
   navigate,
   accounts,
+  apiClient,
 }: GenericContextParams) => {
-  const {
-    actions,
-    accountDetails: storeAccount,
-    authProvider: storeAuth,
-    shoppers: storeShoppers,
-    navigate: storeNavigate,
-    accounts: storeAccounts,
-  } = useGenericStore();
-
-  useEffect(() => {
-    if (!storeAccount && accountDetails) {
-      actions.setAccount(accountDetails);
-    }
-
-    if (
-      authProvider &&
-      (!storeAuth.userId || !storeAuth.accountId || !storeAuth.role)
-    ) {
-      actions.setAuthProvider(authProvider);
-    }
-
-    if (shoppers && !storeShoppers.length) {
-      actions.setShoppers(shoppers);
-    }
-
-    if (!storeNavigate && navigate) {
-      actions.setNavigate(navigate as any);
-    }
-
-    if (accounts && !storeAccounts.length) {
-      actions.setAccounts(accounts);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    accountDetails,
-    authProvider,
-    shoppers,
-    navigate,
-    storeAccount,
-    storeAuth.userId,
-    storeAuth.accountId,
-    storeAuth.role,
-    storeShoppers.length,
-    storeNavigate,
-  ]);
+  // Sync into store synchronously so hooks that run later in this (or child) component see the value on first render
+  const state = useGenericStore.getState();
+  if (!state.accountDetails && accountDetails) {
+    state.actions.setAccount(accountDetails);
+  }
+  if (
+    authProvider &&
+    (!state.authProvider.userId || !state.authProvider.accountId || !state.authProvider.role)
+  ) {
+    state.actions.setAuthProvider(authProvider);
+  }
+  if (shoppers && !state.shoppers.length) {
+    state.actions.setShoppers(shoppers);
+  }
+  if (!state.navigate && navigate) {
+    state.actions.setNavigate(navigate as any);
+  }
+  if (accounts && !state.accounts.length) {
+    state.actions.setAccounts(accounts);
+  }
+  // Keep apiClient in sync when prop changes (e.g. after re-auth)
+  if (apiClient && apiClient !== state.apiClient) {
+    state.actions.setApiClient(apiClient);
+  }
 };

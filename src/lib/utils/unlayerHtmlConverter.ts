@@ -3,7 +3,7 @@
  * Dynamically loads Unlayer script if not available
  */
 
-import { sanitizeHtml } from './helper';
+import { safeDecodeAndSanitizeHtml } from './helper';
 
 export interface UnlayerHtmlConverterOptions {
   projectId?: number;
@@ -108,8 +108,6 @@ export const convertUnlayerJsonToHtml = async (
         return;
       }
 
-      console.log('🔄 Initializing temporary Unlayer editor for HTML conversion...');
-
       // Initialize temporary editor instance
       unlayer.init({
         id: tempContainer.id,
@@ -120,7 +118,6 @@ export const convertUnlayerJsonToHtml = async (
       // Wait for editor to be ready
       unlayer.addEventListener('editor:ready', () => {
         try {
-          console.log('✅ Temporary editor ready, loading design...');
           
           // Load the design
           unlayer.loadDesign(designJson);
@@ -131,7 +128,6 @@ export const convertUnlayerJsonToHtml = async (
             unlayer.exportHtml((data: any) => {
               try {
                 const { html } = data;
-                console.log('📄 Raw HTML exported, length:', html?.length);
                 
                 if (!html) {
                   cleanup();
@@ -139,12 +135,18 @@ export const convertUnlayerJsonToHtml = async (
                   return;
                 }
 
-                const sanitizedHtml = sanitizeHtml(html);
-                console.log('✅ HTML conversion completed successfully');
-                cleanup();
-                resolve(sanitizedHtml);
+                // Decode then sanitize so entity-encoded inner HTML (e.g. &lt;span&gt;Save&lt;/span&gt;) is preserved
+                safeDecodeAndSanitizeHtml(html)
+                  .then((sanitizedHtml) => {
+                    cleanup();
+                    resolve(sanitizedHtml);
+                  })
+                  .catch((err) => {
+                    console.error('❌ HTML sanitization failed:', err);
+                    cleanup();
+                    reject(new Error(`HTML sanitization failed: ${err}`));
+                  });
               } catch (error) {
-                console.error('❌ HTML export processing failed:', error);
                 cleanup();
                 reject(new Error(`HTML export failed: ${error}`));
               }
@@ -159,7 +161,6 @@ export const convertUnlayerJsonToHtml = async (
       });
 
     } catch (error) {
-      console.error('❌ Failed to initialize temporary editor:', error);
       cleanup();
       reject(new Error(`Failed to initialize temporary editor: ${error}`));
     }

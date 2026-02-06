@@ -42,7 +42,6 @@ export const useBuilderStore = create<BuilderState & BuilderActions>()(
         setTemplateConfig: (config: TemplateConfig) => set({ templateConfig: config }),
         setCurrentTemplateId: (id: string | null) => set({ currentTemplateId: id }),
         setReminderTabConfig: (config: ReminderTabConfig) => {
-          console.log('🏪 Store: setReminderTabConfig called with:', config);
           set({ reminderTabConfig: config });
         },
         updateReminderTabConfig: (path: string, value: any) => {

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useClientFlow } from '../hooks/use-client-flow';
 import { useGenericStore } from '@/stores/generic.store';
-import { AxiosInstance } from 'axios';
 import { useClientFlowStore } from '@/stores/clientFlowStore';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import { Card, Typography, Button, Modal, Carousel, Image, Divider, Tabs, Tooltip, Collapse } from 'antd';
@@ -13,13 +12,12 @@ import { Users, AlertCircle, CheckCircle, Eye, FileText, Activity, Lightbulb } f
 const { Text, Title, Paragraph } = Typography;
 
 interface ShopperDetailsProps {
-  apiClient: AxiosInstance;
   compact?: boolean;
   displayMode?: 'compact' | 'full' | 'legacy';
 }
 
-const ShopperDetails: React.FC<ShopperDetailsProps> = ({ apiClient, compact = false, displayMode }) => {
-  const { getShopperDetails } = useClientFlow({ apiClient });
+const ShopperDetails: React.FC<ShopperDetailsProps> = ({ compact = false, displayMode }) => {
+  const { getShopperDetails } = useClientFlow();
 
   const { activeContentShopper, shopperDetails } = useClientFlowStore();
   const { shopperDetailsLoading } = useLoadingStore();

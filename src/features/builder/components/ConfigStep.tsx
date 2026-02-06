@@ -19,6 +19,8 @@ import { useGenericStore } from '@/stores/generic.store';
 import { DeviceSelector, ShopperSelector } from '@/components/common';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import StepNavigation, { createSubmitButton } from './common/StepNavigation';
+import { useBaseTemplatesForConfig } from '../hooks/useBaseTemplatesForConfig';
+import BaseTemplateSelect from './BaseTemplateSelect';
 // MIGRATED: Use Zustand stores instead of contexts
 // TODO: accounts and shoppers should come from API data, not builder context
 
@@ -29,7 +31,7 @@ interface ConfigStepProps {
   handleFinalSave: (data: TemplateConfig) => Promise<void>;
   onNext?: () => void;
   isEditMode: boolean;
-  templateEditState?: CleanTemplateResponse | null
+  templateEditState?: CleanTemplateResponse | null;
 }
 
 const ConfigStep: React.FC<ConfigStepProps> = ({
@@ -39,12 +41,22 @@ const ConfigStep: React.FC<ConfigStepProps> = ({
   templateEditState,
 }) => {
   const { devices } = useDevicesStore();
-  const { accounts, shoppers } = useGenericStore();
+  const accounts = useGenericStore((s) => s.accounts);
   const { configSaving } = useLoadingStore();
 
   const [form] = Form.useForm<TemplateConfig>();
 
   const [isGeneric, setIsGeneric] = useState(false);
+
+  // Load base templates for selection (apiClient from generic store)
+  const { templates: baseTemplates, loading: baseTemplatesLoading, loadTemplates } = useBaseTemplatesForConfig();
+
+  // Load base templates on mount (only for create mode)
+  useEffect(() => {
+    if (!isEditMode) {
+      loadTemplates();
+    }
+  }, [isEditMode]);
 
   useEffect(() => {
     if (form.isFieldsTouched()) return;
@@ -63,7 +75,9 @@ const ConfigStep: React.FC<ConfigStepProps> = ({
         shopper_ids: templateEditState.shopper_ids,
         description: templateEditState.description || '',
         is_generic: isGenericTemplate,
-        account_ids: templateEditState.account_details.id,
+        account_ids: templateEditState.account_details
+          ? [templateEditState.account_details.id]
+          : [],
         // status: templateEditState.status || 'draft',
       });
     }
@@ -78,14 +92,15 @@ const ConfigStep: React.FC<ConfigStepProps> = ({
   };
 
   return (
-    <Card>
-      <Form
-        form={form}
-        onFinish={handleFinalSave}
-        layout="vertical"
-        disabled={disabled || configSaving}
-      >
-        <Row gutter={[16, 16]}>
+    <div className="max-w-2xl mx-auto">
+      <Card>
+        <Form
+          form={form}
+          onFinish={handleFinalSave}
+          layout="vertical"
+          disabled={disabled || configSaving}
+        >
+          <Row gutter={[16, 0]}>
           <Col xs={24}>
             <Form.Item<TemplateConfig>
               name="name"
@@ -105,6 +120,21 @@ const ConfigStep: React.FC<ConfigStepProps> = ({
               />
             </Form.Item>
           </Col>
+          {!isEditMode && (
+            <Col xs={24}>
+              <Form.Item<TemplateConfig>
+                name="base_template_id"
+                label="Base Template (Optional)"
+                extra="Select a base template to start with a pre-designed layout, or leave empty to start from scratch"
+              >
+                <BaseTemplateSelect
+                  disabled={disabled || configSaving || baseTemplatesLoading}
+                  loading={baseTemplatesLoading}
+                  baseTemplates={baseTemplates}
+                />
+              </Form.Item>
+            </Col>
+          )}
           <Col xs={24} md={12} lg={8}>
             <Form.Item<TemplateConfig>
               name="device_ids"
@@ -132,10 +162,20 @@ const ConfigStep: React.FC<ConfigStepProps> = ({
             </Form.Item>
           </Col>
           <Col xs={24} md={12} lg={8}>
-            <Form.Item<TemplateConfig> name="account_ids" label="Accounts">
+            <Form.Item<TemplateConfig>
+              name="account_ids"
+              label="Account"
+              getValueProps={(v: number[] | undefined) => ({
+                value: Array.isArray(v) && v.length > 0 ? v[0] : undefined,
+              })}
+              getValueFromEvent={(v: number | undefined) =>
+                v != null && v !== undefined ? [v] : []
+              }
+            >
               <Select
                 showSearch
-                placeholder={'Select accounts applicable for this template'}
+                allowClear
+                placeholder="Select account applicable for this template"
                 options={accounts.map((acc) => ({
                   label: acc.domain,
                   value: acc.id,
@@ -188,24 +228,25 @@ const ConfigStep: React.FC<ConfigStepProps> = ({
               </Checkbox>
             </Form.Item>
           </Col>
-        </Row>
+          </Row>
 
-        <Form.Item>
-          <StepNavigation
-            rightButtons={[
-              createSubmitButton(
-                () => {}, // Form submission is handled by onFinish
-                'Save and Next',
-                {
-                  loading: configSaving,
-                  disabled: disabled || configSaving,
-                }
-              ),
-            ]}
-          />
-        </Form.Item>
-      </Form>
-    </Card>
+          <Form.Item>
+            <StepNavigation
+              rightButtons={[
+                createSubmitButton(
+                  () => {}, // Form submission is handled by onFinish
+                  'Save and Next',
+                  {
+                    loading: configSaving,
+                    disabled: disabled || configSaving,
+                  }
+                ),
+              ]}
+            />
+          </Form.Item>
+        </Form>
+      </Card>
+    </div>
   );
 };
 

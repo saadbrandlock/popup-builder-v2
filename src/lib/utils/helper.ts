@@ -220,7 +220,7 @@ export const safeDecodeAndSanitizeHtml = async (encodedHtml: string): Promise<st
       ],
       ALLOWED_ATTR: [
         // Standard attributes
-        'href', 'src', 'alt', 'class', 'id', 'style', 'title',
+        'href', 'src', 'alt', 'class', 'id', 'style', 'title', 'aria-label',
         // Layout attributes
         'width', 'height', 'align', 'valign',
         // Form attributes

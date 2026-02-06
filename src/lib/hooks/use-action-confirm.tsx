@@ -1,5 +1,4 @@
 import { Modal } from 'antd';
-import { ModalConfig } from 'antd/es/config-provider/context';
 import { useCallback, useState } from 'react';
 
 type UseActionConfirmOptions = {
@@ -7,6 +6,10 @@ type UseActionConfirmOptions = {
   content?: React.ReactNode;
   onConfirm?: () => void | Promise<void>;
   onCancel?: () => void;
+};
+
+type ConfirmModalProps = {
+  confirmLoading?: boolean;
 };
 
 export const useActionConfirm = () => {
@@ -19,10 +22,10 @@ export const useActionConfirm = () => {
   }, []);
 
   const handleConfirm = useCallback(async () => {
-    setIsVisible(false);
     if (options.onConfirm) {
       await options.onConfirm();
     }
+    setIsVisible(false);
   }, [options]);
 
   const handleCancel = useCallback(() => {
@@ -32,20 +35,26 @@ export const useActionConfirm = () => {
     }
   }, [options]);
 
-  const ConfirmModal = useCallback(() => {
-    return (
-      <Modal
-        title={options.title || 'Are you sure?'}
-        open={isVisible}
-        onOk={handleConfirm}
-        onCancel={handleCancel}
-        okText="Confirm"
-        cancelText="Cancel"
-      >
-        {options.content || 'This action cannot be undone.'}
-      </Modal>
-    );
-  }, [isVisible, options, handleConfirm, handleCancel]);
+  const ConfirmModal = useCallback(
+    ({ confirmLoading = false }: ConfirmModalProps) => {
+      return (
+        <Modal
+          title={options.title || 'Are you sure?'}
+          open={isVisible}
+          onOk={handleConfirm}
+          onCancel={handleCancel}
+          okText="Confirm"
+          cancelText="Cancel"
+          okButtonProps={{ loading: confirmLoading }}
+          maskClosable={!confirmLoading}
+          closable={!confirmLoading}
+        >
+          {options.content || 'This action cannot be undone.'}
+        </Modal>
+      );
+    },
+    [isVisible, options, handleConfirm, handleCancel]
+  );
 
   return { showConfirm, ConfirmModal };
 };

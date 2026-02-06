@@ -14,6 +14,7 @@ import {
 import { SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { UnlayerMain } from '@/features/builder';
 import { useBaseTemplateStore, useCategoryStore } from '../stores';
+import { useLoadingStore } from '@/stores/common/loading.store';
 import { UnlayerOptions } from 'react-email-editor';
 import { BaseProps } from '@/types/props';
 import BaseTemplateConfig from './BaseTemplateConfig';
@@ -34,7 +35,6 @@ interface BaseTemplateBuilderProps extends Partial<BaseProps> {
     description?: string;
     category_id?: number;
     design_json: any;
-    html_content: string;
   }) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
@@ -46,11 +46,11 @@ export const BaseTemplateBuilder: React.FC<BaseTemplateBuilderProps> = ({
   onSave,
   onCancel,
   loading = false,
-  apiClient,
 }) => {
   const [form] = Form.useForm();
   const { currentStep, templateId, designJson, htmlContent, actions, selectedTemplate } =
     useBaseTemplateStore();
+  const { actions: loadingActions } = useLoadingStore();
 
   const steps = [
     {
@@ -68,6 +68,7 @@ export const BaseTemplateBuilder: React.FC<BaseTemplateBuilderProps> = ({
   };
 
   const handleNextStep = async () => {
+    loadingActions.setBaseTemplateConfigCreation(true);
     if (currentStep === 0) {
       try {
         const values = await form.validateFields();
@@ -83,6 +84,8 @@ export const BaseTemplateBuilder: React.FC<BaseTemplateBuilderProps> = ({
         actions.setCurrentStep(1);
       } catch (error) {
         return;
+      } finally {
+        loadingActions.setBaseTemplateConfigCreation(false);
       }
     }
   };
@@ -112,7 +115,6 @@ export const BaseTemplateBuilder: React.FC<BaseTemplateBuilderProps> = ({
         description: values.description,
         category_id: values.category_id,
         design_json: designJson,
-        html_content: htmlContent || '<div></div>',
       });
 
       actions.reset();
@@ -143,7 +145,7 @@ export const BaseTemplateBuilder: React.FC<BaseTemplateBuilderProps> = ({
       </Card>
 
       {currentStep === 0 && (
-        <BaseTemplateConfig onCancel={handlePreviousStep} handleNextStep={handleNextStep} />
+        <BaseTemplateConfig onCancel={onCancel} handleNextStep={handleNextStep} form={form} />
       )}
 
       {currentStep === 1 && (
@@ -151,7 +153,6 @@ export const BaseTemplateBuilder: React.FC<BaseTemplateBuilderProps> = ({
           <UnlayerMain
             unlayerConfig={unlayerConfig}
             onSave={handleDesignSave}
-            apiClient={apiClient}
             enableCustomImageUpload={true}
             clientTemplateId={templateId || ''}
             saveMode="base"

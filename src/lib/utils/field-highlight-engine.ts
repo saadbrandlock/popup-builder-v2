@@ -145,8 +145,6 @@ export class FieldHighlightEngine {
       console.warn(`[Field Highlight] Could not find element for field ID: ${fieldId}`);
       return;
     }
-    
-    console.log(`[Field Highlight] Highlighting field: ${fieldId}`, element);
 
     // Apply highlight class
     requestAnimationFrame(() => {

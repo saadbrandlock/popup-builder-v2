@@ -7,7 +7,7 @@ import {
   FileTextOutlined
 } from '@ant-design/icons';
 import { Clock, FileCheck } from 'lucide-react';
-import { BrowserPreview, BrowserPreviewSkeleton } from '../components/BrowserPreview';
+import { BrowserPreview, BrowserPreviewSkeleton } from '../../../components/common';
 import { useClientFlowStore } from '@/stores/clientFlowStore';
 import { useGenericStore } from '@/stores/generic.store';
 import { ClientFlowData } from '@/types';
@@ -210,7 +210,6 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = () => {
                 interactive={false}
                 scale={0.9}
                 onPopupInteraction={(action) => {
-                  console.log(`${selectedDevice} interaction:`, action);
                 }}
               />
             ) : (

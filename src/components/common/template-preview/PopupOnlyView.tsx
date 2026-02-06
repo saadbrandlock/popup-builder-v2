@@ -3,7 +3,7 @@ import { safeDecodeAndSanitizeHtml } from '@/lib/utils/helper';
 import { useOptimizedHTMLMerger } from '@/lib/hooks';
 import { ReminderTabConfig } from '@/features/builder/types';
 import { Spin } from 'antd';
-import { useFieldHighlight } from '../hooks/use-field-highlight';
+import { useFieldHighlight } from '../../../features/client-flow/hooks/use-field-highlight';
 import { useClientFlowStore } from '@/stores/clientFlowStore';
 import { templateContentParser, ContentMapping } from '@/lib/utils/template-content-parser';
 

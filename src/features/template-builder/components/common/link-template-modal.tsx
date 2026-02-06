@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Select, Button, message, Typography, Tag, Space, Divider, Empty } from 'antd';
 import { LinkOutlined, UserOutlined, MobileOutlined } from '@ant-design/icons';
 import { createAPI } from '@/api';
-import { AxiosInstance } from 'axios';
+import { useGenericStore } from '@/stores/generic.store';
 
 const { Text, Title } = Typography;
 const { Option } = Select;
@@ -21,7 +21,6 @@ interface LinkTemplateModalProps {
   parentTemplateId: string;
   parentTemplateName?: string;
   accountId: number;
-  apiClient: AxiosInstance;
   onSuccess?: () => void;
 }
 
@@ -31,17 +30,17 @@ export const LinkTemplateModal: React.FC<LinkTemplateModalProps> = ({
   parentTemplateId,
   parentTemplateName,
   accountId,
-  apiClient,
   onSuccess,
 }) => {
+  const apiClient = useGenericStore((s) => s.apiClient);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [potentialTemplates, setPotentialTemplates] = useState<PotentialChildTemplate[]>([]);
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
 
-  const api = createAPI(apiClient);
-  const templatesAPI = api.templates;
+  const api = apiClient ? createAPI(apiClient) : null;
+  const templatesAPI = api?.templates;
 
   useEffect(() => {
     if (visible && accountId) {
@@ -50,6 +49,7 @@ export const LinkTemplateModal: React.FC<LinkTemplateModalProps> = ({
   }, [visible, accountId]);
 
   const fetchPotentialChildTemplates = async () => {
+    if (!templatesAPI) return;
     setLoading(true);
     try {
       const response = await templatesAPI.getPotentitalChildTemplateDetails(accountId);
@@ -65,6 +65,10 @@ export const LinkTemplateModal: React.FC<LinkTemplateModalProps> = ({
   };
 
   const handleSubmit = async () => {
+    if (!templatesAPI) {
+      message.error('API client is required');
+      return;
+    }
     if (selectedTemplates.length === 0) {
       message.warning('Please select at least one template to link');
       return;

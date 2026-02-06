@@ -115,12 +115,11 @@ export interface ReminderTabFileSizeEstimate {
   js: number;
 }
 
-// Props interfaces for components
+// Props interfaces for components (apiClient is read from generic store)
 export interface ReminderTabStepProps {
   onNext?: () => void;
   onBack?: () => void;
   onSave?: (config: ReminderTabConfig) => Promise<void>;
-  apiClient: AxiosInstance;
 }
 
 export interface ReminderTabSaveStatus {

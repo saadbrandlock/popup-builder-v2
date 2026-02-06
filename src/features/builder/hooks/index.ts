@@ -10,3 +10,6 @@ export type { UseAutosaveOptions, UseAutosaveReturn } from './useAutosave';
 
 export { useUnlayerImageUpload } from './useUnlayerImageUpload';
 export type { UseUnlayerImageUploadOptions, UseUnlayerImageUploadReturn } from './useUnlayerImageUpload';
+
+export { useUnlayerDeviceOptions } from './useUnlayerDeviceOptions';
+export type { UnlayerDevice, UnlayerDeviceOptions } from './useUnlayerDeviceOptions';

@@ -111,7 +111,6 @@ const decodeHtmlEntitiesInDesign = (designData: any): any => {
       if (key === 'text' && typeof value === 'string') {
         // Decode HTML entities in text fields
         processed[key] = decodeHtmlEntities(value);
-        console.log(`🔧 Decoded text: "${value}" → "${processed[key]}"`);
       } else if (typeof value === 'object') {
         // Recursively process nested objects
         processed[key] = processObject(value);
@@ -163,7 +162,6 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
         templateId,
         accountId,
         onUploadSuccess: (asset) => {
-          console.log('✅ Image uploaded via Unlayer:', asset);
         },
         onUploadError: (error) => {
           console.error('❌ Unlayer image upload failed:', error);
@@ -218,7 +216,6 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
         unlayer.loadDesign(design);
         actions.loadDesign(design);
 
-        console.log('✅ Design loaded successfully');
       } catch (error) {
         console.error('❌ Failed to load design:', error);
         const err = error instanceof Error ? error : new Error('Failed to load design');
@@ -246,16 +243,9 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
           saveMode === 'staging'
             ? useBuilderStore.getState().templateState
             : useBaseTemplateStore.getState().selectedTemplate;
-        console.log('🔍 Loading template - selectedTemplate:', selectedTemplateClient);
-        console.log('🔍 Loading template - templateId:', templateId);
 
         // Check if we're in template editing mode (from client review)
         if (selectedTemplateClient && selectedTemplateClient.template_id === templateId) {
-          console.log('📝 Loading template from client review selectedTemplate');
-          console.log(
-            '📝 Loading template from client review selectedTemplate:',
-            selectedTemplateClient
-          );
           // Use selectedTemplate data directly (it's already a ClientFlowData)
           if (selectedTemplateClient.builder_state_json) {
             let designData = selectedTemplateClient.builder_state_json;
@@ -263,7 +253,6 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
             if (typeof designData === 'string') {
               try {
                 designData = JSON.parse(designData);
-                console.log('✅ Parsed selectedTemplate JSON string to object');
               } catch (error) {
                 console.error(
                   '❌ Failed to parse selectedTemplate builder_state_json as JSON:',
@@ -281,9 +270,7 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
 
             if (designData && typeof designData === 'object') {
               if (!designData.body && !designData.counters) {
-                console.log("⚠️ selectedTemplate doesn't look like a valid Unlayer design format");
               } else {
-                console.log('🔧 Fixing HTML entity encoding in selectedTemplate design data...');
                 designData = decodeHtmlEntitiesInDesign(designData);
               }
             }
@@ -291,14 +278,11 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
             loadDesign(designData);
             onTemplateLoad?.(selectedTemplateClient);
           } else {
-            console.log('⚠️ selectedTemplate has no builder state');
             onTemplateLoad?.(selectedTemplateClient);
           }
         } else {
           // Normal template loading from API
-          console.log('📡 Loading template from API');
           const api = createAPI(apiClient);
-          console.log('this is selectedTemplateAdmin', !!selectedTemplateAdmin);
 
           const template = selectedTemplateAdmin?.id
             ? selectedTemplateAdmin
@@ -311,7 +295,6 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
             if (typeof designData === 'string') {
               try {
                 designData = JSON.parse(designData);
-                console.log('✅ Parsed API template JSON string to object');
               } catch (error) {
                 console.error('❌ Failed to parse API template builder_state_json as JSON:', error);
 
@@ -326,16 +309,13 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
 
             if (designData && typeof designData === 'object') {
               if (!designData.body && !designData.counters) {
-                console.log("⚠️ API template doesn't look like a valid Unlayer design format");
               } else {
-                console.log('🔧 Fixing HTML entity encoding in API template design data...');
                 designData = decodeHtmlEntitiesInDesign(designData);
               }
             }
             loadDesign(designData);
             onTemplateLoad?.(template);
           } else {
-            console.log('⚠️ API template has no builder state');
             onTemplateLoad?.(template);
           }
         }
@@ -373,7 +353,6 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
           actions.setCurrentDesign(design);
           actions.setExporting(false);
 
-          console.log('✅ HTML exported successfully');
           resolve(sanitizeHtml(html));
         } catch (error) {
           const err = error instanceof Error ? error : new Error('HTML export failed');
@@ -410,8 +389,6 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
           actions.setCurrentDesign(processedDesign);
           actions.setExporting(false);
 
-          console.log('✅ JSON exported successfully with template fields processed');
-          console.log('📋 Exported JSON:', processedDesign);
           resolve(processedDesign);
         } catch (error) {
           const err = error instanceof Error ? error : new Error('JSON export failed');
@@ -457,9 +434,6 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
       actions.exportBoth(design, html);
       actions.setExporting(false);
 
-      console.log('✅ Both HTML and JSON exported successfully with template fields processed');
-      console.log('📋 Exported JSON:', design);
-      console.log('🌐 Exported HTML:', html);
       return { design, html };
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Export failed');
@@ -475,47 +449,30 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
    */
   const onEditorReady = useCallback(
     (unlayer: any) => {
-      console.log('🎉 Unlayer editor is ready');
 
       // Set project ID and ready state
       actions.setProjectId(projectId);
       actions.setReady(true);
 
       if (enableCustomImageUpload && apiClient && templateId && accountId) {
-        console.log('🚀 Configuring custom image upload with:', {
-          templateId,
-          accountId,
-          hasApiClient: !!apiClient,
-        });
         setupImageUpload(unlayer);
-        console.log('🖼️ Custom image upload configured for Unlayer');
       }
 
       // Load template if templateId provided and loading enabled
       if (loadTemplateOnReady && templateId && apiClient) {
-        console.log(`🚀 Auto-loading template ${templateId}...`);
         loadTemplateById(templateId);
       }
 
       // Set up comprehensive design change listeners for autosave
-      console.log('🔧 Setting up canvas change detection...');
 
       // Primary event: design:updated
       unlayer.addEventListener('design:updated', (updatedDesign: any) => {
-        console.log('🔄 design:updated event fired');
-        console.log('📊 Event data keys:', updatedDesign ? Object.keys(updatedDesign) : 'null');
-        console.log('⏰ Timestamp:', new Date().toISOString());
-        console.log('🎯 Current hasUnsavedChanges before:', store.hasUnsavedChanges);
-
         actions.setCurrentDesign(updatedDesign);
         actions.markUnsavedChanges(true);
         onDesignChange?.(updatedDesign);
 
         // Force auto-save check to ensure interval is running
-        console.log('🚀 Triggering auto-save check after design update');
-        forceAutoSaveCheck();
-
-        console.log('✅ Change state updated, hasUnsavedChanges now:', true);
+          forceAutoSaveCheck();
       });
 
       // Additional events to catch all possible changes
@@ -533,9 +490,6 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
         'content:updated',
       ];
 
-      // 🧪 ENHANCED DEBUG MODE - Test ALL possible events first
-      console.log('🔬 ENHANCED DEBUG MODE: Testing comprehensive event detection');
-
       // Test basic editor events first to see if ANY events work
       const basicTestEvents = [
         'ready',
@@ -551,48 +505,33 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
       basicTestEvents.forEach((eventName) => {
         try {
           unlayer.addEventListener(eventName, (eventData: any) => {
-            console.log(`🔥 BASIC EVENT FIRED: "${eventName}"`, {
-              hasData: !!eventData,
-              dataType: typeof eventData,
-              timestamp: new Date().toISOString(),
-            });
           });
         } catch (error) {
-          console.log(`❌ Failed to register basic event: ${eventName}`, error);
         }
       });
 
       additionalEvents.forEach((eventName) => {
         try {
           unlayer.addEventListener(eventName, (data: any) => {
-            console.log(`📡 Additional event fired: ${eventName}`, data ? 'with data' : 'no data');
-            console.log('⏰ Timestamp:', new Date().toISOString());
-
             // Mark as changed for any canvas operation
             if (!store.hasUnsavedChanges) {
-              console.log(`🔥 Marking unsaved changes from ${eventName} event`);
               actions.markUnsavedChanges(true);
             }
 
             // Force auto-save check for immediate response
-            console.log(`🚀 Triggering auto-save check from ${eventName} event`);
             forceAutoSaveCheck();
 
             // Optionally get current design and update store
             unlayer.saveDesign((currentDesign: any) => {
               actions.setCurrentDesign(currentDesign);
               onDesignChange?.(currentDesign);
-              console.log(`✅ Design updated from ${eventName} event`);
             });
           });
-          console.log(`✅ Registered event listener: ${eventName}`);
         } catch (error) {
-          console.log(`⚠️ Failed to register event listener: ${eventName}`, error);
         }
       });
 
       // Fallback: Periodic change detection
-      console.log('🔄 Setting up fallback change detection...');
       const changeDetectionInterval = setInterval(() => {
         if (!unlayer || !store.isReady) return;
 
@@ -601,14 +540,11 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
           const savedDesignStr = JSON.stringify(store.savedDesign);
 
           if (currentDesignStr !== savedDesignStr && !store.hasUnsavedChanges) {
-            console.log('🔍 Change detected via fallback polling');
-            console.log('⏰ Timestamp:', new Date().toISOString());
             actions.setCurrentDesign(currentDesign);
             actions.markUnsavedChanges(true);
             onDesignChange?.(currentDesign);
 
             // Force auto-save check for fallback detection
-            console.log('🚀 Triggering auto-save check from fallback detection');
             forceAutoSaveCheck();
           }
         });
@@ -616,14 +552,12 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
 
       // Cleanup interval on unmount/editor change
       const cleanup = () => {
-        console.log('🧹 Cleaning up change detection interval');
         clearInterval(changeDetectionInterval);
       };
 
       // Store cleanup function for later use
       (unlayer as any).__changeDetectionCleanup = cleanup;
 
-      console.log('✅ Unlayer editor initialized successfully');
     },
     [
       actions,

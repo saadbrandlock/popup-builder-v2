@@ -6,6 +6,8 @@ type LoadingState = {
   templateByIdLoading: boolean;
   devicesLoading: boolean;
   configSaving: boolean;
+  baseTemplateConfigCreation: boolean;
+  baseTemplateStatusUpdate: boolean;
   contentListingLoading: boolean;
   contentActionLoading: boolean;
   contentSubDataLoading: boolean;
@@ -23,6 +25,8 @@ type LoadingActions = {
     setTemplateByIdLoading: (loading: boolean) => void;
     setDevicesLoading: (loading: boolean) => void;
     setConfigSaving: (loading: boolean) => void;
+    setBaseTemplateConfigCreation: (loading: boolean) => void;
+    setBaseTemplateStatusUpdate: (loading: boolean) => void;
     setContentListingLoading: (loading: boolean) => void;
     setContentActionLoading: (loading: boolean) => void;
     setContentSubDataLoading: (loading: boolean) => void;
@@ -40,6 +44,8 @@ export const useLoadingStore = create<LoadingState & LoadingActions>((set) => ({
   templateByIdLoading: false,
   devicesLoading: false,
   configSaving: false,
+  baseTemplateConfigCreation: false,
+  baseTemplateStatusUpdate: false,
   contentListingLoading: false,
   contentActionLoading: false,
   contentSubDataLoading: false,
@@ -56,6 +62,10 @@ export const useLoadingStore = create<LoadingState & LoadingActions>((set) => ({
     setTemplateByIdLoading: (loading: boolean) => set({ templateByIdLoading: loading }),
     setDevicesLoading: (loading: boolean) => set({ devicesLoading: loading }),
     setConfigSaving: (loading: boolean) => set({ configSaving: loading }),
+    setBaseTemplateConfigCreation: (loading: boolean) =>
+      set({ baseTemplateConfigCreation: loading }),
+    setBaseTemplateStatusUpdate: (loading: boolean) =>
+      set({ baseTemplateStatusUpdate: loading }),
     setContentListingLoading: (loading: boolean) =>
       set({ contentListingLoading: loading }),
     setContentActionLoading: (loading: boolean) =>

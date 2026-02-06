@@ -60,8 +60,7 @@ export class TemplatesAPI extends BaseAPI {
   ): Promise<TCBTemplate> {
     try {
       const payload = removeNullUndefinedKeys(template);
-      console.log(payload);
-      
+
       const response = await this.put<TCBTemplate>(
         `/base-templates/${templateId}`,
         payload
@@ -77,6 +76,71 @@ export class TemplatesAPI extends BaseAPI {
       return this.get<any>(`/base-templates/${id}`);
     } catch (error) {
       this.handleError(error, 'get base template by id');
+    }
+  }
+
+  async getBaseTemplates(params?: {
+    categoryId?: number;
+    isFeatured?: boolean;
+    status?: string;
+    search?: string;
+    limit?: number;
+    page?: number;
+    sortColumn?: string;
+    sortDirection?: 'ascend' | 'descend';
+  }): Promise<PaginatedResponse<any>> {
+    try {
+      const queryParams: any = {};
+      if (params) {
+        if (params.categoryId) queryParams.categoryId = params.categoryId;
+        if (params.isFeatured !== undefined) queryParams.isFeatured = params.isFeatured;
+        if (params.status) queryParams.status = params.status;
+        if (params.search) queryParams.search = params.search;
+        if (params.limit) queryParams.limit = params.limit;
+        if (params.page) queryParams.page = params.page;
+        if (params.sortColumn) queryParams.sortColumn = params.sortColumn;
+        if (params.sortDirection) queryParams.sortDirection = params.sortDirection;
+      }
+
+      return this.get<PaginatedResponse<any>>(`/base-templates/`, queryParams);
+    } catch (error) {
+      this.handleError(error, 'get base templates');
+    }
+  }
+
+  async copyBaseTemplateToAccount(
+    baseTemplateId: string,
+    accountId: number
+  ): Promise<{ template_id: string }> {
+    try {
+      const data = await this.post<{ template_id: string }>(
+        `/base-templates/${baseTemplateId}/copy-to-account`,
+        { account_id: accountId }
+      );
+      return data;
+    } catch (error) {
+      this.handleError(error, 'copy base template to account');
+    }
+  }
+
+  async deleteBaseTemplate(baseTemplateId: string): Promise<{ message: string }> {
+    try {
+      return this.delete<{ message: string }>(`/base-templates/${baseTemplateId}`);
+    } catch (error) {
+      this.handleError(error, 'delete base template');
+    }
+  }
+
+  async updateBaseTemplateStatus(
+    baseTemplateId: string,
+    status: 'archive' | 'active' | 'deleted'
+  ): Promise<{ success: boolean }> {
+    try {
+      return this.patch<{ success: boolean }>(`/base-templates/${baseTemplateId}/status`, {
+        status,
+      });
+    } catch (error) {
+      this.handleError(error, 'update base template status');
     }
   }
 
@@ -109,9 +173,14 @@ export class TemplatesAPI extends BaseAPI {
   }
 
   /**
-   * Get templates transformed for UI consumption
+   * Get templates transformed for UI consumption.
+   * When params are passed, they are used; otherwise state is read from the store.
    */
-  async getTemplatesForUI(): Promise<{
+  async getTemplatesForUI(params?: {
+    filters?: Pick<FetchParams, 'deviceId' | 'status' | 'nameSearch'>;
+    pagination?: TablePaginationConfig;
+    sorter?: Pick<FetchParams, 'sortColumn' | 'sortDirection'>;
+  }): Promise<{
     templates: CleanTemplateResponse[];
     pagination: {
       page: number;
@@ -119,7 +188,9 @@ export class TemplatesAPI extends BaseAPI {
       total: number;
     };
   }> {
-    const { filters, pagination, sorter } = useTemplateListingStore.getState();
+    const filters = params?.filters ?? useTemplateListingStore.getState().filters;
+    const pagination = params?.pagination ?? useTemplateListingStore.getState().pagination;
+    const sorter = params?.sorter ?? useTemplateListingStore.getState().sorter;
     const response = await this.getTemplates(pagination, filters, sorter);
     return {
       templates: response.results.map((template) =>
@@ -210,14 +281,21 @@ export class TemplatesAPI extends BaseAPI {
   }
 
   /**
-   * Unarchive a template
+   * Unarchive a template, optionally restoring to draft or published.
    */
-  async unarchiveTemplate(templateId: string): Promise<{ message: string }> {
+  async unarchiveTemplate(
+    templateId: string,
+    targetStatus?: 'draft' | 'published'
+  ): Promise<{ message: string }> {
+    const body: { action: string; targetStatus?: 'draft' | 'published' } = {
+      action: 'unarchive',
+    };
+    if (targetStatus) {
+      body.targetStatus = targetStatus;
+    }
     return this.post<{ message: string }>(
       `/admin/templates/${templateId}/actions`,
-      {
-        action: 'unarchive',
-      }
+      body
     );
   }
 
@@ -358,7 +436,7 @@ export class TemplatesAPI extends BaseAPI {
         `/client-review/template/${templateId}`,
         templateData
       );
-      console.log('✅ Client review template updated successfully');
+      
       return response;
     } catch (error) {
       console.error('❌ Failed to update client review template:', error);

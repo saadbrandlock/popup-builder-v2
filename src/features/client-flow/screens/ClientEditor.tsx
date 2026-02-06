@@ -13,6 +13,8 @@ export interface ClientEditorProps extends BaseProps {
   unlayerConfig: UnlayerOptions;
   templateId: string; // Required - always edit mode
   onComplete?: () => void;
+  /** Called when user exits editor (e.g. return to review); confirm is shown before calling */
+  onExit?: () => void;
 }
 
 /**
@@ -30,23 +32,25 @@ export const ClientEditor: React.FC<ClientEditorProps> = ({
   templateId,
   unlayerConfig,
   onComplete,
+  onExit,
 }) => {
-  const { loadTemplate } = useBuilderMain({ apiClient });
-  const { actions } = useBuilderStore();
-  const { templateByIdLoading } = useLoadingStore();
-
-  // Local step state for client editor (0 = Editor, 1 = Reminder Tab)
-  const [currentStep, setCurrentStep] = useState(0);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  // Sync generic context (account, auth, shoppers, navigate) into global store once
+  // Sync first so apiClient and context are in store before useBuilderMain etc.
   useSyncGenericContext({
     accountDetails,
     authProvider,
     shoppers,
     navigate,
     accounts,
+    apiClient,
   });
+
+  const { loadTemplate } = useBuilderMain();
+  const { actions } = useBuilderStore();
+  const { templateByIdLoading } = useLoadingStore();
+
+  // Local step state for client editor (0 = Editor, 1 = Reminder Tab)
+  const [currentStep, setCurrentStep] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Load template on mount
   useEffect(() => {
@@ -124,14 +128,13 @@ export const ClientEditor: React.FC<ClientEditorProps> = ({
       {currentStep === 0 && (
         <ClientEditorStep
           unlayerConfig={unlayerConfig}
-          apiClient={apiClient}
           templateId={templateId}
           onNext={handleNextStep}
+          onExit={onExit}
         />
       )}
       {currentStep === 1 && (
         <ClientReminderTabStep
-          apiClient={apiClient}
           onBack={handlePrevStep}
           onComplete={onComplete}
         />

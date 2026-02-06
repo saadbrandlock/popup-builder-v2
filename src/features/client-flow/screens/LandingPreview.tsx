@@ -4,7 +4,7 @@ import { BaseProps } from '../../../types/props';
 import {
   BrowserPreview,
   BrowserPreviewSkeleton,
-} from '../components/BrowserPreview';
+} from '../../../components/common';
 import { useClientFlowStore } from '../../../stores/clientFlowStore';
 import type { ViewportType } from '../types/clientFlow';
 import { ALargeSmall, Computer, TabletSmartphone } from 'lucide-react';
@@ -35,19 +35,19 @@ export const LandingPreview: React.FC<LandingPreviewProps> = ({
   accountDetails,
   goToReview
 }) => {
-  // TODO: Integrate BaseProps with API calls and navigation
-  // For now, these props are available for future API integration
-  const { actions, error, clientData } = useClientFlowStore();
-  const { getCleintTemplatesData } = useClientFlow({ apiClient });
-  const { clientTemplateDetailsLoading } = useLoadingStore();
-  // Sync generic context (account, auth, shoppers, navigate) into global store once
+  // Sync first so apiClient and context are in store before useClientFlow etc.
   useSyncGenericContext({
     accountDetails,
     authProvider,
     shoppers,
     navigate,
     accounts,
+    apiClient,
   });
+
+  const { actions, error, clientData } = useClientFlowStore();
+  const { getCleintTemplatesData } = useClientFlow();
+  const { clientTemplateDetailsLoading } = useLoadingStore();
 
   // Fixed desktop preview for landing page
   const viewport: ViewportType = 'desktop';
@@ -221,7 +221,6 @@ export const LandingPreview: React.FC<LandingPreviewProps> = ({
                     interactive={false}
                     scale={0.9}
                     onPopupInteraction={(action) => {
-                      console.log('Popup interaction:', action);
                     }}
                   />
                 ) : (

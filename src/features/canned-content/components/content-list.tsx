@@ -23,6 +23,7 @@ import SharedTemplateTable, {
 import { useLoadingStore } from '@/stores/common/loading.store';
 import CannedContentForm from './content-form';
 import { useGenericStore } from '@/stores/generic.store';
+import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
 import { splitByAndCapitalize } from '@/lib/utils/helper';
 
 const { Search } = Input;
@@ -35,7 +36,17 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
   shoppers,
   accountDetails,
   authProvider,
+  accounts,
 }) => {
+  useSyncGenericContext({
+    apiClient,
+    navigate,
+    accountDetails,
+    authProvider,
+    shoppers,
+    accounts,
+  });
+
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingContent, setEditingContent] = useState<CBCannedContent | null>(
     null
@@ -46,13 +57,11 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
 
   const { contentSubDataLoading, contentListingLoading } = useLoadingStore();
 
-  const {
-    actions: genericActions,
-    accountDetails: genericAccountDetails,
-    shoppers: genericShoppers,
-    authProvider: genericAuthProvider,
-    navigate: genericNavigate,
-  } = useGenericStore();
+  const genericActions = useGenericStore((s) => s.actions);
+  const genericAccountDetails = useGenericStore((s) => s.accountDetails);
+  const genericShoppers = useGenericStore((s) => s.shoppers);
+  const genericAuthProvider = useGenericStore((s) => s.authProvider);
+  const genericNavigate = useGenericStore((s) => s.navigate);
 
   const {
     getContent,
@@ -61,7 +70,7 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
     createContent,
     getFields,
     getIndustries,
-  } = useContent({ apiClient });
+  } = useContent();
 
   const handleTableChange: TableProps<CBCannedContent>['onChange'] = (
     newPagination,

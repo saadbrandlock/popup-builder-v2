@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from 'antd';
-import { BrowserPreview } from './BrowserPreview';
-import type { WebsiteData } from '../types/clientFlow';
+import { BrowserPreview } from '../index';
+import type { WebsiteData } from '../../../features/client-flow/types/clientFlow';
 
 interface BrowserPreviewModalProps {
   open: boolean;
@@ -20,7 +20,7 @@ export const BrowserPreviewModal: React.FC<BrowserPreviewModalProps> = ({
 }) => {
   return (
     <Modal
-      title={`Browser Preview - ${viewport === 'desktop' ? 'Desktop' : 'Mobile'}`}
+      title={`${viewport === 'desktop' ? 'Desktop' : 'Mobile'} Preview`}
       open={open}
       onCancel={onClose}
       footer={null}

@@ -4,10 +4,10 @@ import { useDevicesStore } from '@/stores/common/devices.store';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import { useGenericStore } from '@/stores/generic.store';
 import { message } from 'antd';
-import { AxiosInstance } from 'axios';
 
-export const useClientFlow = ({ apiClient }: { apiClient: AxiosInstance }) => {
-  const api = createAPI(apiClient);
+export const useClientFlow = () => {
+  const apiClient = useGenericStore((s) => s.apiClient);
+  const api = apiClient ? createAPI(apiClient) : null;
   const { actions: loadingActions } = useLoadingStore();
   const { actions: clientFlowActions, clientData } = useClientFlowStore();
   const { devices, actions: deviceActions } = useDevicesStore();
@@ -23,6 +23,7 @@ export const useClientFlow = ({ apiClient }: { apiClient: AxiosInstance }) => {
     shopper_id: number;
     shopper_name: string;
   }) => {
+    if (!api) return;
     loadingActions.setShopperDetailsLoading(true);
     try {
       const response = await api.content.getShopperDetails({
@@ -51,6 +52,7 @@ export const useClientFlow = ({ apiClient }: { apiClient: AxiosInstance }) => {
   };
 
   const getCleintTemplatesData = async (accountId: number) => {
+    if (!api) return;
     if (clientData && clientData.length) {
       return;
     }
@@ -68,6 +70,7 @@ export const useClientFlow = ({ apiClient }: { apiClient: AxiosInstance }) => {
   };
 
   const getContentFieldsWithContent = async (accountId: number) => {
+    if (!api) return;
     loadingActions.setContentSubDataLoading(true);
     try {
       const response =
@@ -82,6 +85,7 @@ export const useClientFlow = ({ apiClient }: { apiClient: AxiosInstance }) => {
   };
 
   const getDevices = async () => {
+    if (!api) return;
     if (devices.length > 0) return;
 
     loadingActions.setDevicesLoading(true);

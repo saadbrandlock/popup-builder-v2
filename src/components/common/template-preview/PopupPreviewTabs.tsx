@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, Card, Typography } from 'antd';
 import { MonitorSpeaker, Smartphone } from 'lucide-react';
-import { PopupOnlyView } from './PopupOnlyView';
+import { PopupOnlyView } from '../index';
 import { ClientFlowData } from '@/types';
 
 const { Title } = Typography;
@@ -27,7 +27,7 @@ export const PopupPreviewTabs: React.FC<PopupPreviewTabsProps> = ({
       const mobile = clientData.find(
         (t) => t.devices.some((device) => device.device_type === 'mobile')
       );
-      
+
       setDesktopTemplate(desktop || null);
       setMobileTemplate(mobile || null);
     }

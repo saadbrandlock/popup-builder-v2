@@ -63,27 +63,20 @@ function processTextContent(
 ): { processedText: string; foundFieldIds: string[] } {
   const foundFieldIds: string[] = [];
   
-  console.log('🔤 Processing text:', text);
-  console.log('🔍 Regex pattern:', TEMPLATE_FIELD_REGEX);
   
   const processedText = text.replace(TEMPLATE_FIELD_REGEX, (match, fieldId) => {
-    console.log('🎯 Found match:', match, 'Field ID:', fieldId);
     const templateField = templateFieldsMap.get(fieldId);
     if (templateField) {
-      console.log('✅ Template field found:', templateField);
       foundFieldIds.push(fieldId);
       
       // Replace the placeholder with the default value and inject id attribute
       return injectIdIntoElement(templateField.default_field_value, fieldId);
     } else {
-      console.log('❌ No template field found for ID:', fieldId);
     }
     // Return the original placeholder if no matching field is found
     return match;
   });
 
-  console.log('📝 Processed text:', processedText);
-  console.log('🆔 Found field IDs:', foundFieldIds);
   return { processedText, foundFieldIds };
 }
 
@@ -227,25 +220,18 @@ export function processTemplateFields(
   design: UnlayerDesign,
   templateFields: CBTemplateFieldContentIdMapping[]
 ): UnlayerDesign {
-  console.log('🔄 Processing template fields...');
-  console.log('📊 Template fields count:', templateFields.length);
-  console.log('📋 Template fields:', templateFields);
   
   // Create a deep copy to avoid mutating the original object
   const processedDesign = JSON.parse(JSON.stringify(design)) as UnlayerDesign;
   
   // Create lookup map for efficient field access
   const templateFieldsMap = createTemplateFieldsMap(templateFields);
-  console.log('🗺️ Template fields map:', templateFieldsMap);
   
   // Extract field IDs first to see what we're looking for
   const foundFieldIds = extractTemplateFieldIds(processedDesign);
-  console.log('🔍 Found field IDs in design:', foundFieldIds);
   
   // Process all content in the design
   processDesignContent(processedDesign, templateFieldsMap);
-  
-  console.log('✅ Template fields processing completed');
   return processedDesign;
 }
 

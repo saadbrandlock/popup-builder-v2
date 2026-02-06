@@ -13,6 +13,8 @@ import {
   Tag,
   TableProps,
   Space,
+  Modal,
+  Spin,
 } from 'antd';
 import {
   PlusOutlined,
@@ -26,7 +28,7 @@ import {
 } from '@ant-design/icons';
 import StatusTag from './common/StatusTag';
 import DeviceTags from './common/DeviceTags';
-import { SharedTemplateTable, ShopperSegmentTagGroup, TimeDisplay } from '@/components/common';
+import { SharedTemplateTable, ShopperSegmentTagGroup, TimeDisplay, PopupPreviewTabs } from '@/components/common';
 import { FilterComponent } from '@/components/common/shared-table';
 import { useTemplateListingStore } from '@/stores/list/templateListing.store';
 import { useDevicesStore } from '@/stores/common/devices.store';
@@ -38,11 +40,14 @@ import { useDebouncedCallback } from '@/lib/hooks/use-debounce';
 import { useTemplateListing } from '../hooks/use-template-listing';
 import { AccountDetails, CleanTemplateResponse, TCBTemplate } from '@/types';
 import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
+import { useGenericStore } from '@/stores/generic.store';
 import { Link } from 'lucide-react';
 import LinkTemplateModal from './common/link-template-modal';
 import { ChildTemplatesTable } from './index';
 import { createAPI } from '@/api';
 import { useActionConfirm } from '@/lib/hooks/use-action-confirm';
+import { useTemplatePreviewData } from '@/lib/hooks';
+import { convertUnlayerJsonToHtml, validateUnlayerDesign } from '@/lib/utils/unlayerHtmlConverter';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -57,18 +62,37 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
   authProvider,
   accounts,
 }) => {
-  const { handleAction, getTemplates, getDevices } = useTemplateListing({
+  // Sync first so apiClient and context are in store before useTemplateListing etc.
+  useSyncGenericContext({
+    accountDetails,
+    authProvider,
+    shoppers,
+    navigate,
+    accounts,
     apiClient,
   });
 
-  const { showConfirm, ConfirmModal } = useActionConfirm();
+  const { handleAction, getTemplates, getDevices } = useTemplateListing();
 
+  const { showConfirm, ConfirmModal } = useActionConfirm()
+
+    // Preview modal (same flow as BaseTemplateCard: convert builder_state_json to HTML, then useTemplatePreviewData)
+    const [previewModalVisible, setPreviewModalVisible] = useState(false);
+    const [previewTemplate, setPreviewTemplate] = useState<CleanTemplateResponse | null>(null);
+    const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+    const [loadingConversion, setLoadingConversion] = useState(false);
+
+  const apiClientFromStore = useGenericStore((s) => s.apiClient);
   const handleChildTemplateAction = async (
     action: 'edit' | 'delete' | 'archive',
     templateId: string
   ) => {
     try {
-      const api = createAPI(apiClient);
+      if (!apiClientFromStore) {
+        message.error('API client is required');
+        return;
+      }
+      const api = createAPI(apiClientFromStore);
       if (action === 'edit') {
         navigate(`/coupon-builder-v2/popup-builder/${templateId}/edit`);
       } else if (action === 'delete') {
@@ -102,18 +126,8 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
     name: '',
     account_id: -1,
   });
-
-  // Sync generic context (account, auth, shoppers, navigate) into global store once
-  useSyncGenericContext({
-    accountDetails,
-    authProvider,
-    shoppers,
-    navigate,
-    accounts,
-  });
-
   const getActionMenuItems = (template: CleanTemplateResponse) => {
-    const items = [
+    const actionItems: { key: string; icon: React.ReactNode; label: string; onClick: () => void }[] = [
       {
         key: 'edit',
         icon: <EditOutlined />,
@@ -124,22 +138,40 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
         key: 'preview',
         icon: <EyeOutlined />,
         label: 'Preview',
-        onClick: () => handleAction('preview', template),
+        onClick: () => openPreviewModal(template),
       },
     ];
 
-    if (template.status === 'draft') {
-      items.push({
+    if (template.devices.some((device) => device.device_type === 'desktop')) {
+      actionItems.push({
+        key: 'link',
+        icon: <Link size={16} />,
+        label: 'Link Templates',
+        onClick: () => {
+          setLinkTemplateModalVisible(true);
+          setSelectedTemplateDetails({
+            description: template.description || '',
+            id: template.id,
+            name: template.name,
+            account_id: template.account_details.id,
+          });
+        },
+      });
+    }
+
+    const statusItems: { key: string; icon: React.ReactNode; label: string; onClick: () => void }[] = [];
+
+    if (template.status === 'draft' || template.child_templates?.some((child: any) => child.status === 'draft')) {
+      statusItems.push({
         key: 'client-review',
         icon: <CheckOutlined />,
         label: 'Push To Client Review',
-        onClick: async () => {
+        onClick: () => {
           const childCount = template.child_templates?.length || 0;
           const templateText =
             childCount > 0
               ? `this template and ${childCount} linked child template(s)`
               : 'this template';
-
           showConfirm({
             title: 'Push to Client Review',
             content: (
@@ -152,6 +184,13 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
                   ⚠️ Have you completed designing all the template(s)? This action will make them
                   visible to clients.
                 </p>
+                {childCount > 0 && (
+                  <p className="text-xs text-gray-700">
+                    Reminder: this template is linked to other template(s). If you have made changes
+                    here, double‑check whether the same updates are also needed in its linked
+                    template(s) (parent/child) before pushing to client review.
+                  </p>
+                )}
               </div>
             ),
             onConfirm: async () => await handleAction('client-review', template),
@@ -160,52 +199,85 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
       });
     }
 
-    if (template.devices.some((device) => device.device_type === 'desktop')) {
-      items.push({
-        key: 'link',
-        icon: <Link size={16} />,
-        label: 'Link Templates',
-        onClick: async () => {
-          console.log(template);
-          setLinkTemplateModalVisible(true);
-          setSelectedTemplateDetails({
-            description: template.description || '',
-            id: template.id,
-            name: template.name,
-            account_id: template.account_details.id,
-          });
-        },
-      });
-    }
-
     if (template.status !== 'archive') {
-      items.push({
+      statusItems.push({
         key: 'archive',
         icon: <InboxOutlined />,
         label: 'Archive',
-        onClick: () => handleAction('archive', template),
+        onClick: () =>
+          showConfirm({
+            title: 'Archive template',
+            content: (
+              <p>
+                Are you sure you want to archive <strong>{template.name}</strong>? You can restore it
+                later.
+              </p>
+            ),
+            onConfirm: async () => await handleAction('archive', template),
+          }),
       });
     }
 
     if (template.status === 'archive') {
-      items.push({
-        key: 'unarchive',
+      statusItems.push({
+        key: 'restore-draft',
         icon: <SelectOutlined />,
-        label: 'Unarchive',
-        onClick: () => handleAction('unarchive', template),
+        label: 'Restore to Draft',
+        onClick: () =>
+          showConfirm({
+            title: 'Restore to Draft',
+            content: (
+              <p>
+                Restore <strong>{template.name}</strong> as a draft? You can edit and push to client
+                review again.
+              </p>
+            ),
+            onConfirm: async () =>
+              await handleAction('unarchive', template, { targetStatus: 'draft' }),
+          }),
+      });
+      statusItems.push({
+        key: 'restore-published',
+        icon: <SelectOutlined />,
+        label: 'Restore to Published',
+        onClick: () =>
+          showConfirm({
+            title: 'Restore to Published',
+            content: (
+              <p>
+                Restore <strong>{template.name}</strong> to published status? It will be visible to
+                clients again.
+              </p>
+            ),
+            onConfirm: async () =>
+              await handleAction('unarchive', template, { targetStatus: 'published' }),
+          }),
       });
     }
 
     if (template.status !== 'published') {
-      items.push({
+      statusItems.push({
         key: 'delete',
         icon: <DeleteOutlined />,
         label: 'Delete',
-        onClick: () => handleAction('delete', template),
+        onClick: () =>
+          showConfirm({
+            title: 'Delete template',
+            content: (
+              <p>
+                Are you sure you want to delete <strong>{template.name}</strong>? This action cannot
+                be undone.
+              </p>
+            ),
+            onConfirm: async () => await handleAction('delete', template),
+          }),
       });
     }
 
-    return items;
+    return [
+      { type: 'group' as const, label: 'Actions', children: actionItems },
+      { type: 'group' as const, label: 'Status', children: statusItems },
+    ];
   };
 
   const columns = [
@@ -282,7 +354,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
     {
       title: 'Actions',
       key: 'actions',
-      width: 60,
+      width: 100,
       render: (_: any, template: CleanTemplateResponse) => (
         <Dropdown
           menu={{ items: getActionMenuItems(template) }}
@@ -324,8 +396,9 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
           value={filters.status}
           options={[
             { label: 'Draft', value: 'draft' },
+            { label: 'Client Review', value: 'client-review' },
             { label: 'Active', value: 'active' },
-            { label: 'Archived', value: 'archived' },
+            { label: 'Archived', value: 'archive' },
             { label: 'Published', value: 'published' },
           ]}
         />
@@ -352,7 +425,16 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
     newSorter
   ) => {
     const sorterResult = newSorter as SorterResult<CleanTemplateResponse>;
-    const newSortColumn = sorterResult.field ? `t.${sorterResult.field}` : 't.name';
+    const fieldToColumn: Record<string, string> = {
+      name: 'name',
+      lastUpdated: 'updated_at',
+      createdAt: 'created_at',
+      status: 'status',
+    };
+    const backendField = sorterResult.field
+      ? fieldToColumn[sorterResult.field as string] ?? sorterResult.field
+      : 'name';
+    const newSortColumn = `t.${backendField}`;
     const newSortDirection = sorterResult.order
       ? sorterResult.order === 'ascend'
         ? 'asc'
@@ -367,6 +449,45 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
   };
 
   const debouncedFetchTemplates = useDebouncedCallback(() => getTemplates(), 500);
+
+  useEffect(() => {
+    if (!previewModalVisible || !previewTemplate) {
+      setPreviewHtml(null);
+      return;
+    }
+    const designJson = previewTemplate.builder_state_json;
+    if (!designJson || !validateUnlayerDesign(designJson)) {
+      setPreviewHtml(null);
+      return;
+    }
+    setLoadingConversion(true);
+    convertUnlayerJsonToHtml(designJson)
+      .then((html) => setPreviewHtml(html))
+      .catch((err) => {
+        console.error('Failed to convert builder_state_json to HTML for preview:', err);
+        setPreviewHtml(null);
+      })
+      .finally(() => setLoadingConversion(false));
+  }, [previewModalVisible, previewTemplate?.id, previewTemplate?.builder_state_json]);
+
+  const previewReady = previewModalVisible && !!previewTemplate && !!previewHtml;
+  const { previewData, loading: loadingPreview } = useTemplatePreviewData({
+    templateId: previewReady ? previewTemplate!.id : null,
+    htmlContent: previewHtml || undefined,
+    enabled: previewReady,
+    template: previewTemplate || undefined,
+  });
+
+  const openPreviewModal = (template: CleanTemplateResponse) => {
+    setPreviewTemplate(template);
+    setPreviewModalVisible(true);
+  };
+
+  const closePreviewModal = () => {
+    setPreviewModalVisible(false);
+    setPreviewTemplate(null);
+  };
+
 
   useEffect(() => {
     if (filters.nameSearch !== undefined) {
@@ -414,17 +535,17 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
 
         <Space>
           <Button
+            type="primary"
             icon={<PlusOutlined />}
             onClick={() => navigate('/coupon-builder-v2/popup-builder')}
           >
             Create Template
           </Button>
           <Button
-            type="primary"
             icon={<EyeOutlined />}
             onClick={() => navigate('/coupon-builder-v2/base-templates')}
           >
-            Base Template
+            Manage Base Templates
           </Button>
         </Space>
       </div>
@@ -447,7 +568,7 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
             allowClear
             onSearch={(value) => handleFilterChange('nameSearch', value || null)}
             onChange={(e) => handleFilterChange('nameSearch', e.target.value || null)}
-            value={filters.nameSearch}
+            value={filters.nameSearch ?? ''}
             style={{ width: '400px' }}
           />
         }
@@ -476,14 +597,35 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
         parentTemplateId={selectedTemplateDetails.id}
         parentTemplateName={selectedTemplateDetails.name}
         accountId={selectedTemplateDetails.account_id}
-        apiClient={apiClient}
         onSuccess={() => {
           getTemplates();
           setLinkTemplateModalVisible(false);
         }}
       />
 
-      <ConfirmModal />
+      <Modal
+        open={previewModalVisible}
+        onCancel={closePreviewModal}
+        footer={null}
+        width={1200}
+        centered
+        destroyOnHidden
+      >
+        <div className="py-4">
+          {loadingConversion || loadingPreview ? (
+            <div className="flex items-center justify-center h-96">
+              <Spin size="large" />
+            </div>
+          ) : (
+            <PopupPreviewTabs
+              clientData={previewData}
+              className="w-full"
+            />
+          )}
+        </div>
+      </Modal>
+
+      <ConfirmModal confirmLoading={templateListActionLoading} />
     </div>
   );
 };

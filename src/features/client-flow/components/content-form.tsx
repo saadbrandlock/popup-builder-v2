@@ -58,7 +58,6 @@ const ContentForm = () => {
   const handleSubmit = async (values: ContentFormData) => {
     setIsLoading(true);
     try {
-      console.log('Form submitted with values:', values);
       message.success('Content saved successfully!');
     } catch (error) {
       console.error('Error saving content:', error);

@@ -87,20 +87,15 @@ export const useUnlayerImageUpload = (
       return;
     }
 
-    console.log('🔧 Setting up Unlayer image upload callbacks...');
     unlayerInstanceRef.current = unlayer;
 
     // Method 1: Override image upload callback
     unlayer.registerCallback('image', async (file: any, done: any) => {
       try {
-        console.log('🖼️ Unlayer image upload triggered:', file);
-        console.log('🔍 File structure:', JSON.stringify(file, null, 2));
         
         // Get the actual file from Unlayer's file object
         // According to Unlayer docs, file has attachments array
         const actualFile = file.attachments?.[0] || file;
-        
-        console.log('📁 Actual file:', actualFile);
         
         if (!actualFile) {
           console.error('❌ No file found in attachments');
@@ -129,8 +124,6 @@ export const useUnlayerImageUpload = (
         message.destroy();
         message.success('Image uploaded successfully');
         
-        console.log('✅ Image uploaded successfully:', imageUrl);
-        
       } catch (error) {
         console.error('❌ Image upload failed:', error);
         message.destroy();
@@ -147,7 +140,6 @@ export const useUnlayerImageUpload = (
     // Method 2: Override select image callback (for image gallery)
     unlayer.registerCallback('selectImage', async (data: any, done: any) => {
       try {
-        console.log('🖼️ Unlayer select image triggered:', data);
         
         // For now, we'll just open a simple file picker
         // This can be enhanced later with a custom image gallery modal
@@ -170,7 +162,6 @@ export const useUnlayerImageUpload = (
               message.destroy();
               message.success('Image selected and uploaded');
               
-              console.log('✅ Image selected and uploaded:', imageUrl);
             } catch (error) {
               message.destroy();
               message.error(`Upload failed: ${(error as Error).message}`);
@@ -188,21 +179,6 @@ export const useUnlayerImageUpload = (
       }
     });
 
-    // Log successful registration
-    console.log('✅ Image callback registered successfully');
-    console.log('✅ SelectImage callback registered successfully');
-    console.log('✅ Custom image upload handlers registered with Unlayer');
-    
-    // Test if the callback is accessible
-    setTimeout(() => {
-      console.log('🧪 Testing callback registration...');
-      if (typeof unlayer.registerCallback === 'function') {
-        console.log('✅ registerCallback function is available');
-      } else {
-        console.error('❌ registerCallback function not found on unlayer instance');
-      }
-    }, 1000);
-    
   }, [uploadImage]);
 
   return {

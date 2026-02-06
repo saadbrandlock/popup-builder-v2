@@ -23,7 +23,7 @@ export type { ClientEditorProps } from './screens/ClientEditor';
 export { OnboardingPreview } from './screens/OnboardingPreview';
 
 // Reusable Components
-export { BrowserPreview } from './components/BrowserPreview';
+export { BrowserPreview } from '../../components/common';
 export { ReviewCard } from './components/ReviewCard';
 export { NavigationStepper } from './components/NavigationStepper';
 export { WebsiteBackground } from './components/WebsiteBackground';

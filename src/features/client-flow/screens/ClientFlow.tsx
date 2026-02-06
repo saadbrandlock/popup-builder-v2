@@ -18,15 +18,21 @@ import { clientReviewSteps } from '../utils/helpers';
 import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
 import { useClientFlow } from '../hooks/use-client-flow';
 
+/** URL tab param values for each step; use with ?tab= for persistent tabs on refresh */
+export const CLIENT_FLOW_TAB_KEYS = ['desktop-design', 'mobile-design', 'copy-review', 'final-review'] as const;
+
 /**
  * Unified ClientFlow component - Combines all client flow screens into a single stepper-based interface
  * Follows the BaseProps pattern used throughout the project for consistency
  */
 interface ClientFlowProps extends BaseProps {
-  // Additional client-flow specific props can be added here
   className?: string;
   onComplete?: (reviewData: any) => void;
   initialStep?: number;
+  /** Current tab from URL (e.g. from ?tab=desktop-design); step is synced from this on mount/change */
+  tabFromUrl?: string;
+  /** Called when user changes step; host can update URL (e.g. setSearchParams({ tab })) */
+  onStepChange?: (step: number, tabKey: string) => void;
 }
 
 export const ClientFlow: React.FC<ClientFlowProps> = ({
@@ -39,7 +45,18 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
   onComplete,
   initialStep = 0,
   accounts,
+  tabFromUrl,
+  onStepChange,
 }) => {
+  useSyncGenericContext({
+    accountDetails,
+    authProvider,
+    shoppers,
+    navigate,
+    accounts,
+    apiClient,
+  });
+
   const {
     currentStep,
     desktopReview,
@@ -49,19 +66,8 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
     error,
     clientData,
   } = useClientFlowStore();
-  const { getCleintTemplatesData, getContentFieldsWithContent } = useClientFlow({
-    apiClient,
-  });
+  const { getCleintTemplatesData, getContentFieldsWithContent } = useClientFlow();
   const { contentFields } = useClientFlowStore();
-
-  // Sync generic context (account, auth, shoppers, navigate) into global store once
-  useSyncGenericContext({
-    accountDetails,
-    authProvider,
-    shoppers,
-    navigate,
-    accounts,
-  });
 
   useEffect(() => {
     if (accountDetails && !clientData) {
@@ -71,6 +77,13 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
       getContentFieldsWithContent(accountDetails.id);
     }
   }, [accountDetails]);
+
+  // Sync step from URL tab param so tabs persist on refresh
+  useEffect(() => {
+    if (tabFromUrl == null) return;
+    const step = CLIENT_FLOW_TAB_KEYS.indexOf(tabFromUrl as (typeof CLIENT_FLOW_TAB_KEYS)[number]);
+    if (step >= 0) actions.setCurrentStep(step);
+  }, [tabFromUrl, actions]);
 
   // Handle completion callback
   useEffect(() => {
@@ -145,26 +158,17 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
     },
   ];
 
-  // Render current step content
+  // Render current step content (apiClient and other context from generic store)
   const renderStepContent = () => {
-    const stepProps = {
-      apiClient,
-      navigate,
-      shoppers,
-      accountDetails,
-      authProvider,
-      accounts,
-    };
-
     switch (currentStep) {
       case 0:
-        return <DesktopReview {...stepProps} />;
+        return <DesktopReview />;
       case 1:
-        return <MobileReview {...stepProps} />;
+        return <MobileReview />;
       case 2:
-        return <CopyReview {...stepProps} />;
+        return <CopyReview />;
       case 3:
-        return <ReviewScreen {...stepProps} />;
+        return <ReviewScreen />;
       default:
         return (
           <div className="text-center py-12">
@@ -195,7 +199,11 @@ export const ClientFlow: React.FC<ClientFlowProps> = ({
       <Card className="mb-6 shadow-sm">
         <Steps
           current={currentStep}
-          onChange={(step) => actions.setCurrentStep(step)}
+          onChange={(step) => {
+            actions.setCurrentStep(step);
+            const tabKey = CLIENT_FLOW_TAB_KEYS[step];
+            if (tabKey != null && onStepChange) onStepChange(step, tabKey);
+          }}
           items={steps.map((step, index) => ({
             title: step.title,
             icon: step.icon,

@@ -83,7 +83,6 @@ export const useAutosave = (
     }
 
     try {
-      console.log('🔄 Performing autosave...');
       
       const unlayer = editorRef.current.editor;
       
@@ -95,7 +94,6 @@ export const useAutosave = (
             ? processTemplateFields(design, templateFields)
             : design;
 
-            console.log(templateFields, design, processedDesign, templateFields.length > 0);
             
           
           // Only save to our custom API when enabled
@@ -105,7 +103,6 @@ export const useAutosave = (
             
             // Check if we're editing a template from client review
             if (selectedTemplate && selectedTemplate.template_id === templateId) {
-              console.log('💾 Auto-saving client review template via different API');
               
               // Use the client review template update API
               await api.templates.updateClientReviewTemplate(templateId, {
@@ -118,16 +115,12 @@ export const useAutosave = (
                 builder_state_json: processedDesign
               });
               
-              console.log('✅ Auto-saved client review template successfully');
             } else {
               if (saveMode === 'base') {
-                console.log('💾 Auto-saving basic template via basic update API');
                 await api.templates.updateBaseTemplate(templateId, {
                   builder_state_json: processedDesign,
                 });
-                console.log('✅ Auto-saved basic template successfully');
               } else {
-                console.log('💾 Auto-saving regular template via staging API');
                 
                 // Use regular staging template API
                 await api.templates.upsertTemplate(templateId, {
@@ -135,7 +128,6 @@ export const useAutosave = (
                   is_builder_state: true
                 });
                 
-                console.log('✅ Auto-saved regular template successfully');
               }
             }
             
@@ -144,7 +136,6 @@ export const useAutosave = (
             actions.markUnsavedChanges(false);
             actions.setLastAutoSave(new Date());
           } else {
-            console.log('⚠️ Auto-save skipped - API integration not enabled');
           }
           
           // Call external save handler if provided
@@ -152,7 +143,6 @@ export const useAutosave = (
             await onSave(processedDesign);
           }
           
-          console.log('✅ Autosave completed');
         } catch (error) {
           console.error('❌ Autosave error:', error);
           const err = error instanceof Error ? error : new Error('Autosave failed');
@@ -198,7 +188,6 @@ export const useAutosave = (
             
             // Check if we're editing a template from client review
             if (selectedTemplate && selectedTemplate.template_id === templateId) {
-              console.log('💾 Manual saving client review template via different API');
               
               // Use the client review template update API
               await api.templates.updateClientReviewTemplate(templateId, {
@@ -211,16 +200,12 @@ export const useAutosave = (
                 builder_state_json: processedDesign
               });
               
-              console.log('✅ Manual save client review template completed');
             } else {
               if (saveMode === 'base') {
-                console.log('💾 Manual saving basic template via basic update API');
                 await api.templates.updateBaseTemplate(templateId, {
                   builder_state_json: processedDesign,
                 });
-                console.log('✅ Manual save basic template completed');
               } else {
-                console.log('💾 Manual saving regular template via staging API');
                 
                 // Use regular staging template API
                 await api.templates.upsertTemplate(templateId, {
@@ -228,7 +213,6 @@ export const useAutosave = (
                   is_builder_state: true
                 });
                 
-                console.log('✅ Manual save regular template completed');
               }
             }
             
@@ -237,14 +221,12 @@ export const useAutosave = (
             actions.markUnsavedChanges(false);
             actions.setLastAutoSave(new Date());
           } else {
-            console.log('⚠️ Manual save skipped - API integration not enabled');
           }
           
           if (onSave) {
             await onSave(processedDesign);
           }
           
-          console.log('✅ Manual save completed');
           resolve();
         } catch (error) {
           console.error('❌ Manual save error:', error);
@@ -297,7 +279,6 @@ export const useAutosave = (
    * Manual auto-save trigger
    */
   const triggerAutoSave = useCallback(() => {
-    console.log('🎯 Manual auto-save triggered');
     performAutoSave();
   }, [performAutoSave]);
 
@@ -305,9 +286,7 @@ export const useAutosave = (
    * Force auto-save check (sets up interval if needed)
    */
   const forceAutoSaveCheck = useCallback(() => {
-    console.log('🔍 Force auto-save check triggered');
     if (autoSaveEnabled && hasUnsavedChanges && !intervalRef.current) {
-      console.log(`🕐 Setting up missing autosave interval: ${autoSaveInterval}ms`);
       
       intervalRef.current = setInterval(() => {
         performAutoSave();
@@ -329,15 +308,11 @@ export const useAutosave = (
 
     // Setup new interval if autosave is enabled and always keep it running
     if (autoSaveEnabled) {
-      console.log(`🕐 Setting up autosave interval: ${autoSaveInterval}ms (always active)`);
       
       intervalRef.current = setInterval(() => {
         // Only perform auto-save if there are unsaved changes
-        if (hasUnsavedChanges) {
-          console.log('🔄 Auto-save interval triggered with unsaved changes');
+        if (hasUnsavedChanges) {  
           performAutoSave();
-        } else {
-          console.log('⏭️ Auto-save interval skipped - no unsaved changes');
         }
       }, autoSaveInterval);
 

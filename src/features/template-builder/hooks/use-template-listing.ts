@@ -4,18 +4,14 @@ import { useTemplateListingStore } from '@/stores/list/templateListing.store';
 import { useDevicesStore } from '@/stores/common/devices.store';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import { useGenericStore } from '@/stores/generic.store';
-import { AxiosInstance } from 'axios';
-import { CleanTemplateResponse, TemplateAction, TCBTemplate } from '@/types';
+import { CleanTemplateResponse, TemplateAction } from '@/types';
 import { convertMultipleUnlayerDesignsToHtml, validateUnlayerDesign, type BatchConversionItem } from '@/lib/utils/batchUnlayerConverter';
 
-export const useTemplateListing = ({
-  apiClient,
-}: {
-  apiClient: AxiosInstance;
-}) => {
-  const { navigate } = useGenericStore();
+export const useTemplateListing = () => {
+  const apiClient = useGenericStore((s) => s.apiClient);
+  const navigate = useGenericStore((s) => s.navigate);
 
-  const api = createAPI(apiClient);
+  const api = apiClient ? createAPI(apiClient) : null;
 
   const { devices, actions: deviceActions } = useDevicesStore();
   const { actions: loadingActions } = useLoadingStore();
@@ -23,41 +19,55 @@ export const useTemplateListing = ({
 
   const handleAction = async (
     action: TemplateAction,
-    template: CleanTemplateResponse
+    template: CleanTemplateResponse,
+    options?: { targetStatus?: 'draft' | 'published' }
   ) => {
-    console.log(`Handling action ${action} for template ${template.id}`);
+    if (!api && action !== 'edit' && action !== 'preview') {
+      message.error('API client is required');
+      return;
+    }
     try {
       switch (action) {
         case 'edit':
-          console.log(`Navigating to edit template ${template.id}`, navigate);
-          navigate(`/coupon-builder-v2/popup-builder/${template.id}/edit`);
+          navigate?.(`/coupon-builder-v2/popup-builder/${template.id}/edit`);
           break;
         case 'preview':
-          navigate(`/coupon-builder-v2/popup-builder/${template.id}/preview`);
+          navigate?.(`/coupon-builder-v2/popup-builder/${template.id}/preview`);
           break;
-        // case 'publish':
-        //   await publishTemplate(template.id);
-        //   getTemplates();
-        //   break;
         case 'client-review':
           await pushTemplateToClientReview(template);
           message.success('Template pushed to client review successfully');
           getTemplates();
           break;
         case 'archive':
-          await api.templates.archiveTemplate(template.id);
-          message.success('Template archived successfully');
-          getTemplates();
+          loadingActions.setTemplateListActionLoading(true);
+          try {
+            await api!.templates.archiveTemplate(template.id);
+            message.success('Template archived successfully');
+            getTemplates();
+          } finally {
+            loadingActions.setTemplateListActionLoading(false);
+          }
           break;
         case 'unarchive':
-          await api.templates.unarchiveTemplate(template.id);
-          message.success('Template unarchived successfully');
-          getTemplates();
+          loadingActions.setTemplateListActionLoading(true);
+          try {
+            await api!.templates.unarchiveTemplate(template.id, options?.targetStatus);
+            message.success('Template unarchived successfully');
+            getTemplates();
+          } finally {
+            loadingActions.setTemplateListActionLoading(false);
+          }
           break;
         case 'delete':
-          await api.templates.deleteTemplate(template.id);
-          message.success('Template deleted successfully');
-          getTemplates();
+          loadingActions.setTemplateListActionLoading(true);
+          try {
+            await api!.templates.deleteTemplate(template.id);
+            message.success('Template deleted successfully');
+            getTemplates();
+          } finally {
+            loadingActions.setTemplateListActionLoading(false);
+          }
           break;
       }
     } catch (error) {
@@ -67,9 +77,19 @@ export const useTemplateListing = ({
   };
 
   const getTemplates = async () => {
+    if (!api) {
+      message.error('API client is required');
+      return;
+    }
     loadingActions.setTemplateListingLoading(true);
     try {
-      const response = await api.templates.getTemplatesForUI();
+      // Read fresh state at call time so filters/search/sort applied just before fetch are used
+      const { filters: f, pagination: p, sorter: s } = useTemplateListingStore.getState();
+      const response = await api.templates.getTemplatesForUI({
+        filters: f,
+        pagination: p,
+        sorter: s,
+      });
       actions.setTemplates(response.templates);
       actions.setPagination({
         current: response.pagination.page,
@@ -87,15 +107,20 @@ export const useTemplateListing = ({
   const pushTemplateToClientReview = async (
     template: CleanTemplateResponse
   ) => {
+    if (!api) {
+      message.error('API client is required');
+      return;
+    }
+
     loadingActions.setTemplateListActionLoading(true);
     try {
       // Prepare batch conversion items
       const conversionItems: BatchConversionItem[] = [];
-      
+
       // Helper function to prepare template for batch conversion
       const prepareTemplateForConversion = (templateData: any, templateId: string) => {
         if (!templateData.builder_state_json) return null;
-        
+
         // Parse JSON if it's a string
         let designData = templateData.builder_state_json;
         if (typeof designData === 'string') {
@@ -120,17 +145,21 @@ export const useTemplateListing = ({
       };
 
       // Add parent template to batch
-      const parentItem = prepareTemplateForConversion(template, template.id);
-      if (parentItem) {
-        conversionItems.push(parentItem);
+      if(template.status === 'draft') {
+        const parentItem = prepareTemplateForConversion(template, template.id);
+        if (parentItem) {
+          conversionItems.push(parentItem);
+        }
       }
 
       // Add child templates to batch
       if (template.child_templates && template.child_templates.length > 0) {
         for (const childTemplate of template.child_templates) {
-          const childItem = prepareTemplateForConversion(childTemplate, childTemplate.id);
-          if (childItem) {
-            conversionItems.push(childItem);
+          if (childTemplate.status === 'draft') {
+            const childItem = prepareTemplateForConversion(childTemplate, childTemplate.id);
+            if (childItem) {
+              conversionItems.push(childItem);
+            }
           }
         }
       }
@@ -143,7 +172,6 @@ export const useTemplateListing = ({
       }
 
       // Batch convert all templates using single editor instance
-      console.log(`🔄 Starting batch conversion of ${conversionItems.length} templates...`);
       const conversionResults = await convertMultipleUnlayerDesignsToHtml(conversionItems, {
         projectId: 123,
         timeout: 30000, // 30 second total timeout
@@ -167,18 +195,18 @@ export const useTemplateListing = ({
       // Push to client review with templates array
       if (templatesData.length > 0) {
         await api.templates.pushTemplateToClientReview(templatesData);
-        
+
         const childCount = templatesData.length - 1;
         const failedCount = conversionResults.length - templatesData.length;
-        
-        let successMessage = childCount > 0 
+
+        let successMessage = childCount > 0
           ? `Template and ${childCount} child template(s) published successfully`
           : 'Template published successfully';
-          
+
         if (failedCount > 0) {
           successMessage += ` (${failedCount} template(s) failed conversion)`;
         }
-        
+
         message.success(successMessage);
       } else {
         message.error(
@@ -193,67 +221,11 @@ export const useTemplateListing = ({
     }
   };
 
-  // const publishTemplate = async (templateId: string) => {
-  //   loadingActions.setTemplateListActionLoading(true);
-  //   try {
-  //     // Get template data to access builder_state_json
-  //     console.log(`🚀 Publishing template ${templateId}...`);
-  //     const template = await api.templates.getTemplateById(templateId);
-
-  //     let htmlContent: string | undefined;
-
-  //     // Check if template has design data for HTML conversion
-  //     if (template.builder_state_json) {
-  //       console.log('📄 Template has design data, converting to HTML...');
-
-  //       // Parse JSON if it's a string
-  //       let designData = template.builder_state_json;
-  //       if (typeof designData === 'string') {
-  //         try {
-  //           designData = JSON.parse(designData);
-  //         } catch (parseError) {
-  //           console.warn('⚠️ Failed to parse builder_state_json:', parseError);
-  //           // Continue without HTML conversion
-  //         }
-  //       }
-
-  //       // Validate and convert design to HTML
-  //       if (designData && validateUnlayerDesign(designData)) {
-  //         try {
-  //           console.log('🔄 Converting Unlayer design to HTML...');
-  //           htmlContent = await convertUnlayerJsonToHtml(designData, {
-  //             projectId: 123, // Default project ID
-  //             timeout: 15000, // 15 second timeout
-  //           });
-  //           console.log('✅ HTML conversion successful');
-  //         } catch (conversionError) {
-  //           console.warn('⚠️ HTML conversion failed:', conversionError);
-  //           message.warning(
-  //             'HTML conversion failed, publishing without HTML content'
-  //           );
-  //           // Continue with publish without HTML
-  //         }
-  //       } else {
-  //         console.warn('⚠️ Invalid or missing Unlayer design data');
-  //       }
-  //     } else {
-  //       console.log(
-  //         '📝 Template has no design data, publishing without HTML conversion'
-  //       );
-  //     }
-
-  //     // Publish template with or without HTML content
-  //     await api.templates.publishTemplate(templateId, htmlContent);
-  //     message.success('Template published successfully');
-  //   } catch (error) {
-  //     console.error('❌ Error publishing template:', error);
-  //     message.error('Failed to publish template');
-  //   } finally {
-  //     loadingActions.setTemplateListActionLoading(false);
-  //   }
-  // };
-
   const getDevices = async () => {
+    if (!api) {
+      message.error('API client is required');
+      return;
+    }
     if (devices.length > 0) return;
 
     loadingActions.setDevicesLoading(true);
