@@ -42,7 +42,6 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ type }) => {
   };
 
   const handleSubmit = (values: any) => {
-    console.log('Form submitted with values:', values);
     // Handle form submission logic here
   };
 

@@ -7,7 +7,9 @@ import { BaseProps } from '@/types/props';
 import { message } from 'antd';
 import { createAPI } from '@/api';
 import { useBuilderStore } from '@/stores/builder.store';
+import { useGenericStore } from '@/stores/generic.store';
 import { useBuilderMain } from '@/features/builder/hooks/useBuilderMain';
+import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
 
 interface BaseTemplateBuilderPageProps extends Partial<BaseProps> {
   unlayerConfig: UnlayerOptions;
@@ -20,16 +22,27 @@ export const BaseTemplateBuilderPage: React.FC<BaseTemplateBuilderPageProps> = (
   unlayerConfig,
   apiClient,
   navigate,
+  accountDetails,
+  authProvider,
+  shoppers,
+  accounts,
   templateId: templateIdFromRoute,
   onCancel,
   onSuccess,
 }) => {
+  useSyncGenericContext({
+    apiClient,
+    navigate,
+    accountDetails,
+    authProvider,
+    shoppers,
+    accounts,
+  });
+
   const { actions: templateActions } = useBaseTemplateStore();
 
-  const { loadBaseTemplate } = useBuilderMain({ apiClient: apiClient! });
-  const { loading, loadCategories, saveTemplate } = useBaseTemplateActions({
-    apiClient,
-  });
+  const { loadBaseTemplate } = useBuilderMain();
+  const { loading, loadCategories, saveTemplate } = useBaseTemplateActions();
 
   const { templateId } = useBaseTemplateStore();
 
@@ -39,13 +52,14 @@ export const BaseTemplateBuilderPage: React.FC<BaseTemplateBuilderPageProps> = (
 
     const preload = async () => {
       if (!templateIdFromRoute) return;
-      if (!apiClient) return;
+      const client = useGenericStore.getState().apiClient;
+      if (!client) return;
 
       await loadBaseTemplate(templateIdFromRoute);
     };
 
     preload();
-  }, []);
+  }, [templateIdFromRoute]);
 
   const handleSubmitDetails = async (data: {
     name: string;
@@ -54,12 +68,13 @@ export const BaseTemplateBuilderPage: React.FC<BaseTemplateBuilderPageProps> = (
     is_featured?: boolean;
     display_order?: number;
   }): Promise<string> => {
-    if (!apiClient) {
+    const client = useGenericStore.getState().apiClient;
+    if (!client) {
       message.error('API client is required to create base template');
       throw new Error('API client is required');
     }
 
-    const api = createAPI(apiClient);
+    const api = createAPI(client);
 
     if (templateId) {
       await api.templates.updateBaseTemplate(templateId, {
@@ -112,7 +127,6 @@ export const BaseTemplateBuilderPage: React.FC<BaseTemplateBuilderPageProps> = (
     description?: string;
     category_id?: number;
     design_json: any;
-    html_content: string;
   }) => {
     await saveTemplate(data);
 
@@ -140,7 +154,6 @@ export const BaseTemplateBuilderPage: React.FC<BaseTemplateBuilderPageProps> = (
       onSave={handleSave}
       onCancel={handleCancel}
       loading={loading}
-      apiClient={apiClient}
     />
   );
 };

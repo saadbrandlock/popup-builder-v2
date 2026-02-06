@@ -16,6 +16,8 @@ export const manageEditorMode = (designMode: boolean = false): any => {
       text: { enabled: false },
       carousel: { enabled: false },
       html: { enabled: false },
+      table: { enabled: false },
+      paragraph: { enabled: false },
     };
   } else {
     return {

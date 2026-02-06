@@ -3,7 +3,7 @@
  * Uses a single editor instance for efficient processing
  */
 
-import { sanitizeHtml } from './helper';
+import { safeDecodeAndSanitizeHtml } from './helper';
 
 export interface BatchConversionItem {
   id: string;
@@ -111,8 +111,6 @@ export const convertMultipleUnlayerDesignsToHtml = async (
   };
 
   try {
-    console.log(`🔄 Starting batch conversion of ${items.length} templates...`);
-
     // Initialize editor once
     await new Promise<void>((resolve, reject) => {
       const initTimeout = setTimeout(() => {
@@ -128,7 +126,6 @@ export const convertMultipleUnlayerDesignsToHtml = async (
       unlayer.addEventListener('editor:ready', () => {
         clearTimeout(initTimeout);
         editorInitialized = true;
-        console.log('✅ Batch editor initialized and ready');
         resolve();
       });
     });
@@ -136,7 +133,6 @@ export const convertMultipleUnlayerDesignsToHtml = async (
     // Process each template sequentially
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      console.log(`🔄 Processing template ${i + 1}/${items.length} (ID: ${item.id})`);
 
       try {
         const html = await convertSingleDesign(unlayer, item.designJson, delayBetweenConversions);
@@ -144,7 +140,6 @@ export const convertMultipleUnlayerDesignsToHtml = async (
           id: item.id,
           html: html
         });
-        console.log(`✅ Template ${item.id} converted successfully`);
       } catch (error) {
         console.warn(`⚠️ Failed to convert template ${item.id}:`, error);
         results.push({
@@ -154,8 +149,6 @@ export const convertMultipleUnlayerDesignsToHtml = async (
         });
       }
     }
-
-    console.log(`✅ Batch conversion completed. ${results.filter(r => r.html).length}/${items.length} successful`);
     return results;
 
   } catch (error) {
@@ -189,8 +182,10 @@ const convertSingleDesign = (
               return;
             }
 
-            const sanitizedHtml = sanitizeHtml(html);
-            resolve(sanitizedHtml);
+            // Decode then sanitize so entity-encoded inner HTML is preserved
+            safeDecodeAndSanitizeHtml(html)
+              .then(resolve)
+              .catch((err) => reject(new Error(`HTML sanitization failed: ${err}`)));
           } catch (error) {
             reject(new Error(`HTML export failed: ${error}`));
           }

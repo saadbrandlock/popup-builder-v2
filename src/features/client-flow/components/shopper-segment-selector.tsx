@@ -49,8 +49,6 @@ const ShopperSegmentSelector: React.FC<ShopperSegmentSelectorProps> = ({ compact
         mainShopperIds.has(shopper.id)
       );
 
-      console.log(result, uniqueTemplateShoppers, clientData, '==========================================');
-
 
       setTemplateShopperGroups(result);
       setDefaultShopper({ label: result[0].name, value: result[0].id });

@@ -33,13 +33,11 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
   // Determine supported devices from template
   const supportedDevices = useMemo(() => {
     if (!templateState?.devices) {
-      console.log('No devices found, defaulting to desktop');
       return ['desktop'];
     }
     const devices = templateState.devices.map((device) =>
       device.device_type.toLowerCase()
     );
-    console.log('Supported devices:', devices);
     return devices;
   }, [templateState?.devices]);
 
@@ -68,16 +66,16 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
   React.useEffect(() => {
     if (!hasDesktop && hasMobile) {
       // Mobile-only template: ensure desktop is disabled, mobile is enabled
-      const newConfig = { 
-        ...config, 
+      const newConfig = {
+        ...config,
         desktop: { ...config.desktop, enabled: false },
         mobile: { ...config.mobile, enabled: true }
       };
       onConfigChange(newConfig);
     } else if (hasDesktop && !hasMobile) {
       // Desktop-only template: ensure mobile is disabled, desktop is enabled  
-      const newConfig = { 
-        ...config, 
+      const newConfig = {
+        ...config,
         desktop: { ...config.desktop, enabled: true },
         mobile: { ...config.mobile, enabled: false }
       };
@@ -108,7 +106,7 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
         // Desktop-only template: disable mobile
         newConfig.mobile = { ...newConfig.mobile, enabled: false };
       }
-      
+
       onConfigChange(newConfig);
     },
     [config, onConfigChange, hasDesktop, hasMobile]
@@ -132,14 +130,7 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
   }, []);
 
   // Memoized button handlers
-  const handleGeneratePreview = useCallback(() => {
-    console.log('Generated config:', config);
-  }, [config, convertToLegacyConfig]);
 
-  const handleViewCode = useCallback(() => {
-    console.log('Generated HTML code', config);
-    alert('Generated code logged to console!');
-  }, [config]);
 
   const handleResetColors = useCallback(() => {
     updateConfig('styling.colors.primary', '#8B0000');
@@ -153,12 +144,20 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
     setPreviewDevice(e.target.value);
   }, []);
 
+  // When user switches left tab (Desktop Tab / Mobile Button), sync right preview to that device
+  const handleTabChange = useCallback((key: string) => {
+    setActiveTab(key);
+    if (key === 'desktop' || key === 'mobile') {
+      setPreviewDevice(key);
+    }
+  }, []);
+
   return (
     <Row gutter={[24, 24]}>
       {/* Configuration Panel */}
       <Col xs={24} lg={16}>
         <Card>
-          <Tabs activeKey={activeTab} onChange={setActiveTab}>
+          <Tabs activeKey={activeTab} onChange={handleTabChange}>
             {/* Desktop Configuration */}
             {hasDesktop && (
               <TabPane
@@ -268,18 +267,7 @@ const ReminderTabEditor: React.FC<ReminderTabEditorProps> = ({
         <Card className="mt-4">
           <Title level={5}>Quick Actions</Title>
           <Space direction="vertical" className="w-full">
-            <Button
-              type="primary"
-              icon={<EyeOutlined />}
-              block
-              onClick={handleGeneratePreview}
-            >
-              Generate Preview
-            </Button>
 
-            <Button icon={<CodeOutlined />} block onClick={handleViewCode}>
-              View Generated Code
-            </Button>
 
             <Button type="dashed" block onClick={handleResetColors}>
               Reset Colors

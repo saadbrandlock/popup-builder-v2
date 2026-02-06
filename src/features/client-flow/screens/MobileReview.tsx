@@ -14,8 +14,7 @@ import {
   Tooltip,
 } from 'antd';
 
-import { PopupOnlyView } from '../components/PopupOnlyView';
-import { BrowserPreviewModal } from '../components/BrowserPreviewModal';
+import { PopupOnlyView, BrowserPreviewModal } from '../../../components/common';
 import { useClientFlowStore } from '../../../stores/clientFlowStore';
 import { Clock, Smartphone, Info } from 'lucide-react';
 import FeedbackForm from '../components/feedback-form';
@@ -39,14 +38,15 @@ export const MobileReview: React.FC<MobileReviewProps> = ({ }) => {
 
   const getPreviewTemplate = () => {
     if (clientData && clientData.length) {
-      return clientData.filter(
-        (template) =>
-          template.devices.find((device) => device.device_type === 'mobile') &&
-          template.staging_status === 'client-review'
+      const withMobile = clientData.filter(
+        (t) =>
+          t.staging_status === 'client-review' &&
+          t.devices?.some((d) => String(d.device_type).toLowerCase() === 'mobile')
       );
-    } else {
-      return [];
+      if (withMobile.length) return withMobile;
+      return clientData.filter((t) => t.staging_status === 'client-review');
     }
+    return [];
   };
 
   const onEditTemplate = () => {

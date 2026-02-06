@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import { AxiosInstance } from 'axios';
 import { message } from 'antd';
 import type { TablePaginationConfig } from 'antd';
 
 import { createAPI } from '@/api';
 import { useBaseTemplateCategoriesListingStore } from '@/stores/list/baseTemplateCategoriesListing.store';
 import { useCategoryStore } from '../stores';
+import { useGenericStore } from '@/stores/generic.store';
 
-export const useBaseTemplateCategoriesListing = ({
-  apiClient,
-}: {
-  apiClient?: AxiosInstance;
-}) => {
+export const useBaseTemplateCategoriesListing = () => {
+  const apiClient = useGenericStore((s) => s.apiClient);
   const [loading, setLoading] = useState(false);
 
   const { actions: categoryActions } = useCategoryStore();

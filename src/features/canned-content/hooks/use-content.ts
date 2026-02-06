@@ -2,15 +2,17 @@ import { createAPI } from '@/api';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import { useContentListingStore } from '@/stores/list/contentListing';
 import { message } from 'antd';
-import { AxiosInstance } from 'axios';
+import { useGenericStore } from '@/stores/generic.store';
 
-export const useContent = ({ apiClient }: { apiClient: AxiosInstance }) => {
-  const api = createAPI(apiClient);
+export const useContent = () => {
+  const apiClient = useGenericStore((s) => s.apiClient);
+  const api = apiClient ? createAPI(apiClient) : null;
 
   const { actions: loadingActions } = useLoadingStore();
   const { actions } = useContentListingStore();
 
   const getContent = async () => {
+    if (!api) return;
     loadingActions.setContentListingLoading(true);
     try {
       const response = await api.content.getContent();
@@ -29,6 +31,7 @@ export const useContent = ({ apiClient }: { apiClient: AxiosInstance }) => {
   };
 
   const getContentById = async (id: number) => {
+    if (!api) return;
     loadingActions.setContentListingLoading(true);
     try {
       const response = await api.content.getContentById(id);
@@ -48,6 +51,7 @@ export const useContent = ({ apiClient }: { apiClient: AxiosInstance }) => {
     remarks?: string;
     shopper_id: number;
   }) => {
+    if (!api) return;
     loadingActions.setContentActionLoading(true);
     try {
       const response = await api.content.createContent(data);
@@ -67,6 +71,7 @@ export const useContent = ({ apiClient }: { apiClient: AxiosInstance }) => {
     remarks?: string;
     shopper_id?: number;
   }) => {
+    if (!api) return;
     loadingActions.setContentActionLoading(true);
     try {
       const response = await api.content.updateContent(id, data);
@@ -80,6 +85,7 @@ export const useContent = ({ apiClient }: { apiClient: AxiosInstance }) => {
   };
 
   const deleteContent = async (id: number) => {
+    if (!api) return;
     loadingActions.setContentActionLoading(true);
     try {
       await api.content.deleteContent(id);
@@ -93,6 +99,7 @@ export const useContent = ({ apiClient }: { apiClient: AxiosInstance }) => {
   };
 
   const getIndustries = async () => {
+    if (!api) return;
     loadingActions.setContentSubDataLoading(true);
     try {
       const response = await api.content.getIndustries();
@@ -106,6 +113,7 @@ export const useContent = ({ apiClient }: { apiClient: AxiosInstance }) => {
   };
 
   const getFields = async () => {
+    if (!api) return;
     loadingActions.setContentSubDataLoading(true);
     try {
       const response = await api.templateFields.getTemplateFields();

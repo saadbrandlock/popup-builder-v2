@@ -25,6 +25,16 @@ export const OnboardingPreview: React.FC<OnboardingPreviewProps> = ({
   accounts,
   className = '',
 }) => {
+  // Sync first so apiClient and context are in store before useClientFlow etc.
+  useSyncGenericContext({
+    accountDetails,
+    authProvider,
+    shoppers,
+    navigate,
+    accounts,
+    apiClient,
+  });
+
   const {
     clientData,
     currentStep,
@@ -35,18 +45,8 @@ export const OnboardingPreview: React.FC<OnboardingPreviewProps> = ({
     error,
     contentFields,
   } = useClientFlowStore();
-  const { getCleintTemplatesData, getContentFieldsWithContent } = useClientFlow({
-    apiClient,
-  });
+  const { getCleintTemplatesData, getContentFieldsWithContent } = useClientFlow();
   const { clientTemplateDetailsLoading } = useLoadingStore();
-
-  useSyncGenericContext({
-    accountDetails,
-    authProvider,
-    shoppers,
-    navigate,
-    accounts,
-  });
 
   useEffect(() => {
     if (accountDetails && !clientData) {
@@ -57,26 +57,17 @@ export const OnboardingPreview: React.FC<OnboardingPreviewProps> = ({
     }
   }, [accountDetails]);
 
-  // Render current step content
+  // Render current step content (apiClient and context from generic store)
   const renderStepContent = () => {
-    const stepProps = {
-      apiClient,
-      navigate,
-      shoppers,
-      accountDetails,
-      authProvider,
-      accounts,
-    };
-
     switch (currentStep) {
       case 0:
-        return <DesktopReview {...stepProps} />;
+        return <DesktopReview />;
       case 1:
-        return <MobileReview {...stepProps} />;
+        return <MobileReview />;
       case 2:
-        return <CopyReview {...stepProps} />;
+        return <CopyReview />;
       case 3:
-        return <ReviewScreen {...stepProps} />;
+        return <ReviewScreen />;
       default:
         return (
           <div className="text-center py-12">

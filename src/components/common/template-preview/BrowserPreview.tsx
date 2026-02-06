@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import type { BrowserPreviewProps } from '../types/clientFlow';
+import type { BrowserPreviewProps } from '../../../features/client-flow/types/clientFlow';
 import { Safari } from '@/components/magicui/safari';
 import Android from '@/components/magicui/android';
 import { safeDecodeAndSanitizeHtml } from '@/lib/utils/helper';

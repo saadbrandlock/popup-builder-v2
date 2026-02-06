@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { message, Alert, Spin, Button, Card, Space, Typography } from 'antd';
 import { ArrowLeftOutlined, SaveOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useBuilderStore } from '@/stores/builder.store';
+import { useGenericStore } from '@/stores/generic.store';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import { ReminderTabEditor } from '../../builder/components/reminder-tab';
 import { useReminderTabAutosave } from '../../builder/hooks/useReminderTabAutosave';
@@ -9,20 +10,19 @@ import { useReminderTabAutosave } from '../../builder/hooks/useReminderTabAutosa
 const { Title, Text } = Typography;
 
 export interface ClientReminderTabStepProps {
-  apiClient: any;
   onBack: () => void;
   onComplete?: () => void;
 }
 
 /**
  * ClientReminderTabStep - Reminder tab step for client flow
- * Simplified version with client-specific navigation
+ * Simplified version with client-specific navigation (apiClient from generic store)
  */
 export const ClientReminderTabStep: React.FC<ClientReminderTabStepProps> = ({
-  apiClient,
   onBack,
   onComplete,
 }) => {
+  const apiClient = useGenericStore((s) => s.apiClient);
   const { reminderTabConfig, currentTemplateId, actions } = useBuilderStore();
   const { templateByIdLoading } = useLoadingStore();
 
@@ -36,7 +36,7 @@ export const ClientReminderTabStep: React.FC<ClientReminderTabStepProps> = ({
     enabled: true,
     interval: 10000,
     debounceDelay: 2000,
-    apiClient: apiClient,
+    apiClient: apiClient ?? undefined,
     templateId: currentTemplateId || undefined,
     onError: (error) => {
       console.error('Reminder tab autosave error:', error);

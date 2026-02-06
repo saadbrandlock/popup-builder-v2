@@ -8,6 +8,7 @@ import { useBaseTemplateActions, useBaseTemplateCategoriesListing } from '../hoo
 import { BaseProps } from '@/types/props';
 import { useBaseTemplateCategoriesListingStore } from '@/stores/list/baseTemplateCategoriesListing.store';
 import { useDebouncedCallback } from '@/lib/hooks';
+import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
 import type { TableProps } from 'antd';
 import type { SorterResult } from 'antd/es/table/interface';
 import SharedTemplateTable from '@/components/common/shared-table';
@@ -20,23 +21,37 @@ interface BaseTemplatesPageProps extends Partial<BaseProps> {
 export const BaseTemplatesPage: React.FC<BaseTemplatesPageProps> = ({
   apiClient,
   navigate,
+  accountDetails,
+  authProvider,
+  shoppers,
+  accounts,
   onCreateTemplate,
 }) => {
+  useSyncGenericContext({
+    apiClient,
+    navigate,
+    accountDetails,
+    authProvider,
+    shoppers,
+    accounts,
+  });
+
   const { actions: categoryActions } = useCategoryStore();
   const {
     loading: actionsLoading,
     loadTemplates,
     createCategory,
     deleteTemplate,
+    updateTemplateStatus,
     editTemplate,
     previewTemplate,
-  } = useBaseTemplateActions({ apiClient });
+  } = useBaseTemplateActions();
 
   const {
     loading: categoriesLoading,
     getCategories,
     deleteCategory,
-  } = useBaseTemplateCategoriesListing({ apiClient });
+  } = useBaseTemplateCategoriesListing();
 
   const {
     categories: categoryRows,
@@ -189,6 +204,8 @@ export const BaseTemplatesPage: React.FC<BaseTemplatesPageProps> = ({
                 onEditTemplate={handleEditTemplate}
                 onPreviewTemplate={previewTemplate}
                 onDeleteTemplate={deleteTemplate}
+                onUpdateStatus={updateTemplateStatus}
+                onLoadTemplates={loadTemplates}
                 loading={actionsLoading}
                 navigate={navigate}
               />

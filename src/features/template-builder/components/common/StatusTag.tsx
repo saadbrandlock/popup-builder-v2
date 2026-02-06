@@ -8,15 +8,16 @@ interface StatusTagProps {
 }
 
 export const StatusTag: React.FC<StatusTagProps> = ({ status }) => {
-  const statusConfig = {
+  const statusConfig: Record<string, { color: string; text: string }> = {
     draft: { color: 'default', text: 'Draft' },
     published: { color: 'success', text: 'Published' },
     archive: { color: 'warning', text: 'Archived' },
+    'client-review': { color: 'processing', text: 'Client Review' },
   };
 
-  const config = statusConfig[status as keyof typeof statusConfig];
+  const config = status ? statusConfig[status] : undefined;
 
-  return <Tag color={config.color}>{config.text}</Tag>;
+  return <Tag color={config?.color}>{config?.text ?? status ?? '—'}</Tag>;
 };
 
 export default StatusTag;

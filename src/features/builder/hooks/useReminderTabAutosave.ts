@@ -27,7 +27,6 @@ export interface UseReminderTabAutosaveReturn {
   saveError: string | null;
   performManualSave: () => Promise<void>;
   triggerAutoSave: () => void;
-  enableAutoSave: () => void;
   disableAutoSave: () => void;
 }
 
@@ -72,26 +71,12 @@ export const useReminderTabAutosave = (
   /**
    * Perform autosave operation
    */
-  const performAutoSave = useCallback(async () => {
-    console.log('🔄 performAutoSave called', {
-      autoSaveEnabled,
-      reminderTabUnsavedChanges,
-      reminderTabAutosaving,
-      templateId,
-      apiClient: !!apiClient
-    });
-    
+  const performAutoSave = useCallback(async () => {  
     if (!autoSaveEnabled || !reminderTabUnsavedChanges || reminderTabAutosaving) {
-      console.log('⏭️ Skipping autosave due to conditions:', {
-        autoSaveEnabled,
-        reminderTabUnsavedChanges,
-        reminderTabAutosaving
-      });
       return;
     }
 
     try {
-      console.log('🔄 Performing reminder tab autosave...');
       
       loadingActions.setReminderTabAutosaving(true);
       actions.setReminderTabSaveError(null);
@@ -104,7 +89,6 @@ export const useReminderTabAutosave = (
           is_builder_state: false
         });
         
-        console.log('✅ Reminder tab auto-saved to API');
       }
 
       // Call external save handler if provided
@@ -116,7 +100,6 @@ export const useReminderTabAutosave = (
       actions.markReminderTabUnsaved(false);
       actions.setReminderTabLastSave(new Date());
       
-      console.log('✅ Reminder tab autosave completed');
     } catch (error) {
       console.error('❌ Reminder tab autosave error:', error);
       const err = error instanceof Error ? error : new Error('Autosave failed');
@@ -147,7 +130,6 @@ export const useReminderTabAutosave = (
     }
 
     try {
-      console.log('🎯 Performing manual reminder tab save...');
       
       loadingActions.setReminderTabAutosaving(true);
       actions.setReminderTabSaveError(null);
@@ -166,7 +148,6 @@ export const useReminderTabAutosave = (
       actions.markReminderTabUnsaved(false);
       actions.setReminderTabLastSave(new Date());
       
-      console.log('✅ Manual reminder tab save completed');
     } catch (error) {
       console.error('❌ Manual reminder tab save error:', error);
       const err = error instanceof Error ? error : new Error('Manual save failed');
@@ -182,17 +163,14 @@ export const useReminderTabAutosave = (
    * Debounced autosave trigger
    */
   const triggerDebouncedAutoSave = useCallback(() => {
-    console.log(`⏰ Setting debounced autosave timer (${debounceDelay}ms)`);
     
     // Clear existing debounce timer
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
-      console.log('🚮 Cleared existing debounce timer');
     }
 
     // Set new debounce timer
     debounceRef.current = setTimeout(() => {
-      console.log('⏰ Debounce timer fired, performing autosave');
       performAutoSave();
     }, debounceDelay);
   }, [performAutoSave, debounceDelay]);
@@ -201,23 +179,13 @@ export const useReminderTabAutosave = (
    * Manual auto-save trigger (bypasses debounce)
    */
   const triggerAutoSave = useCallback(() => {
-    console.log('🎯 Manual auto-save trigger for reminder tab');
     performAutoSave();
   }, [performAutoSave]);
-
-  /**
-   * Enable autosave
-   */
-  const enableAutoSave = useCallback(() => {
-    console.log('✅ Reminder tab autosave enabled');
-    // This will be handled by the useEffect below
-  }, []);
 
   /**
    * Disable autosave
    */
   const disableAutoSave = useCallback(() => {
-    console.log('❌ Reminder tab autosave disabled');
     
     // Clear interval
     if (intervalRef.current) {
@@ -244,15 +212,11 @@ export const useReminderTabAutosave = (
 
     // Setup new interval if autosave is enabled
     if (autoSaveEnabled) {
-      console.log(`🕐 Setting up reminder tab autosave interval: ${propInterval}ms`);
       
       intervalRef.current = setInterval(() => {
         // Only perform auto-save if there are unsaved changes
         if (reminderTabUnsavedChanges && !reminderTabAutosaving) {
-          console.log('🔄 Reminder tab auto-save interval triggered with unsaved changes');
           performAutoSave();
-        } else {
-          console.log('⏭️ Reminder tab auto-save interval skipped - no unsaved changes or currently saving');
         }
       }, propInterval);
     }
@@ -272,7 +236,6 @@ export const useReminderTabAutosave = (
   useEffect(() => {
     // Skip on initial mount if lastConfigRef is not initialized properly
     if (lastConfigRef.current === null) {
-      console.log('🔄 Initial config setup, skipping change detection');
       lastConfigRef.current = JSON.parse(JSON.stringify(reminderTabConfig)); // Deep copy
       return;
     }
@@ -282,28 +245,13 @@ export const useReminderTabAutosave = (
     const currentConfigStr = JSON.stringify(reminderTabConfig);
     const configChanged = lastConfigStr !== currentConfigStr;
     
-    console.log('🔍 Config change check:', {
-      configChanged,
-      autoSaveEnabled,
-      templateId,
-      apiClient: !!apiClient,
-      lastConfigStr: lastConfigStr.substring(0, 100) + '...',
-      currentConfigStr: currentConfigStr.substring(0, 100) + '...',
-      lastConfig: lastConfigRef.current,
-      currentConfig: reminderTabConfig
-    });
-    
     if (configChanged) {
-      console.log('📝 Reminder tab config changed, marking as unsaved');
       actions.markReminderTabUnsaved(true);
       lastConfigRef.current = JSON.parse(JSON.stringify(reminderTabConfig)); // Deep copy to avoid reference issues
       
       // Trigger debounced autosave if enabled
       if (autoSaveEnabled) {
-        console.log('🔄 Triggering debounced autosave');
         triggerDebouncedAutoSave();
-      } else {
-        console.log('⚠️ Autosave not enabled', { autoSaveEnabled, templateId, apiClient: !!apiClient });
       }
     }
   }, [reminderTabConfig, actions, autoSaveEnabled, triggerDebouncedAutoSave, templateId, apiClient]);
@@ -313,7 +261,6 @@ export const useReminderTabAutosave = (
    */
   useEffect(() => {
     if (reminderTabUnsavedChanges && autoSaveEnabled && !reminderTabAutosaving) {
-      console.log('🚨 Unsaved changes detected, triggering debounced autosave');
       triggerDebouncedAutoSave();
     }
   }, [reminderTabUnsavedChanges, autoSaveEnabled, reminderTabAutosaving, triggerDebouncedAutoSave]);
@@ -334,7 +281,6 @@ export const useReminderTabAutosave = (
     saveError: reminderTabSaveError,
     performManualSave,
     triggerAutoSave,
-    enableAutoSave,
     disableAutoSave,
   };
 };

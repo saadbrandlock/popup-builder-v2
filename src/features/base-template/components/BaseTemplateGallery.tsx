@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   Typography,
   Input,
@@ -8,23 +8,23 @@ import {
   Row,
   Col,
   Empty,
-  Tag,
   Space,
-  Tooltip,
-  Dropdown,
-  MenuProps,
+  message,
 } from 'antd';
 import {
   PlusOutlined,
-  EditOutlined,
-  EyeOutlined,
-  DeleteOutlined,
-  MoreOutlined,
   FolderOutlined,
 } from '@ant-design/icons';
 import { useBaseTemplateStore, useCategoryStore } from '../stores';
 import { BaseTemplate } from '../types';
 import { BaseProps } from '@/types/props';
+import { BaseTemplateCard } from './BaseTemplateCard';
+import { BaseTemplateCardSkeleton } from '@/components/skeletons';
+import { useDebouncedCallback } from '@/lib/hooks';
+import { createAPI } from '@/api';
+import { useDevicesStore } from '@/stores/common/devices.store';
+import { useLoadingStore } from '@/stores/common/loading.store';
+import { useGenericStore } from '@/stores/generic.store';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -34,6 +34,12 @@ interface BaseTemplateGalleryProps extends Partial<BaseProps> {
   onEditTemplate: (template: BaseTemplate) => void;
   onPreviewTemplate: (template: BaseTemplate) => void;
   onDeleteTemplate: (template: BaseTemplate) => void;
+  onUpdateStatus?: (template: BaseTemplate, status: 'archive' | 'active' | 'deleted') => Promise<void>;
+  onLoadTemplates?: (filters?: {
+    categoryId?: number | null;
+    status?: string | null;
+    nameSearch?: string | null;
+  }) => Promise<void>;
   loading?: boolean;
 }
 
@@ -42,74 +48,117 @@ export const BaseTemplateGallery: React.FC<BaseTemplateGalleryProps> = ({
   onEditTemplate,
   onPreviewTemplate,
   onDeleteTemplate,
+  onUpdateStatus,
+  onLoadTemplates,
   loading = false,
   navigate,
 }) => {
   const { templates, filters, actions: templateActions } = useBaseTemplateStore();
   const { categories } = useCategoryStore();
+  const { devices, actions: deviceActions } = useDevicesStore();
+  const { actions: loadingActions } = useLoadingStore();
+  const apiClient = useGenericStore((s) => s.apiClient);
 
-  const [filteredTemplates, setFilteredTemplates] = useState<BaseTemplate[]>([]);
-
+  // Load devices once on gallery init (stored in devices store, reused for preview; not on every re-render)
   useEffect(() => {
-    let result = [...templates];
+    if (devices.length > 0 || !apiClient) return;
+    loadingActions.setDevicesLoading(true);
+    const api = createAPI(apiClient);
+    api.devices
+      .getDevices()
+      .then((response) => deviceActions.setDevices(response))
+      .catch((error) => {
+        console.error('Error loading devices:', error);
+        message.error('Failed to load devices');
+      })
+      .finally(() => loadingActions.setDevicesLoading(false));
+  }, [apiClient]); // Intentionally not depending on devices.length so we only run when apiClient is set
 
-    if (filters.categoryId) {
-      result = result.filter((t) => t.category_id === filters.categoryId);
+  // Track previous filter values to prevent unnecessary API calls
+  const prevFiltersRef = useRef<{
+    categoryId: number | null;
+    status: string | null;
+    nameSearch: string | null;
+  }>({
+    categoryId: filters.categoryId,
+    status: filters.status,
+    nameSearch: filters.nameSearch,
+  });
+  const isInitialMount = useRef(true);
+
+  // Memoize filter values to compare actual changes
+  const filterValues = useMemo(
+    () => ({
+      categoryId: filters.categoryId,
+      status: filters.status,
+      nameSearch: filters.nameSearch,
+    }),
+    [filters.categoryId, filters.status, filters.nameSearch]
+  );
+
+  // Store onLoadTemplates in ref to prevent unnecessary re-renders
+  const onLoadTemplatesRef = useRef(onLoadTemplates);
+  useEffect(() => {
+    onLoadTemplatesRef.current = onLoadTemplates;
+  }, [onLoadTemplates]);
+
+  // Debounced load function for search
+  const debouncedLoadTemplates = useDebouncedCallback(
+    (filters: typeof filterValues) => {
+      if (onLoadTemplatesRef.current) {
+        onLoadTemplatesRef.current(filters);
+      }
+    },
+    500
+  );
+
+  // Load templates when filters change (server-side filtering)
+  useEffect(() => {
+    if (!onLoadTemplatesRef.current) return;
+
+    // Check if filters actually changed
+    const filtersChanged =
+      prevFiltersRef.current.categoryId !== filterValues.categoryId ||
+      prevFiltersRef.current.status !== filterValues.status ||
+      prevFiltersRef.current.nameSearch !== filterValues.nameSearch;
+
+    if (!filtersChanged && !isInitialMount.current) {
+      return;
     }
 
-    if (filters.status) {
-      result = result.filter((t) => t.status === filters.status);
+    // Update ref
+    prevFiltersRef.current = { ...filterValues };
+    isInitialMount.current = false;
+
+    if (filterValues.nameSearch !== null && filterValues.nameSearch !== undefined && filterValues.nameSearch !== '') {
+      // Use debounced version for search
+      debouncedLoadTemplates(filterValues);
+    } else {
+      // Immediate load for category and status filters, or initial load
+      onLoadTemplatesRef.current(filterValues);
     }
-
-    if (filters.nameSearch) {
-      const search = filters.nameSearch.toLowerCase();
-      result = result.filter(
-        (t) =>
-          t.name.toLowerCase().includes(search) ||
-          t.description?.toLowerCase().includes(search)
-      );
-    }
-
-    setFilteredTemplates(result);
-  }, [templates, filters]);
-
-  const getActionMenuItems = (template: BaseTemplate): MenuProps['items'] => [
-    {
-      key: 'edit',
-      icon: <EditOutlined />,
-      label: 'Edit',
-      onClick: () => onEditTemplate(template),
-    },
-    {
-      key: 'preview',
-      icon: <EyeOutlined />,
-      label: 'Preview',
-      onClick: () => onPreviewTemplate(template),
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'delete',
-      icon: <DeleteOutlined />,
-      label: 'Delete',
-      danger: true,
-      onClick: () => onDeleteTemplate(template),
-    },
-  ];
+    // Only depend on actual filter values, not onLoadTemplates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterValues.categoryId, filterValues.status, filterValues.nameSearch]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
         return 'green';
-      case 'draft':
+      case 'archive':
         return 'orange';
-      case 'archived':
-        return 'default';
+      case 'deleted':
+        return 'red';
       default:
         return 'default';
     }
   };
+
+  const getAvailableStatuses = (currentStatus: string): Array<'archive' | 'active' | 'deleted'> => {
+    const allStatuses: Array<'archive' | 'active' | 'deleted'> = ['archive', 'active', 'deleted'];
+    return allStatuses.filter((status) => status !== currentStatus);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -176,109 +225,40 @@ export const BaseTemplateGallery: React.FC<BaseTemplateGalleryProps> = ({
                 value={filters.status}
               >
                 <Select.Option value="active">Active</Select.Option>
-                <Select.Option value="draft">Draft</Select.Option>
-                <Select.Option value="archived">Archived</Select.Option>
+                <Select.Option value="archive">Archive</Select.Option>
+                <Select.Option value="deleted">Deleted</Select.Option>
               </Select>
             </Col>
           </Row>
 
-          {filteredTemplates.length > 0 ? (
+          {loading ? (
             <Row gutter={[16, 16]}>
-              {filteredTemplates.map((template) => (
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+                <Col xs={24} sm={12} md={8} lg={6} key={item}>
+                  <BaseTemplateCardSkeleton />
+                </Col>
+              ))}
+            </Row>
+          ) : templates.length > 0 ? (
+            <Row gutter={[16, 16]}>
+              {templates.map((template) => (
                 <Col xs={24} sm={12} md={8} lg={6} key={template.id}>
-                  <Card
-                    hoverable
-                    cover={
-                      <div
-                        style={{
-                          height: 200,
-                          background: template.thumbnail_url
-                            ? `url(${template.thumbnail_url}) center/cover`
-                            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {!template.thumbnail_url && (
-                          <Text style={{ color: 'white', fontSize: 48 }}>
-                            📄
-                          </Text>
-                        )}
-                      </div>
-                    }
-                    actions={[
-                      <Tooltip title="Edit">
-                        <EditOutlined
-                          key="edit"
-                          onClick={() => onEditTemplate(template)}
-                        />
-                      </Tooltip>,
-                      <Tooltip title="Preview">
-                        <EyeOutlined
-                          key="preview"
-                          onClick={() => onPreviewTemplate(template)}
-                        />
-                      </Tooltip>,
-                      <Dropdown
-                        menu={{ items: getActionMenuItems(template) }}
-                        trigger={['click']}
-                      >
-                        <MoreOutlined key="more" />
-                      </Dropdown>,
-                    ]}
-                  >
-                    <Card.Meta
-                      title={
-                        <Tooltip title={template.name}>
-                          <div
-                            style={{
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {template.name}
-                          </div>
-                        </Tooltip>
-                      }
-                      description={
-                        <Space direction="vertical" style={{ width: '100%' }}>
-                          {template.description && (
-                            <Text
-                              type="secondary"
-                              style={{
-                                fontSize: 12,
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                              }}
-                            >
-                              {template.description}
-                            </Text>
-                          )}
-                          <Space size="small">
-                            <Tag color={getStatusColor(template.status)}>
-                              {template.status}
-                            </Tag>
-                            {template.category && (
-                              <Tag icon={<FolderOutlined />}>
-                                {template.category.name}
-                              </Tag>
-                            )}
-                          </Space>
-                        </Space>
-                      }
-                    />
-                  </Card>
+                  <BaseTemplateCard
+                    template={template}
+                    onEditTemplate={onEditTemplate}
+                    onPreviewTemplate={onPreviewTemplate}
+                    onDeleteTemplate={onDeleteTemplate}
+                    onUpdateStatus={onUpdateStatus}
+                    getStatusColor={getStatusColor}
+                    getAvailableStatuses={getAvailableStatuses}
+                  />
                 </Col>
               ))}
             </Row>
           ) : (
             <Empty
               description={
-                filters.categoryId || filters.status || filters.nameSearch
+                !loading && (filters.categoryId || filters.status || filters.nameSearch)
                   ? 'No templates found matching your filters'
                   : 'No templates yet. Create your first template!'
               }

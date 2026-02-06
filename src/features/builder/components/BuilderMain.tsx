@@ -13,6 +13,7 @@ import { useBuilderMain } from '../hooks/useBuilderMain';
 import { useTemplateListing } from '@/features/template-builder/hooks/use-template-listing';
 import { UnlayerOptions } from 'react-email-editor';
 import { useSyncGenericContext } from '@/lib/hooks/use-sync-generic-context';
+import { createAPI } from '@/api';
 
 interface BuilderMainProps extends BaseProps {
   unlayerConfig: UnlayerOptions;
@@ -29,32 +30,33 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
   templateId,
   unlayerConfig,
 }) => {
-  const {
-    createTemplate,
-    updateTemplate,
-    assignTemplateToShoppers,
-    getTemplateFields,
-    loadTemplate,
-  } = useBuilderMain({ apiClient });
-  const { getDevices } = useTemplateListing({ apiClient });
-
-  const { adminBuilderStep, templateState, actions } = useBuilderStore();
-  const { actions: loadingActions } = useLoadingStore();
-
-  // Sync generic context (account, auth, shoppers, navigate) into global store once
+  // Sync first so apiClient and context are in store before useBuilderMain etc.
   useSyncGenericContext({
     accountDetails,
     authProvider,
     shoppers,
     navigate,
     accounts,
+    apiClient,
   });
+
+  const {
+    createTemplate,
+    updateTemplate,
+    assignTemplateToShoppers,
+    getTemplateFields,
+    loadTemplate,
+  } = useBuilderMain();
+  const { getDevices } = useTemplateListing();
+
+  const { adminBuilderStep, templateState, actions } = useBuilderStore();
+  const { actions: loadingActions } = useLoadingStore();
 
   const handleConfigSubmit = async (data: TemplateConfig) => {
     loadingActions.setConfigSaving(true);
     try {
       if (templateId) {
-        // Edit mode - just store config and proceed
+        // Edit mode - just store config and proceed to next step
         actions.setTemplateConfig(data);
 
         if (checkObjectDiff(templateState, data, true, ['device_type_id'])) {
@@ -67,7 +69,7 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
             device_ids: data.device_ids,
             status: data.status,
             shopper_ids: data.shopper_ids,
-            account_ids: data.account_ids,
+            account_ids: Array.isArray(data.account_ids) ? data.account_ids : [],
             is_generic: data.is_generic,
           }));
         }
@@ -88,31 +90,62 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
           return;
         }
 
-        const newTemplate = await createTemplate({
-          name: data.name,
-          description: data.description,
-          device_ids: deviceIds,
-          builder_state_json: {},
-          canvas_type: 'single-row',
-          is_generic: data.is_generic || false,
-          account_ids: [data.account_ids],
-          device_type_id: data.device_type_id,
-        });
+        let newTemplateId: string;
+
+        // Check if base template is selected
+        if (data.base_template_id) {
+          // Copy base template first
+          const client = useGenericStore.getState().apiClient;
+          if (!client) {
+            message.error('API client is required');
+            return;
+          }
+          const api = createAPI(client);
+          const copyResponse = await api.templates.copyBaseTemplateToAccount(
+            data.base_template_id,
+            accountDetails?.id ??  0
+          );
+          newTemplateId = copyResponse.template_id;
+
+          // Update the copied template with user's config
+          await updateTemplate(newTemplateId, {
+            name: data.name,
+            description: data.description,
+            device_ids: deviceIds,
+            is_generic: data.is_generic || false,
+            account_ids: Array.isArray(data.account_ids) ? data.account_ids : [],
+            shopper_ids: data.shopper_ids,
+            device_type_id: data.device_type_id,
+          } as any);
+        } else {
+          // Create blank template from scratch
+          const newTemplate = await createTemplate({
+            name: data.name,
+            description: data.description,
+            device_ids: deviceIds,
+            builder_state_json: {},
+            canvas_type: 'single-row',
+            is_generic: data.is_generic || false,
+            account_ids: Array.isArray(data.account_ids) ? data.account_ids : [],
+            device_type_id: data.device_type_id,
+          });
+          newTemplateId = newTemplate.id;
+        }
 
         // MIGRATED: Update the template ID in Zustand store
-        actions.setCurrentTemplateId(newTemplate.id);
+        actions.setCurrentTemplateId(newTemplateId);
 
         let shopperIds = data.is_generic
           ? shoppers.map((s) => s.id)
           : data.shopper_ids;
 
-        await assignTemplateToShoppers(newTemplate.id, shopperIds);
+        await assignTemplateToShoppers(newTemplateId, shopperIds);
 
         // Store config data for later use
         actions.setTemplateConfig(data);
         message.success('Template created successfully!');
 
-        navigate(`/coupon-builder-v2/popup-builder/${newTemplate.id}/edit`);
+        navigate(`/coupon-builder-v2/popup-builder/${newTemplateId}/edit`);
       }
     } catch (error) {
       message.error('Failed to create template.');
@@ -130,8 +163,10 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
 
   useEffect(() => {
     if (!!templateId && adminBuilderStep === 0) {
+      // Templates with ID go to builder step
       actions.setAdminBuilderStep(1);
     } else if (!templateId && adminBuilderStep > 0) {
+      // Templates without ID go to config step
       actions.setAdminBuilderStep(0);
     }
     if (templateId) {
@@ -171,7 +206,6 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
       {adminBuilderStep === 1 && (
         <UnlayerMain
           unlayerConfig={unlayerConfig}
-          apiClient={apiClient}
           enableCustomImageUpload={true}
         />
       )}
@@ -187,7 +221,6 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
             console.log('Saving reminder tab config:', config);
             // TODO: Add API call to save config to template
           }}
-          apiClient={apiClient}
         />
       )}
     </>

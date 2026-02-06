@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Col, Row, Tag, Popover, Button, Alert, Spin, Tooltip, Divider } from 'antd';
 import { Info } from 'lucide-react';
 import FeedbackForm from '../components/feedback-form';
-import { PopupOnlyView } from '../components/PopupOnlyView';
-import { BrowserPreviewModal } from '../components/BrowserPreviewModal';
+import { PopupOnlyView, BrowserPreviewModal } from '../../../components/common';
 import { useGenericStore } from '@/stores/generic.store';
 import ReviewActions from '../components/review-actions';
 import { useClientFlowStore } from '@/stores/clientFlowStore';
@@ -24,14 +23,16 @@ export const DesktopReview: React.FC<DesktopReviewProps> = ({ }) => {
   const [template, setTemplate] = useState<ClientFlowData | null>(null);
   const getPreviewTemplate = () => {
     if (clientData && clientData.length) {
-      return clientData.filter(
-        (template) =>
-          template.devices.find((device) => device.device_type === 'desktop') &&
-          template.staging_status === 'client-review'
+      const withDesktop = clientData.filter(
+        (t) =>
+          t.staging_status === 'client-review' &&
+          t.devices?.some((d) => String(d.device_type).toLowerCase() === 'desktop')
       );
-    } else {
-      return [];
+      if (withDesktop.length) return withDesktop;
+      // Fallback: show first client-review template so preview/actions are visible
+      return clientData.filter((t) => t.staging_status === 'client-review');
     }
+    return [];
   };
 
   const onEditTemplate = () => {

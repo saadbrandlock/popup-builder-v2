@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { AxiosInstance } from 'axios';
 import { ShopperType, AccountDetails } from '@/types/common';
 
 type GenericState = {
@@ -7,6 +8,7 @@ type GenericState = {
   accounts: AccountDetails[];
   authProvider: { userId: string; accountId: string; role: string };
   navigate: any;
+  apiClient: AxiosInstance | null;
   browserPreviewModalOpen: boolean;
 };
 
@@ -21,6 +23,7 @@ type GenericActions = {
       role: string;
     }) => void;
     setNavigate: (navigate: (path: string) => void) => void;
+    setApiClient: (apiClient: AxiosInstance | null) => void;
     setBrowserPreviewModalOpen: (open: boolean) => void;
   };
 };
@@ -31,6 +34,7 @@ export const useGenericStore = create<GenericState & GenericActions>((set) => ({
   accounts: [],
   authProvider: { userId: '', accountId: '', role: '' },
   navigate: null,
+  apiClient: null,
   browserPreviewModalOpen: false,
   actions: {
     setShoppers: (shoppers: ShopperType[]) => set({ shoppers }),
@@ -42,6 +46,7 @@ export const useGenericStore = create<GenericState & GenericActions>((set) => ({
       role: string;
     }) => set({ authProvider }),
     setNavigate: (navigate: (path: string) => void) => set({ navigate }),
+    setApiClient: (apiClient: AxiosInstance | null) => set({ apiClient }),
     setBrowserPreviewModalOpen: (open: boolean) => set({ browserPreviewModalOpen: open }),
   },
 }));

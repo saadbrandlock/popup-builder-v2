@@ -8,8 +8,6 @@ export class TemplateFieldsAPI extends BaseAPI {
   }
 
   async getTemplateFields() {
-    console.log('here ===========================>');
-    
     try {
       const response = await this.get<CBTemplateFieldContentIdMapping[]>(
         `/field-content-mappings`

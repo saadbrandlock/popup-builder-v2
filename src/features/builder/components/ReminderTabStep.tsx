@@ -15,12 +15,12 @@ const ReminderTabStep: React.FC<ReminderTabStepProps> = ({
   onNext,
   onBack,
   onSave,
-  apiClient,
 }) => {
   const { reminderTabConfig, currentTemplateId, actions } = useBuilderStore();
   const { templateByIdLoading } = useLoadingStore();
+  const apiClient = useGenericStore((s) => s.apiClient);
 
-  // Initialize autosave
+  // Initialize autosave (apiClient from generic store)
   const {
     isSaving,
     lastSave,
@@ -32,7 +32,7 @@ const ReminderTabStep: React.FC<ReminderTabStepProps> = ({
     enabled: true,
     interval: 10000, // 10 seconds
     debounceDelay: 2000, // 2 seconds
-    apiClient: apiClient,
+    apiClient: apiClient ?? undefined,
     templateId: currentTemplateId || undefined,
     onSave: onSave,
     onError: (error) => {
@@ -43,7 +43,6 @@ const ReminderTabStep: React.FC<ReminderTabStepProps> = ({
 
   const handleConfigChange = useCallback(
     (config: any) => {
-      console.log('📝 ReminderTabStep: Config change detected', config);
       actions.setReminderTabConfig(config);
     },
     [actions]

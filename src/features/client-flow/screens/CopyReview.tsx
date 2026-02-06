@@ -2,9 +2,7 @@ import React, { useEffect } from 'react';
 import { Row, Col, Card } from 'antd';
 import ContentForm from '../components/content-form';
 import ShopperDetails from '../components/shopper-details';
-import { AxiosInstance } from 'axios';
-import { PopupPreviewTabs } from '../components/PopupPreviewTabs';
-import { BrowserPreviewModal } from '../components/BrowserPreviewModal';
+import { PopupPreviewTabs, BrowserPreviewModal } from '../../../components/common';
 import FeedbackForm from '../components/feedback-form';
 import { useGenericStore } from '@/stores/generic.store';
 import { useClientFlow } from '../hooks/use-client-flow';
@@ -17,14 +15,12 @@ import ShopperSegmentSelector from '../components/shopper-segment-selector';
  * Allows clients to review and customize coupon copy for different scenarios
  * Redesigned with 2-column layout for better space utilization
  */
-interface CopyReviewProps {
-  apiClient: AxiosInstance;
-}
-
-export const CopyReview: React.FC<CopyReviewProps> = ({ apiClient }) => {
-  const { accountDetails, browserPreviewModalOpen, actions: genericActions } = useGenericStore();
+export const CopyReview: React.FC = () => {
+  const accountDetails = useGenericStore((s) => s.accountDetails);
+  const browserPreviewModalOpen = useGenericStore((s) => s.browserPreviewModalOpen);
+  const genericActions = useGenericStore((s) => s.actions);
   const { devices } = useDevicesStore();
-  const { getDevices } = useClientFlow({ apiClient });
+  const { getDevices } = useClientFlow();
   const { clientData } = useClientFlowStore();
 
   useEffect(() => {
@@ -49,10 +45,7 @@ export const CopyReview: React.FC<CopyReviewProps> = ({ apiClient }) => {
           </Card>
           {/* Shopper Details - Collapsible, Open by Default */}
           <div className="mb-4">
-            <ShopperDetails 
-              apiClient={apiClient} 
-              displayMode="full" 
-            />
+            <ShopperDetails displayMode="full" />
           </div>
           
           {/* Content Configuration Form */}

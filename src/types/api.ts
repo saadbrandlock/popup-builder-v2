@@ -71,7 +71,8 @@ export interface TemplateConfig {
   description: string;
   status?: string;
   is_generic?: boolean;
-  account_ids?: number;
+  account_ids?: number[];
+  base_template_id?: string; // Optional base template selection
 }
 
 // Component Category Types

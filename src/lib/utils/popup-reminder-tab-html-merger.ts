@@ -326,14 +326,18 @@ class DynamicHTMLMerger {
     const hasMobile = mobileConfig?.enabled && config.enabled;
     
     return `<script>
-  ${hasDesktop ? `class ReminderTab{constructor(){this.tab=document.getElementById("reminderTab"),this.dragger=this.tab?.querySelector(".reminder-tab-dragger"),this.isDragging=!1,this.currentPosition="${desktopConfig?.display?.position || 'right'}",this.dragTimeout=null,this.init()}init(){if(!this.tab)return;${desktopConfig?.interactions?.clicking?.enabled !== false ? 'this.tab.addEventListener("click",t=>{this.isDragging||t.target===this.dragger||this.openPopup()});' : ''}${desktopConfig?.interactions?.dragging?.enabled ? 'this.addDragListeners();' : ''}}${desktopConfig?.interactions?.dragging?.enabled ? `addDragListeners(){if(!this.dragger)return;this.dragger.addEventListener("mousedown",t=>{t.stopPropagation(),t.preventDefault(),this.startDrag()}),this.dragger.addEventListener("touchstart",t=>{t.stopPropagation(),t.preventDefault(),this.startDrag()},{passive:!1}),document.addEventListener("mousemove",t=>this.drag(t)),document.addEventListener("mouseup",()=>this.endDrag()),document.addEventListener("touchmove",t=>this.drag(t.touches[0]),{passive:!1}),document.addEventListener("touchend",()=>this.endDrag())}startDrag(){this.isDragging=!0,this.tab.classList.add("dragging"),document.body.style.userSelect="none"}drag(t){if(!this.isDragging)return;const e=t.clientX,i=t.clientY,s=window.innerWidth,n=window.innerHeight,r=this.tab.offsetHeight;let o=i-r/2;o=Math.max(0,Math.min(o,n-r));const a=e<s/2?"left":"right";a!==this.currentPosition&&this.updatePosition(a),this.tab.style.top=o+"px",this.tab.style.transform="none"}endDrag(){this.isDragging&&(this.isDragging=!1,this.tab.classList.remove("dragging"),document.body.style.userSelect="",clearTimeout(this.dragTimeout),this.dragTimeout=setTimeout(()=>{this.isDragging=!1},150))}updatePosition(t){this.tab.classList.remove("position-left","position-right"),this.tab.classList.add(\`position-\${t}\`),this.currentPosition=t}` : ''}openPopup(){const t=new CustomEvent("openReminderPopup",{detail:{source:"reminderTab"}});document.dispatchEvent(t),"function"==typeof window.openReminderPopup&&window.openReminderPopup()}setText(t){const e=this.tab?.querySelector(".reminder-tab-text");e&&(e.textContent=t)}setPosition(t){"left"!==t&&"right"!==t||this.updatePosition(t)}show(){this.tab&&(this.tab.style.display="flex")}hide(){this.tab&&(this.tab.style.display="none")}getPosition(){return this.currentPosition}}` : ''}
+  (function(){
+    if(window.__reminderTabScriptLoaded)return;
+    window.__reminderTabScriptLoaded=true;
+  ${hasDesktop ? `const ReminderTab=class{constructor(){this.tab=document.getElementById("reminderTab"),this.dragger=this.tab?.querySelector(".reminder-tab-dragger"),this.isDragging=!1,this.currentPosition="${desktopConfig?.display?.position || 'right'}",this.dragTimeout=null,this.init()}init(){if(!this.tab)return;${desktopConfig?.interactions?.clicking?.enabled !== false ? 'this.tab.addEventListener("click",t=>{this.isDragging||t.target===this.dragger||this.openPopup()});' : ''}${desktopConfig?.interactions?.dragging?.enabled ? 'this.addDragListeners();' : ''}}${desktopConfig?.interactions?.dragging?.enabled ? `addDragListeners(){if(!this.dragger)return;this.dragger.addEventListener("mousedown",t=>{t.stopPropagation(),t.preventDefault(),this.startDrag()}),this.dragger.addEventListener("touchstart",t=>{t.stopPropagation(),t.preventDefault(),this.startDrag()},{passive:!1}),document.addEventListener("mousemove",t=>this.drag(t)),document.addEventListener("mouseup",()=>this.endDrag()),document.addEventListener("touchmove",t=>this.drag(t.touches[0]),{passive:!1}),document.addEventListener("touchend",()=>this.endDrag())}startDrag(){this.isDragging=!0,this.tab.classList.add("dragging"),document.body.style.userSelect="none"}drag(t){if(!this.isDragging)return;const e=t.clientX,i=t.clientY,s=window.innerWidth,n=window.innerHeight,r=this.tab.offsetHeight;let o=i-r/2;o=Math.max(0,Math.min(o,n-r));const a=e<s/2?"left":"right";a!==this.currentPosition&&this.updatePosition(a),this.tab.style.top=o+"px",this.tab.style.transform="none"}endDrag(){this.isDragging&&(this.isDragging=!1,this.tab.classList.remove("dragging"),document.body.style.userSelect="",clearTimeout(this.dragTimeout),this.dragTimeout=setTimeout(()=>{this.isDragging=!1},150))}updatePosition(t){this.tab.classList.remove("position-left","position-right"),this.tab.classList.add(\`position-\${t}\`),this.currentPosition=t}` : ''}openPopup(){const t=new CustomEvent("openReminderPopup",{detail:{source:"reminderTab"}});document.dispatchEvent(t),"function"==typeof window.openReminderPopup&&window.openReminderPopup()}setText(t){const e=this.tab?.querySelector(".reminder-tab-text");e&&(e.textContent=t)}setPosition(t){"left"!==t&&"right"!==t||this.updatePosition(t)}show(){this.tab&&(this.tab.style.display="flex")}hide(){this.tab&&(this.tab.style.display="none")}getPosition(){return this.currentPosition}}` : ''}
 
-  ${hasMobile ? `class MobileFloatingButton{constructor(){this.button=document.getElementById("mobileFloatingButton"),this.init()}init(){this.button&&this.button.addEventListener("click",()=>{this.openPopup()})}openPopup(){const t=new CustomEvent("openReminderPopup",{detail:{source:"mobileButton"}});document.dispatchEvent(t),"function"==typeof window.openReminderPopup&&window.openReminderPopup()}show(){this.button&&(this.button.style.display="flex")}hide(){this.button&&(this.button.style.display="none")}}` : ''}
+  ${hasMobile ? `const MobileFloatingButton=class{constructor(){this.button=document.getElementById("mobileFloatingButton"),this.init()}init(){this.button&&this.button.addEventListener("click",()=>{this.openPopup()})}openPopup(){const t=new CustomEvent("openReminderPopup",{detail:{source:"mobileButton"}});document.dispatchEvent(t),"function"==typeof window.openReminderPopup&&window.openReminderPopup()}show(){this.button&&(this.button.style.display="flex")}hide(){this.button&&(this.button.style.display="none")}}` : ''}
 
   document.addEventListener("DOMContentLoaded",function(){
     ${hasDesktop ? 'window.reminderTab=new ReminderTab;' : ''}
     ${hasMobile ? 'window.mobileFloatingButton=new MobileFloatingButton;' : ''}
   });
+  })();
   </script>`;
   }
 
@@ -436,7 +440,18 @@ export class OptimizedHTMLMerger {
       .map((style) => style.outerHTML)
       .join('\n');
 
-    const reminderBody = reminderDoc.body ? reminderDoc.body.innerHTML : '';
+    let reminderBody = reminderDoc.body ? reminderDoc.body.innerHTML : '';
+
+    // When hideReminderTab is true, remove tab/button from DOM so they never render
+    if (config.hideReminderTab) {
+      const bodyDoc = this.parser.parseFromString(
+        `<!DOCTYPE html><html><body>${reminderBody}</body></html>`,
+        'text/html'
+      );
+      bodyDoc.getElementById('reminderTab')?.remove();
+      bodyDoc.getElementById('mobileFloatingButton')?.remove();
+      reminderBody = bodyDoc.body ? bodyDoc.body.innerHTML : '';
+    }
 
     const reminderScripts = Array.from(reminderDoc.querySelectorAll('script'))
       .map((script) => script.outerHTML)

@@ -39,6 +39,19 @@ export interface UnlayerConfig {
   customCSS?: string;
   customJS?: string;
   fonts?: UnlayerFont[];
+  /** Restrict editor to desktop and/or mobile; see https://docs.unlayer.com/builder/device-management */
+  devices?: ('desktop' | 'mobile')[];
+  /** Initial device view when editor opens */
+  defaultDevice?: 'desktop' | 'mobile';
+  /** Tab visibility; see https://docs.unlayer.com/builder/latest/tab-management */
+  tabs?: {
+    content?: { enabled?: boolean };
+    blocks?: { enabled?: boolean };
+    popup?: { enabled?: boolean };
+    dev?: { enabled?: boolean };
+  };
+  /** Feature flags; e.g. audit tab via features.audit */
+  features?: { audit?: boolean };
 }
 
 // Appearance configuration
