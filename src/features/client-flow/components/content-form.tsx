@@ -61,7 +61,6 @@ const ContentForm = () => {
       message.success('Content saved successfully!');
     } catch (error) {
       console.error('Error saving content:', error);
-      message.error('Failed to save content');
     } finally {
       setIsLoading(false);
     }

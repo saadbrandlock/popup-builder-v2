@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { message, Alert, Button, Card, Row, Col, Space, Typography, Badge, Spin, Popover, Modal } from 'antd';
 import { ArrowRightOutlined, SaveOutlined, InfoCircleOutlined, LogoutOutlined } from '@ant-design/icons';
 import EmailEditor, { UnlayerOptions } from 'react-email-editor';
@@ -9,6 +9,11 @@ import { useUnlayerEditor } from '../../builder/hooks/useUnlayerEditor';
 import { useUnlayerDeviceOptions } from '../../builder/hooks/useUnlayerDeviceOptions';
 import { manageEditorMode, manageMergeTags } from '../../builder/utils';
 import { selectFirstBlockWhenReady, hidePopupTabInEditor } from '../../builder/utils/unlayerDefaultSelection';
+import { getAllComponents, getComponent } from '@/custom-components';
+import { detectCustomComponent, findAllCustomComponentsInDesign, type DetectedComponent } from '@/custom-components/utils/detection';
+import { updateComponentInDesign } from '@/custom-components/utils/designUpdater';
+import { OverlayPropertyPanel } from '@/custom-components/components/OverlayPropertyPanel';
+import { ActiveComponentsList } from '@/custom-components/components/ActiveComponentsList';
 
 const { Title, Text } = Typography;
 
@@ -53,6 +58,73 @@ export const ClientEditorStep: React.FC<ClientEditorStepProps> = ({
   const { builderAutosaving } = useLoadingStore();
   const { devices, defaultDevice } = useUnlayerDeviceOptions();
 
+  const userRole = 'client' as const;
+  const [selectedComponent, setSelectedComponent] = useState<DetectedComponent | null>(null);
+  const [allCustomComponents, setAllCustomComponents] = useState<DetectedComponent[]>([]);
+  const [isReloading, setIsReloading] = useState(false);
+  const lastDesignRef = useRef<unknown>(null);
+  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isUpdatingRef = useRef(false);
+
+  const extendEditorReady = useCallback((unlayer: any) => {
+    unlayer.registerProvider('blocks', (_params: any, done: (blocks: any[]) => void) => {
+      const components = getAllComponents();
+      const blocks = components.map((comp) => ({
+        id: `custom-${comp.id}`,
+        name: comp.name,
+        category: 'Custom Components',
+        tags: [comp.category, comp.name.toLowerCase()],
+        data: {
+          body: {
+            rows: [
+              {
+                cells: [1],
+                columns: [
+                  {
+                    contents: [
+                      {
+                        type: 'html',
+                        values: {
+                          html: comp.render(comp.defaultProps as Record<string, unknown>),
+                          containerPadding: '10px',
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      }));
+      done(blocks);
+    });
+
+    unlayer.addEventListener('design:updated', (data: any) => {
+      unlayer.exportHtml((exportData: any) => {
+        lastDesignRef.current = exportData.design;
+        const found = findAllCustomComponentsInDesign(exportData.design);
+        setAllCustomComponents(found);
+      });
+      if (data?.type === 'content' && data?.item?.type === 'html') {
+        const html = data.item.values?.html ?? '';
+        const detected = detectCustomComponent(html);
+        if (detected) {
+          const compDef = getComponent(detected.componentId);
+          if (compDef) {
+            setSelectedComponent({
+              componentId: detected.componentId,
+              componentDef: compDef,
+              currentProps: detected.props,
+              htmlBlockId: data.item.id ?? '',
+              rawHtml: html,
+            });
+          }
+        }
+      }
+    });
+  }, []);
+
   const {
     editorRef,
     isReady,
@@ -71,7 +143,61 @@ export const ClientEditorStep: React.FC<ClientEditorStepProps> = ({
     templateId: templateId || currentTemplateId || undefined,
     accountId: authProvider?.accountId,
     enableCustomImageUpload: true,
+    extendEditorReady,
   });
+
+  const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChangesRef.current) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
+
+  const handlePropsChange = useCallback(
+    (componentId: string, htmlBlockId: string, newProps: Record<string, unknown>) => {
+      const comp = getComponent(componentId);
+      const design = lastDesignRef.current;
+      if (!comp || !design) return;
+
+      const newHtml = comp.render(newProps);
+      const updatedDesign = updateComponentInDesign(design, htmlBlockId, newHtml);
+
+      if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
+      updateTimeoutRef.current = setTimeout(() => {
+        if (isUpdatingRef.current) return;
+        isUpdatingRef.current = true;
+        const unlayer = editorRef.current?.editor;
+        if (unlayer) {
+          setIsReloading(true);
+          unlayer.loadDesign(updatedDesign as any);
+          lastDesignRef.current = updatedDesign;
+          setTimeout(() => {
+            isUpdatingRef.current = false;
+            setIsReloading(false);
+          }, 600);
+        }
+      }, 800);
+    },
+    [editorRef]
+  );
+
+  // Sync custom components list and lastDesignRef when editor is ready
+  useEffect(() => {
+    if (!isReady || !editorRef.current?.editor || !templateState) return;
+    const unlayer = editorRef.current.editor;
+    unlayer.exportHtml((data: any) => {
+      lastDesignRef.current = data.design;
+      const found = findAllCustomComponentsInDesign(data.design);
+      setAllCustomComponents(found);
+    });
+  }, [isReady, templateState]);
 
   // Remove Unlayer branding
   useEffect(() => {
@@ -95,7 +221,6 @@ export const ClientEditorStep: React.FC<ClientEditorStepProps> = ({
       message.success('Design saved successfully!');
     } catch (error) {
       console.error('Manual save failed:', error);
-      message.error('Failed to save design');
     }
   };
 
@@ -165,7 +290,7 @@ export const ClientEditorStep: React.FC<ClientEditorStepProps> = ({
       {/* Error Display */}
       {error && (
         <Alert
-          message="Error"
+          message="Autosave failed — will retry"
           description={error}
           type="error"
           closable
@@ -175,62 +300,109 @@ export const ClientEditorStep: React.FC<ClientEditorStepProps> = ({
       )}
 
       {/* Editor Container - only mount when template (and devices) is loaded so device view is correct */}
-      <Card>
-        <div
-          style={{
-            height: '700px',
-            border: '1px solid #d9d9d9',
-            borderRadius: '6px',
-            overflow: 'hidden',
-          }}
-        >
-          {!templateState ? (
-            <div className="flex items-center justify-center h-full min-h-[400px]">
-              <Spin size="large" tip="Loading editor..." />
-            </div>
-          ) : (
-            <EmailEditor
-              key={`bl-client-editor-${templateId ?? ''}-${devices.join('-')}-${defaultDevice}`}
-              editorId="bl-client-editor"
-              ref={editorRef}
-              onReady={(unlayer) => {
-                onEditorReady(unlayer);
-                selectFirstBlockWhenReady(unlayer, 'bl-client-editor');
-                hidePopupTabInEditor('bl-client-editor');
-              }}
-              options={{
-                ...unlayerConfig,
-                appearance: {
-                  ...unlayerConfig.appearance,
-                  panels: {
-                    ...unlayerConfig.appearance?.panels,
-                    tools: {
-                      ...unlayerConfig.appearance?.panels?.tools,
-                      dock: 'left',
-                    },
-                  },
-                },
-                tools: manageEditorMode(true), // Always design mode for client
-                mergeTags: manageMergeTags(),
-                devices,
-                defaultDevice,
-                tabs: {
-                  content: { enabled: false },
-                  blocks: { enabled: false },
-                  popup: { enabled: false },
-                  Popup: { enabled: false },
-                  dev: { enabled: false },
-                },
-                features: { audit: false },
-              }}
+      <div style={{ position: 'relative', display: 'flex', width: '100%' }}>
+        {allCustomComponents.length > 0 && (
+          <ActiveComponentsList
+            components={allCustomComponents}
+            selectedComponent={selectedComponent}
+            onSelect={setSelectedComponent}
+          />
+        )}
+        <div style={{ position: 'relative', flex: 1 }}>
+          <Card>
+            <div
               style={{
                 height: '700px',
-                width: '100%',
+                border: '1px solid #d9d9d9',
+                borderRadius: '6px',
+                overflow: 'hidden',
               }}
+            >
+              {!templateState ? (
+                <div className="flex items-center justify-center h-full min-h-[400px]">
+                  <Spin size="large" tip="Loading editor..." />
+                </div>
+              ) : (
+                <EmailEditor
+                  key={`bl-client-editor-${templateId ?? ''}-${devices.join('-')}-${defaultDevice}`}
+                  editorId="bl-client-editor"
+                  ref={editorRef}
+                  onReady={(unlayer) => {
+                    onEditorReady(unlayer);
+                    selectFirstBlockWhenReady(unlayer, 'bl-client-editor');
+                    hidePopupTabInEditor('bl-client-editor');
+                  }}
+                  options={{
+                    ...unlayerConfig,
+                    appearance: {
+                      ...unlayerConfig.appearance,
+                      panels: {
+                        ...unlayerConfig.appearance?.panels,
+                        tools: {
+                          ...unlayerConfig.appearance?.panels?.tools,
+                          dock: 'left',
+                        },
+                      },
+                    },
+                    tools: { ...manageEditorMode(true), html: { enabled: false } },
+                    mergeTags: manageMergeTags(),
+                    devices,
+                    defaultDevice,
+                    tabs: {
+                      content: { enabled: false },
+                      blocks: { enabled: false },
+                      popup: { enabled: false },
+                      Popup: { enabled: false },
+                      dev: { enabled: false },
+                    },
+                    features: {
+                      ...unlayerConfig.features,
+                      textEditor: { triggerChangeWhileEditing: true, debounce: 300 } as Record<string, unknown>,
+                      audit: false,
+                    },
+                    customCSS: [
+                      `.blockbuilder-content-tool-html .blockbuilder-options-content { display: none !important; }`,
+                      `.blockbuilder-content-tool-html .blockbuilder-options::after { content: 'Use the properties panel to edit this component →'; display: block; padding: 20px; text-align: center; color: #9CA3AF; font-size: 13px; }`,
+                    ],
+                  }}
+                  style={{
+                    height: '700px',
+                    width: '100%',
+                  }}
+                />
+              )}
+            </div>
+          </Card>
+
+          {isReloading && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 360,
+                bottom: 0,
+                background: 'rgba(255,255,255,0.7)',
+                zIndex: 9998,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <span style={{ fontSize: '14px', color: '#6B7280' }}>Updating preview...</span>
+            </div>
+          )}
+
+          {selectedComponent && (
+            <OverlayPropertyPanel
+              component={selectedComponent}
+              onPropsChange={handlePropsChange}
+              onClose={() => setSelectedComponent(null)}
+              userRole={userRole}
             />
           )}
         </div>
-      </Card>
+      </div>
 
       {/* Navigation */}
       <div className="flex justify-end gap-2 mt-6">

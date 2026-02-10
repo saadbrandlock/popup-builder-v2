@@ -115,7 +115,6 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
       getContent();
     } catch (error) {
       console.error('Error deleting content:', error);
-      message.error('Failed to delete content');
     }
   };
 
@@ -133,7 +132,6 @@ const CannedContentList: React.FC<CannedContentListProps> = ({
       getContent();
     } catch (error) {
       console.error('Error saving content:', error);
-      message.error('Failed to save content');
     }
   };
 

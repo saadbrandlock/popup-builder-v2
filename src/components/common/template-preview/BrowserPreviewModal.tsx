@@ -18,6 +18,9 @@ export const BrowserPreviewModal: React.FC<BrowserPreviewModalProps> = ({
   websiteBackground,
   popupTemplate,
 }) => {
+  const templateId = Array.isArray(popupTemplate) && popupTemplate[0]?.template_id != null
+    ? String(popupTemplate[0].template_id)
+    : 'none';
   return (
     <Modal
       title={`${viewport === 'desktop' ? 'Desktop' : 'Mobile'} Preview`}
@@ -26,10 +29,11 @@ export const BrowserPreviewModal: React.FC<BrowserPreviewModalProps> = ({
       footer={null}
       width={viewport === 'desktop' ? 1400 : 600}
       centered
-      destroyOnHidden
+      destroyOnClose
     >
       <div className="py-4">
         <BrowserPreview
+          key={`${viewport}-${templateId}`}
           className="shadow-md"
           viewport={viewport}
           websiteBackground={websiteBackground}

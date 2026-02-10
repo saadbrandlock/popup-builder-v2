@@ -4,7 +4,7 @@ import { createAPI } from '@/api';
 import { CleanTemplateResponse, ClientFlowData } from '@/types';
 import { BaseTemplate } from '@/features/base-template/types';
 import {
-  convertBaseTemplateToClientFlowData,
+  convertTemplateToClientFlowData,
   convertCleanTemplateToClientFlowData,
 } from '@/lib/utils/template-to-client-flow-converter';
 import { useGenericStore } from '@/stores/generic.store';
@@ -117,18 +117,18 @@ export function useTemplatePreviewData(
     };
   }, [storeDevices]);
 
-  // Direct conversion from BaseTemplate (no API call)
+  // Direct conversion from BaseTemplate or CleanTemplateResponse (no API call)
   const directPreviewData = useMemo<ClientFlowData[] | null>(() => {
     if (!enabled || !template) {
       return null;
     }
 
     try {
-      const converted = convertBaseTemplateToClientFlowData(template, htmlContent);
+      const converted = convertTemplateToClientFlowData(template, htmlContent);
       const data = converted ? [converted] : null;
       return data ? mergeDevicesIntoPreviewData(data) : null;
     } catch (err) {
-      console.error('Failed to convert base template:', err);
+      console.error('Failed to convert template to preview data:', err);
       return null;
     }
   }, [template, htmlContent, enabled, mergeDevicesIntoPreviewData]);

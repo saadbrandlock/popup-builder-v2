@@ -63,6 +63,9 @@ export const useClientFlowStore = create<ClientFlowState & ClientFlowActions>(
     activeHighlightedField: null as string | null,
     highlightedFieldName: null as string | null,
 
+    selectedReviewShopperId: null as number | null,
+    selectedReviewTemplateId: null as string | null,
+
     // ============================================================================
     // ACTIONS (following existing store pattern)
     // ============================================================================
@@ -97,6 +100,14 @@ export const useClientFlowStore = create<ClientFlowState & ClientFlowActions>(
       // Template Management (API-ready)
       setSelectedTemplate: (template: any) => {
         set({ selectedTemplate: template });
+      },
+
+      setSelectedReviewShopperId: (id: number | null) => {
+        set({ selectedReviewShopperId: id });
+      },
+
+      setSelectedReviewTemplateId: (id: string | null) => {
+        set({ selectedReviewTemplateId: id });
       },
 
       // content step

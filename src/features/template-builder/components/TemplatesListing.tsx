@@ -106,7 +106,6 @@ export const TemplatesListing: React.FC<TemplatesListingProps> = ({
       }
     } catch (error) {
       console.error(`Error ${action}ing child template:`, error);
-      message.error(`Failed to ${action} child template`);
     }
   };
 

@@ -72,7 +72,6 @@ export const useTemplateListing = () => {
       }
     } catch (error) {
       console.error(`Error performing ${action}:`, error);
-      message.error(`Failed to ${action} template`);
     }
   };
 
@@ -98,7 +97,6 @@ export const useTemplateListing = () => {
       });
     } catch (error) {
       console.error('Error loading templates:', error);
-      message.error('Failed to load templates');
     } finally {
       loadingActions.setTemplateListingLoading(false);
     }
@@ -215,7 +213,6 @@ export const useTemplateListing = () => {
       }
     } catch (error) {
       console.error('❌ Error publishing template:', error);
-      message.error('Failed to publish template');
     } finally {
       loadingActions.setTemplateListActionLoading(false);
     }
@@ -234,7 +231,6 @@ export const useTemplateListing = () => {
       deviceActions.setDevices(response);
     } catch (error) {
       console.error('Error loading devices:', error);
-      message.error('Failed to load devices');
     } finally {
       loadingActions.setDevicesLoading(false);
     }

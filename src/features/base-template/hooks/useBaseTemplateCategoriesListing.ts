@@ -67,11 +67,6 @@ export const useBaseTemplateCategoriesListing = () => {
       message.success('Category deleted successfully');
       await getCategories();
     } catch (error: any) {
-      if (error?.statusCode === 409) {
-        message.error(error.message);
-      } else {
-        message.error('Failed to delete category');
-      }
       throw error;
     } finally {
       setLoading(false);

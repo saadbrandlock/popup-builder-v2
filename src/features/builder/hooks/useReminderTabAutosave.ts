@@ -58,26 +58,35 @@ export const useReminderTabAutosave = (
   // Loading state from loading store
   const { reminderTabAutosaving, actions: loadingActions } = useLoadingStore();
 
-  // Local refs for managing timers
+  // Local refs for managing timers and avoiding stale closures in interval
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const lastConfigRef = useRef<ReminderTabConfig | null>(null);
+  const isSavingRef = useRef(false);
+  const reminderTabUnsavedChangesRef = useRef(reminderTabUnsavedChanges);
+  const reminderTabAutosavingRef = useRef(reminderTabAutosaving);
 
-  // lastConfigRef will be initialized in the useEffect
+  useEffect(() => {
+    reminderTabUnsavedChangesRef.current = reminderTabUnsavedChanges;
+  }, [reminderTabUnsavedChanges]);
+  useEffect(() => {
+    reminderTabAutosavingRef.current = reminderTabAutosaving;
+  }, [reminderTabAutosaving]);
 
   // Auto-save enabled state
   const autoSaveEnabled = propEnabled && !!templateId && !!apiClient;
 
   /**
-   * Perform autosave operation
+   * Perform autosave operation (with mutex to prevent overlapping saves)
    */
-  const performAutoSave = useCallback(async () => {  
+  const performAutoSave = useCallback(async () => {
+    if (isSavingRef.current) return;
     if (!autoSaveEnabled || !reminderTabUnsavedChanges || reminderTabAutosaving) {
       return;
     }
 
+    isSavingRef.current = true;
     try {
-      
       loadingActions.setReminderTabAutosaving(true);
       actions.setReminderTabSaveError(null);
 
@@ -106,6 +115,7 @@ export const useReminderTabAutosave = (
       actions.setReminderTabSaveError(err.message);
       onError?.(err);
     } finally {
+      isSavingRef.current = false;
       loadingActions.setReminderTabAutosaving(false);
     }
   }, [
@@ -212,10 +222,8 @@ export const useReminderTabAutosave = (
 
     // Setup new interval if autosave is enabled
     if (autoSaveEnabled) {
-      
       intervalRef.current = setInterval(() => {
-        // Only perform auto-save if there are unsaved changes
-        if (reminderTabUnsavedChanges && !reminderTabAutosaving) {
+        if (reminderTabUnsavedChangesRef.current && !reminderTabAutosavingRef.current && !isSavingRef.current) {
           performAutoSave();
         }
       }, propInterval);
@@ -228,7 +236,7 @@ export const useReminderTabAutosave = (
         intervalRef.current = null;
       }
     };
-  }, [autoSaveEnabled, propInterval, reminderTabUnsavedChanges, reminderTabAutosaving, performAutoSave]);
+  }, [autoSaveEnabled, propInterval, performAutoSave]);
 
   /**
    * Track config changes and trigger debounced autosave

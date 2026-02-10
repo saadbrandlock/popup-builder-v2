@@ -31,7 +31,6 @@ export const useBaseTemplateActions = () => {
       });
       categoryActions.setCategories(response.results || []);
     } catch (error) {
-      message.error('Failed to load categories');
       console.error('Load categories error:', error);
     } finally {
       setLoading(false);
@@ -50,7 +49,6 @@ export const useBaseTemplateActions = () => {
       const category = await api.baseTemplateCategories.getCategoryById(id);
       return category;
     } catch (error) {
-      message.error('Failed to load category');
       console.error('Get category by id error:', error);
       return null;
     } finally {
@@ -71,11 +69,6 @@ export const useBaseTemplateActions = () => {
       message.success('Category deleted successfully');
       await loadCategories();
     } catch (error: any) {
-      if (error?.statusCode === 409) {
-        message.error(error.message);
-      } else {
-        message.error('Failed to delete category');
-      }
       console.error('Delete category error:', error);
       throw error;
     } finally {
@@ -133,7 +126,6 @@ export const useBaseTemplateActions = () => {
 
       templateActions.setTemplates(templates);
     } catch (error) {
-      message.error('Failed to load templates');
       console.error('Load templates error:', error);
     } finally {
       setLoading(false);
@@ -159,11 +151,6 @@ export const useBaseTemplateActions = () => {
 
       await loadCategories();
     } catch (error: any) {
-      if (error?.statusCode === 409) {
-        message.error(error.message);
-      } else {
-        message.error('Failed to save category');
-      }
       console.error('Create category error:', error);
       throw error;
     } finally {
@@ -184,11 +171,6 @@ export const useBaseTemplateActions = () => {
       message.success('Template deleted successfully');
       await loadTemplates();
     } catch (error: any) {
-      if (error?.statusCode === 409) {
-        message.error(error.message);
-      } else {
-        message.error('Failed to delete template');
-      }
       console.error('Delete template error:', error);
       throw error;
     } finally {
@@ -222,7 +204,6 @@ export const useBaseTemplateActions = () => {
       await loadTemplates();
       return true;
     } catch (error) {
-      message.error('Failed to create base template');
       console.error('Save template error:', error);
       throw error;
     } finally {
@@ -243,11 +224,6 @@ export const useBaseTemplateActions = () => {
       message.success(`Template status updated to ${status} successfully`);
       await loadTemplates();
     } catch (error: any) {
-      if (error?.statusCode === 409) {
-        message.error(error.message);
-      } else {
-        message.error('Failed to update template status');
-      }
       console.error('Update template status error:', error);
       throw error;
     } finally {

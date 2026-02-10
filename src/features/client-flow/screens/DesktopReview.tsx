@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Tag, Popover, Button, Alert, Spin, Tooltip, Divider } from 'antd';
-import { Info } from 'lucide-react';
+import React, { useEffect, useMemo } from 'react';
+import { Card, Col, Row, Alert, Spin } from 'antd';
 import FeedbackForm from '../components/feedback-form';
 import { PopupOnlyView, BrowserPreviewModal } from '../../../components/common';
 import { useGenericStore } from '@/stores/generic.store';
@@ -8,32 +7,34 @@ import ReviewActions from '../components/review-actions';
 import { useClientFlowStore } from '@/stores/clientFlowStore';
 import { ClientFlowData } from '@/types';
 import { cn } from '@/lib/utils';
+import { getTemplatesForDevice, getTemplateOptionLabels } from '../utils/template-filters';
+import { TemplateReviewSelector } from '../components/template-review-selector';
 
 /**
  * DesktopReview - Step 1 - Desktop review screen
- * Shows popup preview in desktop viewport with review controls
- * Now extends BaseProps for consistency with project patterns
+ * Shows popup preview in desktop viewport. When multiple templates exist (as grouped by admin), user selects which template to review.
  */
 interface DesktopReviewProps { }
 
 export const DesktopReview: React.FC<DesktopReviewProps> = ({ }) => {
   const { accountDetails, navigate, browserPreviewModalOpen, actions: genericActions } = useGenericStore();
-  const { clientData, actions } = useClientFlowStore();
+  const { clientData, actions, selectedReviewTemplateId } = useClientFlowStore();
 
-  const [template, setTemplate] = useState<ClientFlowData | null>(null);
-  const getPreviewTemplate = () => {
-    if (clientData && clientData.length) {
-      const withDesktop = clientData.filter(
-        (t) =>
-          t.staging_status === 'client-review' &&
-          t.devices?.some((d) => String(d.device_type).toLowerCase() === 'desktop')
-      );
-      if (withDesktop.length) return withDesktop;
-      // Fallback: show first client-review template so preview/actions are visible
-      return clientData.filter((t) => t.staging_status === 'client-review');
-    }
-    return [];
-  };
+  const desktopTemplates = useMemo(() => getTemplatesForDevice(clientData, 'desktop'), [clientData]);
+  const showTemplateSelector = desktopTemplates.length > 1;
+  const selectedTemplateId =
+    desktopTemplates.some((t) => t.template_id === selectedReviewTemplateId)
+      ? selectedReviewTemplateId
+      : (desktopTemplates[0]?.template_id ?? null);
+
+  const template = useMemo(() => {
+    if (!desktopTemplates.length) return null;
+    return desktopTemplates.find((t) => t.template_id === selectedTemplateId) ?? desktopTemplates[0];
+  }, [desktopTemplates, selectedTemplateId]);
+
+  useEffect(() => {
+    if (template) actions.setSelectedTemplate(template);
+  }, [template, actions]);
 
   const onEditTemplate = () => {
     if (template) {
@@ -43,13 +44,9 @@ export const DesktopReview: React.FC<DesktopReviewProps> = ({ }) => {
     }
   };
 
-  useEffect(() => {
-    if (clientData && clientData.length) {
-      const _template = getPreviewTemplate()[0];
-      setTemplate(_template);
-      actions.setSelectedTemplate(_template);
-    }
-  }, [clientData]);
+  const onTemplateChange = (value: string) => {
+    actions.setSelectedReviewTemplateId(value);
+  };
 
   return (
     <>
@@ -61,49 +58,61 @@ export const DesktopReview: React.FC<DesktopReviewProps> = ({ }) => {
           </Col>
           <Col xs={24} md={18}>
             <Row gutter={[16, 16]} className="relative" align={'middle'}>
-              <Col 
-                xs={24} 
-                md={15} 
-                lg={15} 
-                className={cn(
-                  'transition-all duration-300 ease-in-out'
-                )}
-              >
-          
-                  <Alert
-                    message="This coupon module design will be used across your shopper groups. You can edit the design as per your preferences or edit the content per shopper group in third step."
-                    type="info"
-                    showIcon
-                    className="transition-all duration-300 ease-in-out"
-                  />
+              <Col xs={24} className={cn('transition-all duration-300 ease-in-out')}>
+                <Alert
+                  message="You're viewing one of your templates (grouped as set by your admin). Use Edit to change this template's design. In step 3 you can set copy per shopper group."
+                  type="info"
+                  showIcon
+                  className="transition-all duration-300 ease-in-out"
+                />
               </Col>
-              {template && (
-                <Col 
-                  xs={24} 
-                  md={9} 
-                  lg={9} 
-                  className="flex items-end"
-                >
-                  <ReviewActions 
-                    type="desktop" 
-                    goToEditTemplate={onEditTemplate}
-                  />
-                </Col>
-              )}
 
               <Col xs={24}>
-                {/* Popup Only View */}
-                <div className="w-full">
-                  {accountDetails && template ? (
-                    <PopupOnlyView
-                      viewport="desktop"
-                      popupTemplate={[template]}
-                      className="shadow-md"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center !h-96"><Spin size='large' /></div>
+                <Card>
+                  {showTemplateSelector && (
+                    <div className="mb-4">
+                      <TemplateReviewSelector
+                        templates={desktopTemplates}
+                        value={selectedTemplateId}
+                        onChange={onTemplateChange}
+                        // label="Select template to review:"
+                        size="middle"
+                      />
+                    </div>
                   )}
-                </div>
+                  {template && (
+                    <div className="mb-4 flex gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {getTemplateOptionLabels(template).name}
+                        </p>
+                        {getTemplateOptionLabels(template).descriptionFull && (
+                          <p className="mt-0.5 text-sm text-gray-500">
+                            {getTemplateOptionLabels(template).descriptionFull}
+                          </p>
+                        )}
+                      </div>
+                      <div className="shrink-0">
+                        <ReviewActions
+                          type="desktop"
+                          goToEditTemplate={onEditTemplate}
+                          inline
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div className="w-full">
+                    {accountDetails && template ? (
+                      <PopupOnlyView
+                        viewport="desktop"
+                        popupTemplate={[template]}
+                        className="shadow-md"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center !h-96"><Spin size="large" /></div>
+                    )}
+                  </div>
+                </Card>
               </Col>
             </Row>
           </Col>

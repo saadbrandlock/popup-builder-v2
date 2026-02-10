@@ -1,37 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { Tabs, Card, Typography } from 'antd';
+import React, { useState, useMemo } from 'react';
+import { Tabs, Typography } from 'antd';
 import { MonitorSpeaker, Smartphone } from 'lucide-react';
 import { PopupOnlyView } from '../index';
 import { ClientFlowData } from '@/types';
+import { getTemplatesForDevice, getTemplatesForDeviceAndShopper } from '@/features/client-flow/utils/template-filters';
 
 const { Title } = Typography;
 
 interface PopupPreviewTabsProps {
   clientData: ClientFlowData[] | null;
+  /** When set, desktop/mobile tabs show the template for this shopper group; otherwise first template per device. */
+  activeShopperId?: number | null;
   className?: string;
 }
 
 export const PopupPreviewTabs: React.FC<PopupPreviewTabsProps> = ({ 
   clientData,
+  activeShopperId = null,
   className = '' 
 }) => {
   const [activeTab, setActiveTab] = useState<'desktop' | 'mobile'>('desktop');
-  const [desktopTemplate, setDesktopTemplate] = useState<ClientFlowData | null>(null);
-  const [mobileTemplate, setMobileTemplate] = useState<ClientFlowData | null>(null);
 
-  useEffect(() => {
-    if (clientData && clientData.length) {
-      // Find template where desktop is the FIRST/PRIMARY device
-      const desktop = clientData.find((t) => t.devices.some((device) => device.device_type === 'desktop'));
-      // Find template where mobile is the FIRST/PRIMARY device
-      const mobile = clientData.find(
-        (t) => t.devices.some((device) => device.device_type === 'mobile')
-      );
+  const desktopTemplate = useMemo(() => {
+    if (!clientData?.length) return null;
+    const byShopper = getTemplatesForDeviceAndShopper(clientData, 'desktop', activeShopperId ?? undefined);
+    const byDevice = getTemplatesForDevice(clientData, 'desktop');
+    return byShopper[0] ?? byDevice[0] ?? null;
+  }, [clientData, activeShopperId]);
 
-      setDesktopTemplate(desktop || null);
-      setMobileTemplate(mobile || null);
-    }
-  }, [clientData]);
+  const mobileTemplate = useMemo(() => {
+    if (!clientData?.length) return null;
+    const byShopper = getTemplatesForDeviceAndShopper(clientData, 'mobile', activeShopperId ?? undefined);
+    const byDevice = getTemplatesForDevice(clientData, 'mobile');
+    return byShopper[0] ?? byDevice[0] ?? null;
+  }, [clientData, activeShopperId]);
 
   const tabItems = [
     {

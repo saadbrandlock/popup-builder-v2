@@ -1,45 +1,39 @@
-import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Tag, Alert, Typography, Radio, Space } from 'antd';
-import { 
-  CheckCircleOutlined, 
-  ClockCircleOutlined,
-  ExclamationCircleOutlined,
-  FileTextOutlined
-} from '@ant-design/icons';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Card, Row, Col, Tag, Typography, Radio, Space } from 'antd';
+import { CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined } from '@ant-design/icons';
 import { Clock, FileCheck } from 'lucide-react';
 import { BrowserPreview, BrowserPreviewSkeleton } from '../../../components/common';
 import { useClientFlowStore } from '@/stores/clientFlowStore';
 import { useGenericStore } from '@/stores/generic.store';
 import { ClientFlowData } from '@/types';
+import { getTemplatesForDevice } from '../utils/template-filters';
+import { TemplateReviewSelector } from '../components/template-review-selector';
 
 const { Text } = Typography;
 
 /**
  * ReviewScreen - Step 4 - Final review screen
- * Shows review status and preview with consistent layout patterns
+ * Shows review status and preview. When multiple templates exist for the selected device, user selects which template to view (template-based, as admin grouped).
  */
 interface ReviewScreenProps {}
 
 export const ReviewScreen: React.FC<ReviewScreenProps> = () => {
   const { accountDetails } = useGenericStore();
-  const { clientData, actions } = useClientFlowStore();
-  
+  const { clientData, actions, selectedReviewTemplateId } = useClientFlowStore();
+
   const [selectedDevice, setSelectedDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [template, setTemplate] = useState<ClientFlowData | null>(null);
 
-  const getPreviewTemplate = () => {
-    if (clientData && clientData.length) {
-      return clientData.filter(
-        (template) =>
-          template.devices.find((device) => device.device_type === selectedDevice) &&
-          template.staging_status === 'client-review'
-      );
-    } else {
-      return [];
-    }
-  };
+  const deviceTemplates = useMemo(
+    () => getTemplatesForDevice(clientData, selectedDevice),
+    [clientData, selectedDevice]
+  );
+  const showTemplateSelector = deviceTemplates.length > 1;
+  const selectedTemplateId =
+    deviceTemplates.some((t) => t.template_id === selectedReviewTemplateId)
+      ? selectedReviewTemplateId
+      : (deviceTemplates[0]?.template_id ?? null);
 
-  // Mock data for review status
   const reviewData = {
     status: 'submitted',
     submittedOn: 'Dec 15, 2024',
@@ -49,12 +43,15 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = () => {
   };
 
   useEffect(() => {
-    if (clientData && clientData.length) {
-      const _template = getPreviewTemplate()[0];
-      setTemplate(_template);
-      actions.setSelectedTemplate(_template);
+    const forDevice = getTemplatesForDevice(clientData, selectedDevice);
+    if (!forDevice.length) {
+      setTemplate(null);
+      return;
     }
-  }, [clientData, selectedDevice]);
+    const _template = forDevice.find((t) => t.template_id === selectedTemplateId) ?? forDevice[0];
+    setTemplate(_template);
+    actions.setSelectedTemplate(_template);
+  }, [clientData, selectedDevice, selectedTemplateId, actions]);
 
   return (
     <Card
@@ -188,6 +185,18 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = () => {
               </Radio.Button>
             </Radio.Group>
           </div>
+
+          {showTemplateSelector && (
+            <div className="mb-4">
+              <TemplateReviewSelector
+                templates={deviceTemplates}
+                value={selectedTemplateId}
+                onChange={(id) => actions.setSelectedReviewTemplateId(id)}
+                // label="Select template to review:"
+                size="middle"
+              />
+            </div>
+          )}
 
           <div className="w-full">
             {accountDetails ? (

@@ -3,7 +3,6 @@ import { useClientFlowStore } from '@/stores/clientFlowStore';
 import { useDevicesStore } from '@/stores/common/devices.store';
 import { useLoadingStore } from '@/stores/common/loading.store';
 import { useGenericStore } from '@/stores/generic.store';
-import { message } from 'antd';
 
 export const useClientFlow = () => {
   const apiClient = useGenericStore((s) => s.apiClient);
@@ -44,8 +43,6 @@ export const useClientFlow = () => {
       });
       clientFlowActions.setShopperDetails(response);
     } catch (error) {
-      console.error('Error loading shopper details:', error);
-      message.error('Failed to load shopper details');
     } finally {
       loadingActions.setShopperDetailsLoading(false);
     }
@@ -62,8 +59,6 @@ export const useClientFlow = () => {
       const response = await api.templates.getCleintTemplatesData(accountId);
       clientFlowActions.setClientData(response);
     } catch (error) {
-      console.error('Error loading client templates:', error);
-      message.error('Failed to load client templates');
     } finally {
       loadingActions.setClientTemplateDetailsLoading(false);
     }
@@ -77,8 +72,6 @@ export const useClientFlow = () => {
         await api.templateFields.getTemplateFieldsWithContent(accountId);
       clientFlowActions.setContentFields(response);
     } catch (error) {
-      console.error('Error getting fields:', error);
-      message.error('Failed to get fields');
     } finally {
       loadingActions.setContentSubDataLoading(false);
     }
@@ -93,7 +86,6 @@ export const useClientFlow = () => {
       const response = await api.devices.getDevices();
       deviceActions.setDevices(response);
     } catch (error) {
-      message.error('Failed to load devices');
     } finally {
       loadingActions.setDevicesLoading(false);
     }
