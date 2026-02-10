@@ -58,7 +58,6 @@ export const LinkTemplateModal: React.FC<LinkTemplateModalProps> = ({
       }
     } catch (error) {
       console.error('Error fetching potential child templates:', error);
-      message.error('Failed to load potential child templates');
     } finally {
       setLoading(false);
     }
@@ -84,7 +83,6 @@ export const LinkTemplateModal: React.FC<LinkTemplateModalProps> = ({
       onCancel();
     } catch (error) {
       console.error('Error linking templates:', error);
-      message.error('Failed to link templates');
     } finally {
       setSubmitting(false);
     }

@@ -140,6 +140,12 @@ export interface ClientFlowState {
   // field highlighting state
   activeHighlightedField: string | null;
   highlightedFieldName: string | null;
+
+  // selected shopper for content step (CopyReview) and fallback
+  selectedReviewShopperId: number | null;
+
+  // selected template for design review (steps 1, 2, 4) when multiple templates per device — template-based as admin grouped
+  selectedReviewTemplateId: string | null;
 }
 
 export interface ClientFlowActions {
@@ -152,6 +158,8 @@ export interface ClientFlowActions {
 
     // Template Management (API-ready)
     setSelectedTemplate: (template: any) => void;
+    setSelectedReviewShopperId: (id: number | null) => void;
+    setSelectedReviewTemplateId: (id: string | null) => void;
 
     // Error Management
     clearError: () => void;

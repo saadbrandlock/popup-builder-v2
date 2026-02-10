@@ -27,22 +27,19 @@ export const useBuilderMain = () => {
       return response;
     } catch (error) {
       console.error('Error getting template fields:', error);
-      message.error('Failed to get template fields');
       throw error;
     }
   };
 
   const createTemplate = async (data: any) => {
     if (!api) {
-      message.error('API client is required');
       throw new Error('API client is required');
     }
     try {
       const response = await api.templates.createTemplate(data);
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating template:', error);
-      message.error('Failed to create template');
       throw error;
     }
   };
@@ -57,7 +54,6 @@ export const useBuilderMain = () => {
       return response;
     } catch (error) {
       console.error('Error updating template:', error);
-      message.error('Failed to update template');
       throw error;
     }
   };
@@ -72,7 +68,6 @@ export const useBuilderMain = () => {
       return response;
     } catch (error) {
       console.error('Error assigning template:', error);
-      message.error('Failed to assign template');
       throw error;
     }
   };
@@ -116,7 +111,6 @@ export const useBuilderMain = () => {
       };
     } catch (error) {
       console.error('Error loading template:', error);
-      message.error('Failed to load template');
       throw error;
     } finally {
       loadingActions.setTemplateByIdLoading(false);
@@ -141,7 +135,6 @@ export const useBuilderMain = () => {
 
       templateActions.setDesignJson(baseTemplate.builder_state_json ?? null);
     } catch (error) {
-      message.error('Failed to load template');
     }
   };
 

@@ -127,7 +127,6 @@ export const useUnlayerImageUpload = (
       } catch (error) {
         console.error('❌ Image upload failed:', error);
         message.destroy();
-        message.error(`Upload failed: ${(error as Error).message}`);
         
         // Signal error to Unlayer
         done({ 
@@ -164,7 +163,6 @@ export const useUnlayerImageUpload = (
               
             } catch (error) {
               message.destroy();
-              message.error(`Upload failed: ${(error as Error).message}`);
               done({ error: 'Upload failed' });
             }
           }
@@ -174,7 +172,6 @@ export const useUnlayerImageUpload = (
         
       } catch (error) {
         console.error('❌ Image selection failed:', error);
-        message.error('Image selection failed');
         done({ error: 'Selection failed' });
       }
     });

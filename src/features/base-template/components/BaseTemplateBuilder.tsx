@@ -121,7 +121,6 @@ export const BaseTemplateBuilder: React.FC<BaseTemplateBuilderProps> = ({
       form.resetFields();
     } catch (error) {
       console.error('Failed to save template:', error);
-      message.error('Failed to save template');
     }
   };
 
@@ -158,17 +157,9 @@ export const BaseTemplateBuilder: React.FC<BaseTemplateBuilderProps> = ({
             saveMode="base"
           />
           <Card style={{ marginTop: 16 }}>
-            <Space>
+            <Space className="w-full justify-end">
               <Button onClick={handlePreviousStep}>Previous</Button>
               <Button onClick={onCancel}>Cancel</Button>
-              <Button
-                type="primary"
-                icon={<SaveOutlined />}
-                loading={loading}
-                onClick={handleFinish}
-              >
-                Save Template
-              </Button>
             </Space>
           </Card>
         </div>

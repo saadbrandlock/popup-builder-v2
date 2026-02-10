@@ -118,7 +118,8 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
             device_type_id: data.device_type_id,
           } as any);
         } else {
-          // Create blank template from scratch
+          // Create blank template from scratch (shopper_ids sent for duplicate check)
+          const shopperIdsForCreate = data.is_generic ? shoppers.map((s) => s.id) : data.shopper_ids;
           const newTemplate = await createTemplate({
             name: data.name,
             description: data.description,
@@ -128,6 +129,7 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
             is_generic: data.is_generic || false,
             account_ids: Array.isArray(data.account_ids) ? data.account_ids : [],
             device_type_id: data.device_type_id,
+            shopper_ids: shopperIdsForCreate,
           });
           newTemplateId = newTemplate.id;
         }
@@ -135,9 +137,7 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
         // MIGRATED: Update the template ID in Zustand store
         actions.setCurrentTemplateId(newTemplateId);
 
-        let shopperIds = data.is_generic
-          ? shoppers.map((s) => s.id)
-          : data.shopper_ids;
+        const shopperIds = data.is_generic ? shoppers.map((s) => s.id) : data.shopper_ids;
 
         await assignTemplateToShoppers(newTemplateId, shopperIds);
 
@@ -147,8 +147,7 @@ const BuilderMain: React.FC<BuilderMainProps> = ({
 
         navigate(`/coupon-builder-v2/popup-builder/${newTemplateId}/edit`);
       }
-    } catch (error) {
-      message.error('Failed to create template.');
+    } catch (error: any) {
       console.error('Config submit error:', error);
       loadingActions.setTemplateByIdLoading(false);
     } finally {

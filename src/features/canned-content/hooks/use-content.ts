@@ -24,7 +24,6 @@ export const useContent = () => {
       });
     } catch (error) {
       console.error('Error loading content:', error);
-      message.error('Failed to load content');
     } finally {
       loadingActions.setContentListingLoading(false);
     }
@@ -38,7 +37,6 @@ export const useContent = () => {
       actions.setContent(response);
     } catch (error) {
       console.error('Error loading content details:', error);
-      message.error('Failed to load content details');
     } finally {
       loadingActions.setContentListingLoading(false);
     }
@@ -58,7 +56,6 @@ export const useContent = () => {
       actions.setContent(response);
     } catch (error) {
       console.error('Error creating content:', error);
-      message.error('Failed to create content');
     } finally {
       loadingActions.setContentActionLoading(false);
     }
@@ -78,7 +75,6 @@ export const useContent = () => {
       actions.setContent(response);
     } catch (error) {
       console.error('Error updating content:', error);
-      message.error('Failed to update content');
     } finally {
       loadingActions.setContentActionLoading(false);
     }
@@ -92,7 +88,6 @@ export const useContent = () => {
       actions.setContent(null);
     } catch (error) {
       console.error('Error deleting content:', error);
-      message.error('Failed to delete content');
     } finally {
       loadingActions.setContentActionLoading(false);
     }
@@ -106,7 +101,6 @@ export const useContent = () => {
       actions.setIndustries(response);
     } catch (error) {
       console.error('Error getting industries:', error);
-      message.error('Failed to get industries');
     } finally {
       loadingActions.setContentSubDataLoading(false);
     }
@@ -120,7 +114,6 @@ export const useContent = () => {
       actions.setFields(response.map((field) => ({key: field.field, value: +field.id})));
     } catch (error) {
       console.error('Error getting fields:', error);
-      message.error('Failed to get fields');
     } finally {
       loadingActions.setContentSubDataLoading(false);
     }

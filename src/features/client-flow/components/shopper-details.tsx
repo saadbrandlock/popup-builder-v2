@@ -18,6 +18,7 @@ interface ShopperDetailsProps {
 
 const ShopperDetails: React.FC<ShopperDetailsProps> = ({ compact = false, displayMode }) => {
   const { getShopperDetails } = useClientFlow();
+  const accountDetails = useGenericStore((s) => s.accountDetails);
 
   const { activeContentShopper, shopperDetails } = useClientFlowStore();
   const { shopperDetailsLoading } = useLoadingStore();
@@ -34,6 +35,17 @@ const ShopperDetails: React.FC<ShopperDetailsProps> = ({ compact = false, displa
       setShopperDetailsData(shopperDetailsDummyData.data[0]);
     }
   }, [shopperDetails]);
+
+  useEffect(() => {
+    if (activeContentShopper?.content?.id && accountDetails?.id && accountDetails?.company_id) {
+      getShopperDetails({
+        account_id: +accountDetails.id,
+        company_id: +accountDetails.company_id,
+        shopper_id: +activeContentShopper.content.id,
+        shopper_name: activeContentShopper.content.name ?? '',  
+      });
+    }
+  }, [activeContentShopper, accountDetails]);
 
   if (shopperDetailsLoading) {
     return (

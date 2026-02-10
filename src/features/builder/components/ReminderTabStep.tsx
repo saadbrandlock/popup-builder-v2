@@ -37,7 +37,6 @@ const ReminderTabStep: React.FC<ReminderTabStepProps> = ({
     onSave: onSave,
     onError: (error) => {
       console.error('Reminder tab autosave error:', error);
-      message.error(`Autosave failed: ${error.message}`);
     },
   });
 
@@ -54,7 +53,6 @@ const ReminderTabStep: React.FC<ReminderTabStepProps> = ({
       message.success('Reminder tab configuration saved successfully!');
     } catch (error) {
       console.error('Save error:', error);
-      message.error('Failed to save reminder tab configuration');
     }
   }, [performManualSave]);
 

@@ -16,12 +16,10 @@ import ShopperSegmentSelector from '../components/shopper-segment-selector';
  * Redesigned with 2-column layout for better space utilization
  */
 export const CopyReview: React.FC = () => {
-  const accountDetails = useGenericStore((s) => s.accountDetails);
-  const browserPreviewModalOpen = useGenericStore((s) => s.browserPreviewModalOpen);
-  const genericActions = useGenericStore((s) => s.actions);
   const { devices } = useDevicesStore();
   const { getDevices } = useClientFlow();
-  const { clientData } = useClientFlowStore();
+  const { clientData, activeContentShopper } = useClientFlowStore();
+  const activeShopperId = activeContentShopper?.content?.id != null ? Number(activeContentShopper.content.id) : null;
 
   useEffect(() => {
     if (devices.length > 0) return;
@@ -64,7 +62,7 @@ export const CopyReview: React.FC = () => {
         >
           {/* Popup Preview with Desktop/Mobile Tabs - Takes full height */}
           <Card className="h-full">
-            <PopupPreviewTabs clientData={clientData} />
+            <PopupPreviewTabs clientData={clientData} activeShopperId={activeShopperId} />
           </Card>
 
           <Card className='mt-6'>

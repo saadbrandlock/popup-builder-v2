@@ -1,6 +1,7 @@
 /**
  * useAutosave Hook
- * Handles automatic saving of Unlayer designs at configurable intervals
+ * Handles automatic saving of Unlayer designs at configurable intervals.
+ * Uses refs to avoid stale closures in interval callbacks; single interval + mutex to prevent duplicate saves.
  */
 
 import { useCallback, useEffect, useRef } from 'react';
@@ -9,6 +10,8 @@ import { useUnlayerStore } from '../stores/unlayerStore';
 import { createAPI } from '@/api';
 import type { AxiosInstance } from 'axios';
 import { processTemplateFields } from '@/lib/utils/templateFieldProcessor';
+import { saveDesignWithTimeout } from '@/lib/utils/unlayerHelpers';
+import { retryWithBackoff } from '@/lib/utils/retryHelper';
 import { useClientFlowStore } from '@/stores/clientFlowStore';
 import { useTemplateFieldsStore } from '@/stores/common/template-fields.store';
 
@@ -34,7 +37,7 @@ export interface UseAutosaveReturn {
   enableAutoSave: (interval?: number) => void;
   disableAutoSave: () => void;
   triggerAutoSave: () => void;
-  forceAutoSaveCheck: () => void;
+  forceSaveNow: () => void;
 }
 
 /**
@@ -61,277 +64,201 @@ export const useAutosave = (
   const { actions } = store;
   const templateFieldsStore = useTemplateFieldsStore();
   const { templateFields } = templateFieldsStore;
-  
-  // Local state for autosave timing
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastChangeRef = useRef<Date | null>(null);
-  const nextAutoSaveRef = useRef<number | null>(null);
 
-
-  // Get current autosave settings from store
   const autoSaveEnabled = store.autoSaveEnabled && propEnabled;
   const autoSaveInterval = store.autoSaveInterval || propInterval;
   const hasUnsavedChanges = store.hasUnsavedChanges;
   const lastAutoSave = store.lastAutoSave;
 
-  /**
-   * Perform autosave operation
-   */
-  const performAutoSave = useCallback(async () => {
-    if (!editorRef.current?.editor || !hasUnsavedChanges) {
-      return;
-    }
+  // --- Ref mirrors for values read inside interval / async save (avoid stale closures) ---
+  const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
+  const templateFieldsRef = useRef(templateFields);
+  const saveToAPIRef = useRef(saveToAPI);
+  const apiClientRef = useRef(apiClient);
+  const templateIdRef = useRef(templateId);
+  const accountIdRef = useRef(accountId);
+  const saveModeRef = useRef(saveMode);
+  const onSaveRef = useRef(onSave);
+  const onErrorRef = useRef(onError);
 
-    try {
-      
-      const unlayer = editorRef.current.editor;
-      
-      // Get current design from editor
-      unlayer.saveDesign(async (design: any) => {
-        try {
-          // Process template fields before saving
-          const processedDesign = templateFields.length > 0 
-            ? processTemplateFields(design, templateFields)
-            : design;
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
+  useEffect(() => {
+    templateFieldsRef.current = templateFields;
+  }, [templateFields]);
+  useEffect(() => {
+    saveToAPIRef.current = saveToAPI;
+  }, [saveToAPI]);
+  useEffect(() => {
+    apiClientRef.current = apiClient;
+  }, [apiClient]);
+  useEffect(() => {
+    templateIdRef.current = templateId;
+  }, [templateId]);
+  useEffect(() => {
+    accountIdRef.current = accountId;
+  }, [accountId]);
+  useEffect(() => {
+    saveModeRef.current = saveMode;
+  }, [saveMode]);
+  useEffect(() => {
+    onSaveRef.current = onSave;
+  }, [onSave]);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
-            
-          
-          // Only save to our custom API when enabled
-          if (saveToAPI && apiClient && templateId) {
-            const api = createAPI(apiClient);
-            const selectedTemplate = useClientFlowStore.getState().selectedTemplate;
-            
-            // Check if we're editing a template from client review
-            if (selectedTemplate && selectedTemplate.template_id === templateId) {
-              
-              // Use the client review template update API
-              await api.templates.updateClientReviewTemplate(templateId, {
-                builder_state_json: processedDesign
-              });
-              
-              // Update the selectedTemplate in the store as well
-              useClientFlowStore.getState().actions.setSelectedTemplate({
-                ...selectedTemplate,
-                builder_state_json: processedDesign
-              });
-              
-            } else {
-              if (saveMode === 'base') {
-                await api.templates.updateBaseTemplate(templateId, {
-                  builder_state_json: processedDesign,
-                });
-              } else {
-                
-                // Use regular staging template API
-                await api.templates.upsertTemplate(templateId, {
-                  builder_state_json: processedDesign,
-                  is_builder_state: true
-                });
-                
-              }
-            }
-            
-            // Update local store state without calling saveDesign
-            actions.setCurrentDesign(processedDesign);
-            actions.markUnsavedChanges(false);
-            actions.setLastAutoSave(new Date());
-          } else {
-          }
-          
-          // Call external save handler if provided
-          if (onSave) {
-            await onSave(processedDesign);
-          }
-          
-        } catch (error) {
-          console.error('❌ Autosave error:', error);
-          const err = error instanceof Error ? error : new Error('Autosave failed');
-          actions.setError(`Autosave failed: ${err.message}`);
-          onError?.(err);
-        }
-      });
-    } catch (error) {
-      console.error('❌ Autosave error:', error);
-      const err = error instanceof Error ? error : new Error('Autosave failed');
-      actions.setError(`Autosave failed: ${err.message}`);
-      onError?.(err);
-    }
-  }, [editorRef, hasUnsavedChanges, actions, onSave, onError, saveToAPI, apiClient, templateId, templateFields, saveMode]);
+  // Mutex to prevent overlapping saves
+  const isSavingRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastChangeRef = useRef<Date | null>(null);
+  const nextAutoSaveRef = useRef<number | null>(null);
 
   /**
-   * Manual save operation
+   * Core save: get design from editor, process template fields, optional API + onSave, always update store on success.
+   * Uses refs for all options so it can be stable (minimal deps) and still read fresh values.
    */
-  const performManualSave = useCallback(async () => {
-    if (!editorRef.current?.editor) {
-      throw new Error('Editor not available');
-    }
-
-    return new Promise<void>((resolve, reject) => {
-      const unlayer = editorRef.current?.editor;
-      
-      if (!unlayer) {
-        reject(new Error('Editor not available'));
+  const performSave = useCallback(
+    async (isManual: boolean) => {
+      if (isSavingRef.current) return;
+      const editor = editorRef.current?.editor;
+      if (!editor) {
+        if (isManual) throw new Error('Editor not available');
         return;
       }
-      
-      unlayer.saveDesign(async (design: any) => {
-        try {
-          // Process template fields before saving
-          const processedDesign = templateFields.length > 0 
-            ? processTemplateFields(design, templateFields)
-            : design;
-          
-          // Only save to our custom API when enabled
-          if (saveToAPI && apiClient && templateId) {
-            const api = createAPI(apiClient);
+      if (!isManual && !hasUnsavedChangesRef.current) return;
+
+      isSavingRef.current = true;
+
+      try {
+        const design = await saveDesignWithTimeout(editor, 10000);
+
+        const fields = templateFieldsRef.current;
+        const processedDesign =
+          fields && fields.length > 0 ? processTemplateFields(design, fields) : design;
+
+        let saveSucceeded = false;
+
+        if (saveToAPIRef.current && apiClientRef.current && templateIdRef.current) {
+          await retryWithBackoff(async () => {
+            const api = createAPI(apiClientRef.current!);
             const selectedTemplate = useClientFlowStore.getState().selectedTemplate;
-            
-            // Check if we're editing a template from client review
-            if (selectedTemplate && selectedTemplate.template_id === templateId) {
-              
-              // Use the client review template update API
-              await api.templates.updateClientReviewTemplate(templateId, {
-                builder_state_json: processedDesign
+            const tid = templateIdRef.current!;
+
+            if (selectedTemplate && selectedTemplate.template_id === tid) {
+              await api.templates.updateClientReviewTemplate(tid, {
+                builder_state_json: processedDesign,
               });
-              
-              // Update the selectedTemplate in the store as well
               useClientFlowStore.getState().actions.setSelectedTemplate({
                 ...selectedTemplate,
-                builder_state_json: processedDesign
+                builder_state_json: processedDesign,
               });
-              
             } else {
-              if (saveMode === 'base') {
-                await api.templates.updateBaseTemplate(templateId, {
+              if (saveModeRef.current === 'base') {
+                await api.templates.updateBaseTemplate(tid, {
                   builder_state_json: processedDesign,
                 });
               } else {
-                
-                // Use regular staging template API
-                await api.templates.upsertTemplate(templateId, {
+                await api.templates.upsertTemplate(tid, {
                   builder_state_json: processedDesign,
-                  is_builder_state: true
+                  is_builder_state: true,
                 });
-                
               }
             }
-            
-            // Update local store state without calling saveDesign
-            actions.setCurrentDesign(processedDesign);
-            actions.markUnsavedChanges(false);
-            actions.setLastAutoSave(new Date());
-          } else {
-          }
-          
-          if (onSave) {
-            await onSave(processedDesign);
-          }
-          
-          resolve();
-        } catch (error) {
-          console.error('❌ Manual save error:', error);
-          const err = error instanceof Error ? error : new Error('Manual save failed');
-          actions.setError(`Save failed: ${err.message}`);
-          onError?.(err);
-          reject(err);
+          }, 2, 2000);
+          saveSucceeded = true;
         }
-      });
-    });
-  }, [editorRef, actions, onSave, onError, saveToAPI, apiClient, templateId, templateFields, saveMode]);
 
-  /**
-   * Enable autosave with optional interval
-   */
-  const enableAutoSave = useCallback((interval?: number) => {
-    actions.enableAutoSave(interval);
-  }, [actions]);
+        if (onSaveRef.current) {
+          await onSaveRef.current(processedDesign);
+          saveSucceeded = true;
+        }
 
-  /**
-   * Disable autosave
-   */
+        // Always update store on success (even when only onSave was called)
+        if (saveSucceeded) {
+          actions.setCurrentDesign(processedDesign);
+          actions.markUnsavedChanges(false);
+          actions.setLastAutoSave(new Date());
+        }
+      } catch (error) {
+        console.error('❌ Autosave error:', error);
+        const err = error instanceof Error ? error : new Error('Autosave failed');
+        actions.setError(`Autosave failed: ${err.message}`);
+        onErrorRef.current?.(err);
+        if (isManual) throw err;
+      } finally {
+        isSavingRef.current = false;
+      }
+    },
+    [editorRef, actions]
+  );
+
+  const performAutoSave = useCallback(() => {
+    performSave(false);
+  }, [performSave]);
+
+  const performManualSave = useCallback(async () => {
+    await performSave(true);
+  }, [performSave]);
+
+  const enableAutoSave = useCallback(
+    (interval?: number) => {
+      actions.enableAutoSave(interval);
+    },
+    [actions]
+  );
+
   const disableAutoSave = useCallback(() => {
     actions.disableAutoSave();
-    
-    // Clear existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
   }, [actions]);
 
-  /**
-   * Calculate next autosave time
-   */
   const calculateNextAutoSave = useCallback((): number | null => {
-    if (!autoSaveEnabled || !hasUnsavedChanges) {
-      return null;
-    }
-
+    if (!autoSaveEnabled || !hasUnsavedChanges) return null;
     const lastChange = lastChangeRef.current;
-    if (!lastChange) {
-      return null;
-    }
-
+    if (!lastChange) return null;
     return lastChange.getTime() + autoSaveInterval;
   }, [autoSaveEnabled, hasUnsavedChanges, autoSaveInterval]);
 
-  /**
-   * Manual auto-save trigger
-   */
   const triggerAutoSave = useCallback(() => {
     performAutoSave();
   }, [performAutoSave]);
 
-  /**
-   * Force auto-save check (sets up interval if needed)
-   */
-  const forceAutoSaveCheck = useCallback(() => {
-    if (autoSaveEnabled && hasUnsavedChanges && !intervalRef.current) {
-      
-      intervalRef.current = setInterval(() => {
-        performAutoSave();
-      }, autoSaveInterval);
-
-      nextAutoSaveRef.current = calculateNextAutoSave();
+  /** Trigger an immediate save if there are unsaved changes; does not create a second interval. */
+  const forceSaveNow = useCallback(() => {
+    if (!isSavingRef.current && hasUnsavedChangesRef.current) {
+      performAutoSave();
     }
-  }, [autoSaveEnabled, hasUnsavedChanges, autoSaveInterval, performAutoSave, calculateNextAutoSave]);
+  }, [performAutoSave]);
 
-  /**
-   * Setup autosave interval
-   */
+  // Single interval: callback reads from ref so no stale closure
   useEffect(() => {
-    // Clear existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
-    // Setup new interval if autosave is enabled and always keep it running
-    if (autoSaveEnabled) {
-      
+    if (autoSaveEnabled && autoSaveInterval > 0) {
       intervalRef.current = setInterval(() => {
-        // Only perform auto-save if there are unsaved changes
-        if (hasUnsavedChanges) {  
+        if (hasUnsavedChangesRef.current && !isSavingRef.current) {
           performAutoSave();
         }
       }, autoSaveInterval);
-
-      // Update next autosave time
       nextAutoSaveRef.current = calculateNextAutoSave();
     }
 
-    // Cleanup on unmount or dependency change
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [autoSaveEnabled, autoSaveInterval, performAutoSave, calculateNextAutoSave]); // Removed hasUnsavedChanges dependency
+  }, [autoSaveEnabled, autoSaveInterval, performAutoSave, calculateNextAutoSave]);
 
-  /**
-   * Track design changes
-   */
   useEffect(() => {
     if (hasUnsavedChanges) {
       lastChangeRef.current = new Date();
@@ -348,6 +275,6 @@ export const useAutosave = (
     enableAutoSave,
     disableAutoSave,
     triggerAutoSave,
-    forceAutoSaveCheck,
+    forceSaveNow,
   };
 };

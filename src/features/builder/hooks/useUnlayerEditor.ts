@@ -3,7 +3,7 @@
  * Main integration hook for React email editor with autosave and export features
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { EditorRef } from 'react-email-editor';
 import { useUnlayerStore } from '../stores/unlayerStore';
 import { useTemplateFieldsStore } from '@/stores/common/template-fields.store';
@@ -33,6 +33,8 @@ export interface UseUnlayerEditorOptions {
   loadTemplateOnReady?: boolean;
   onTemplateLoad?: (template: any) => void;
   onTemplateLoadError?: (error: Error) => void;
+  /** Called at the end of onEditorReady; use to register custom blocks and design:updated handlers */
+  extendEditorReady?: (unlayer: any) => void;
 }
 
 export interface UseUnlayerEditorReturn {
@@ -84,38 +86,28 @@ export interface UseUnlayerEditorReturn {
 
 /**
  * Decode HTML entities in Unlayer design data
- * Fixes issue where HTML content is encoded as &lt; &gt; etc.
+ * Fixes issue where HTML content is encoded as &lt; &gt; etc. after save/load from API.
+ * Decodes both 'text' and 'html' fields so custom component HTML renders instead of showing raw entities.
  */
 const decodeHtmlEntitiesInDesign = (designData: any): any => {
-  // Create a temporary DOM element to decode HTML entities
   const decodeHtmlEntities = (str: string): string => {
     if (typeof str !== 'string') return str;
-
     const textarea = document.createElement('textarea');
     textarea.innerHTML = str;
     return textarea.value;
   };
 
-  // Recursively process the design data
   const processObject = (obj: any): any => {
-    if (typeof obj !== 'object' || obj === null) {
-      return obj;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map(processObject);
-    }
+    if (typeof obj !== 'object' || obj === null) return obj;
+    if (Array.isArray(obj)) return obj.map(processObject);
 
     const processed: any = {};
     for (const [key, value] of Object.entries(obj)) {
-      if (key === 'text' && typeof value === 'string') {
-        // Decode HTML entities in text fields
+      if ((key === 'text' || key === 'html') && typeof value === 'string') {
         processed[key] = decodeHtmlEntities(value);
       } else if (typeof value === 'object') {
-        // Recursively process nested objects
         processed[key] = processObject(value);
       } else {
-        // Keep other values as-is
         processed[key] = value;
       }
     }
@@ -144,6 +136,7 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
     loadTemplateOnReady = true,
     onTemplateLoad,
     onTemplateLoadError,
+    extendEditorReady,
   } = options;
 
   // Editor ref
@@ -180,7 +173,6 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
     disableAutoSave,
     performManualSave,
     triggerAutoSave,
-    forceAutoSaveCheck,
   } = useAutosave(editorRef, {
     enabled: autoSave,
     interval: autoSaveInterval,
@@ -193,6 +185,15 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
     saveToAPI: enableCustomImageUpload && !!apiClient && !!templateId, // Use same condition as image upload
     saveMode,
   });
+
+  // Refs for change-detection polling: avoid stale closures and ensure cleanup on unmount
+  const changeDetectionCleanupRef = useRef<(() => void) | null>(null);
+  const lastKnownDesignHashRef = useRef<string>('');
+  const isPollingRef = useRef(false);
+  const actionsRef = useRef(actions);
+  useEffect(() => {
+    actionsRef.current = actions;
+  }, [actions]);
 
   /**
    * Save current design
@@ -213,8 +214,9 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
 
       try {
         const unlayer = editorRef.current.editor;
-        unlayer.loadDesign(design);
-        actions.loadDesign(design);
+        const decodedDesign = decodeHtmlEntitiesInDesign(design);
+        unlayer.loadDesign(decodedDesign);
+        actions.loadDesign(decodedDesign);
 
       } catch (error) {
         console.error('❌ Failed to load design:', error);
@@ -463,101 +465,44 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
         loadTemplateById(templateId);
       }
 
-      // Set up comprehensive design change listeners for autosave
+      // Design change detection: primary events + polling fallback (Unlayer sometimes skips design:updated on same-element edits)
 
-      // Primary event: design:updated
-      unlayer.addEventListener('design:updated', (updatedDesign: any) => {
-        actions.setCurrentDesign(updatedDesign);
-        actions.markUnsavedChanges(true);
-        onDesignChange?.(updatedDesign);
+      const handleDesignChange = () => {
+        unlayer.saveDesign((design: any) => {
+          const hash = JSON.stringify(design);
+          lastKnownDesignHashRef.current = hash;
+          actionsRef.current.setCurrentDesign(design);
+          actionsRef.current.markUnsavedChanges(true);
+          onDesignChange?.(design);
+        });
+      };
 
-        // Force auto-save check to ensure interval is running
-          forceAutoSaveCheck();
-      });
+      unlayer.addEventListener('design:updated', handleDesignChange);
+      try {
+        unlayer.addEventListener('design:changed', handleDesignChange);
+      } catch {
+        // design:changed may not exist in all Unlayer versions
+      }
 
-      // Additional events to catch all possible changes
-      const additionalEvents = [
-        'element:added',
-        'element:removed',
-        'element:modified',
-        'element:moved',
-        'element:resized',
-        'element:copied',
-        'element:pasted',
-        'design:loaded',
-        'design:changed',
-        'canvas:updated',
-        'content:updated',
-      ];
-
-      // Test basic editor events first to see if ANY events work
-      const basicTestEvents = [
-        'ready',
-        'loaded',
-        'rendered',
-        'updated',
-        'changed',
-        'click',
-        'mousedown',
-        'mouseup',
-      ];
-
-      basicTestEvents.forEach((eventName) => {
-        try {
-          unlayer.addEventListener(eventName, (eventData: any) => {
-          });
-        } catch (error) {
-        }
-      });
-
-      additionalEvents.forEach((eventName) => {
-        try {
-          unlayer.addEventListener(eventName, (data: any) => {
-            // Mark as changed for any canvas operation
-            if (!store.hasUnsavedChanges) {
-              actions.markUnsavedChanges(true);
-            }
-
-            // Force auto-save check for immediate response
-            forceAutoSaveCheck();
-
-            // Optionally get current design and update store
-            unlayer.saveDesign((currentDesign: any) => {
-              actions.setCurrentDesign(currentDesign);
-              onDesignChange?.(currentDesign);
-            });
-          });
-        } catch (error) {
-        }
-      });
-
-      // Fallback: Periodic change detection
+      // Fallback: poll every 3s so we catch changes when design:updated stops firing (e.g. consecutive same-element edits)
       const changeDetectionInterval = setInterval(() => {
-        if (!unlayer || !store.isReady) return;
-
+        if (isPollingRef.current) return;
+        isPollingRef.current = true;
         unlayer.saveDesign((currentDesign: any) => {
-          const currentDesignStr = JSON.stringify(currentDesign);
-          const savedDesignStr = JSON.stringify(store.savedDesign);
-
-          if (currentDesignStr !== savedDesignStr && !store.hasUnsavedChanges) {
-            actions.setCurrentDesign(currentDesign);
-            actions.markUnsavedChanges(true);
-            onDesignChange?.(currentDesign);
-
-            // Force auto-save check for fallback detection
-            forceAutoSaveCheck();
+          isPollingRef.current = false;
+          const hash = JSON.stringify(currentDesign);
+          if (hash !== lastKnownDesignHashRef.current) {
+            lastKnownDesignHashRef.current = hash;
+            actionsRef.current.markUnsavedChanges(true);
           }
         });
-      }, 3000); // Check every 3 seconds
+      }, 3000);
 
-      // Cleanup interval on unmount/editor change
-      const cleanup = () => {
+      changeDetectionCleanupRef.current = () => {
         clearInterval(changeDetectionInterval);
       };
 
-      // Store cleanup function for later use
-      (unlayer as any).__changeDetectionCleanup = cleanup;
-
+      extendEditorReady?.(unlayer);
     },
     [
       actions,
@@ -570,10 +515,17 @@ export const useUnlayerEditor = (options: UseUnlayerEditorOptions): UseUnlayerEd
       setupImageUpload,
       loadTemplateOnReady,
       loadTemplateById,
-      forceAutoSaveCheck,
-      store,
+      extendEditorReady,
     ]
   );
+
+  // Clear polling interval on unmount so it does not leak
+  useEffect(() => {
+    return () => {
+      changeDetectionCleanupRef.current?.();
+      changeDetectionCleanupRef.current = null;
+    };
+  }, []);
 
   /**
    * Restore design from history

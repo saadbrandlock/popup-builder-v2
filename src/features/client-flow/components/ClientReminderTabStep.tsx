@@ -40,7 +40,6 @@ export const ClientReminderTabStep: React.FC<ClientReminderTabStepProps> = ({
     templateId: currentTemplateId || undefined,
     onError: (error) => {
       console.error('Reminder tab autosave error:', error);
-      message.error(`Autosave failed: ${error.message}`);
     },
   });
 
@@ -57,7 +56,6 @@ export const ClientReminderTabStep: React.FC<ClientReminderTabStepProps> = ({
       message.success('Reminder tab configuration saved!');
     } catch (error) {
       console.error('Save error:', error);
-      message.error('Failed to save reminder tab configuration');
     }
   }, [performManualSave]);
 

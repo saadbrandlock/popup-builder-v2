@@ -110,8 +110,8 @@ export class ContentAPI extends BaseAPI {
 
   async getShopperDetails(payload: GetShopperDetailsPayload): Promise<ShopperDetails> {
     try {
-      const response = await this.post<ShopperDetails>(`/shopper-group-details/description`, payload, true);
-      return response;
+      const response = await this.post<ShopperDetails[]>(`/shopper-group-details/description`, payload, true);
+      return response[0];
     } catch (error) {
       throw error;
     }
